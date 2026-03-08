@@ -35,6 +35,7 @@ class ClusterConfig:
 class DetailedGreenplumFunctionAnalyzer:
     """
     Автономный анализатор с двухэтапным процессом
+    Поддерживает как функции, так и обычные SQL запросы
     """
     
     def __init__(self, config: Optional[ClusterConfig] = None):
@@ -51,6 +52,8 @@ class DetailedGreenplumFunctionAnalyzer:
         self.variables = {}
         self.variable_line_numbers = {}
         self.temp_table_tracker = TempTableTracker()
+        self.input_type = None  # 'function' или 'query'
+        self.view_to_tables_map = {}  # маппинг представление -> физические таблицы
         self.multipliers = {
             'Seq Scan': 1.15,
             'Index Scan': 0.05,
@@ -120,10 +123,38 @@ class DetailedGreenplumFunctionAnalyzer:
         result = self._execute_query(query, (schema, view_name))
         return result[0][0] if result and result[0] else None
     
+    def _detect_input_type(self, sql_text: str) -> str:
+        """
+        Определяет тип входных данных: 'function' или 'query'
+        """
+        sql_upper = sql_text.strip().upper()
+        
+        # Признаки функции
+        function_indicators = [
+            'CREATE OR REPLACE FUNCTION',
+            'CREATE FUNCTION',
+            'RETURNS',
+            'LANGUAGE PLPGSQL',
+            'LANGUAGE SQL',
+            'AS $$',
+            'DECLARE'
+        ]
+        
+        for indicator in function_indicators:
+            if indicator in sql_upper:
+                return 'function'
+        
+        # Если нет признаков функции - считаем запросом
+        return 'query'
+    
     def _extract_function_body(self, ddl: str) -> str:
         """
-        Извлекает тело функции из DDL, удаляя обёртку CREATE FUNCTION и AS $$ ... $$.
+        Извлекает тело функции из DDL.
+        Если это не функция, возвращает исходный текст.
         """
+        if 'FUNCTION' not in ddl.upper():
+            return ddl  # Это обычный запрос
+        
         patterns = [
             r'AS\s*\$\$\s*(.*?)\s*\$\$\s*(?:LANGUAGE|EXECUTE|VOLATILE|IMMUTABLE|STABLE|SECURITY|COST|ROWS|SET|FROM|$$|$)',
             r'AS\s*\$\$([\s\S]*?)\$\$',
@@ -481,17 +512,30 @@ class DetailedGreenplumFunctionAnalyzer:
         
         return result
 
-    def discover_tables(self, ddl: str, user_params: List[str] = None) -> Dict[str, Any]:
-        """Первый этап: обнаружение таблиц в DDL"""
+    def discover_tables(self, sql_text: str, user_params: List[str] = None) -> Dict[str, Any]:
+        """
+        Первый этап: обнаружение таблиц в DDL или SQL запросе
+        """
         self.discovered_tables = {}
         self.physical_tables = set()
-        self.view_to_tables_map = {}  # !!! НОВОЕ: словарь для маппинга представление -> список физических таблиц
+        self.view_to_tables_map = {}
         self.temp_tables = set()
         self.variables = {}
         self.block_types = []
         self.temp_table_tracker = TempTableTracker()
         
-        print("🔍 Этап 1: Обнаружение таблиц в DDL")
+        # Определяем тип входных данных
+        self.input_type = self._detect_input_type(sql_text)
+        print(f"🔍 Обнаружен тип входных данных: {self.input_type}")
+        
+        if self.input_type == 'function':
+            return self._discover_tables_from_function(sql_text, user_params)
+        else:
+            return self._discover_tables_from_query(sql_text, user_params)
+    
+    def _discover_tables_from_function(self, ddl: str, user_params: List[str] = None) -> Dict[str, Any]:
+        """Обнаружение таблиц из функции"""
+        print("🔍 Этап 1: Обнаружение таблиц в DDL функции")
         
         # Извлекаем тело функции
         function_body = self._extract_function_body(ddl)
@@ -562,6 +606,7 @@ class DetailedGreenplumFunctionAnalyzer:
         if not self.conn:
             print("❌ Нет подключения к БД. Невозможно раскрыть представления.")
             return {
+                'input_type': 'function',
                 'function': self.func_name,
                 'blocks_count': len(self.blocks),
                 'block_types': self.block_types,
@@ -581,18 +626,16 @@ class DetailedGreenplumFunctionAnalyzer:
                     if view_def:
                         view_definitions[(schema.lower(), name.lower())] = view_def
         
-        # !!! НОВОЕ: Рекурсивно раскрываем представления и сохраняем маппинг
+        # Рекурсивно раскрываем представления
         if all_objects:
             print("\n🔍 Рекурсивное раскрытие объектов:")
             for schema, name in all_objects:
                 view_key = f"{schema}.{name}"
                 print(f"  📌 {view_key}")
                 
-                # Получаем все физические таблицы для этого объекта
                 tables = self._resolve_object_to_tables(schema, name)
                 self.physical_tables.update(tables)
                 
-                # Сохраняем маппинг представление -> физические таблицы
                 physical_table_keys = [f"{s}.{t}" for s, t in tables]
                 self.view_to_tables_map[view_key] = physical_table_keys
                 
@@ -644,16 +687,125 @@ class DetailedGreenplumFunctionAnalyzer:
                     }
                     print(f"  ⚠️ {key}: статистика недоступна")
         
-        # !!! НОВОЕ: Добавляем маппинг в результат
         return {
+            'input_type': 'function',
             'function': self.func_name,
             'blocks_count': len(self.blocks),
             'block_types': self.block_types,
             'temp_tables': list(self.temp_tables),
             'discovered_tables': self.discovered_tables,
-            'view_to_tables_map': self.view_to_tables_map,  # маппинг представлений
+            'view_to_tables_map': self.view_to_tables_map,
             'physical_tables_count': len(self.physical_tables),
             'variables': self.variables,
+            'status': 'tables_discovered'
+        }
+    
+    def _discover_tables_from_query(self, query: str, user_params: List[str] = None) -> Dict[str, Any]:
+        """Обнаружение таблиц в обычном SQL запросе"""
+        print("🔍 Этап 1: Обнаружение таблиц в SQL запросе")
+        
+        # Очищаем запрос от параметров если они есть
+        clean_query = query
+        if user_params:
+            # Простая замена позиционных параметров
+            for i, param in enumerate(user_params, 1):
+                placeholder = f"${i}"
+                if param.startswith("'") and param.endswith("'"):
+                    clean_query = clean_query.replace(placeholder, param)
+                else:
+                    clean_query = clean_query.replace(placeholder, f"'{param}'")
+        
+        # Разбиваем запрос на блоки (для CTE и подзапросов)
+        self.blocks = block_parser.split_sql_blocks(clean_query)
+        self.block_types = [block_parser.classify_block(block) for block in self.blocks]
+        
+        print(f"🧩 Найдено {len(self.blocks)} логических блоков в запросе")
+        
+        # Собираем все объекты из запроса
+        all_objects = set()
+        view_definitions = {}
+        
+        for i, block in enumerate(self.blocks):
+            objects = self._extract_objects_from_sql(block)
+            for sch, tbl in objects:
+                all_objects.add((sch, tbl))
+        
+        print(f"📋 Найдено {len(all_objects)} объектов (таблиц/представлений) в запросе")
+        
+        if not self.conn:
+            print("❌ Нет подключения к БД. Невозможно раскрыть представления.")
+            return {
+                'input_type': 'query',
+                'blocks_count': len(self.blocks),
+                'block_types': self.block_types,
+                'discovered_tables': {},
+                'status': 'error',
+                'error': 'Нет подключения к БД'
+            }
+        
+        # Получаем определения представлений
+        if self.conn:
+            for schema, name in all_objects:
+                obj_type = self._get_object_type(schema, name)
+                if obj_type == 'view':
+                    view_def = self._get_view_definition(schema, name)
+                    if view_def:
+                        view_definitions[(schema.lower(), name.lower())] = view_def
+        
+        # Рекурсивно раскрываем представления
+        if all_objects:
+            print("\n🔍 Рекурсивное раскрытие объектов:")
+            for schema, name in all_objects:
+                view_key = f"{schema}.{name}"
+                print(f"  📌 {view_key}")
+                
+                tables = self._resolve_object_to_tables(schema, name)
+                self.physical_tables.update(tables)
+                
+                physical_table_keys = [f"{s}.{t}" for s, t in tables]
+                self.view_to_tables_map[view_key] = physical_table_keys
+                
+                for s, t in tables:
+                    print(f"    └─ {s}.{t}")
+        
+        print(f"\n📊 Найдено {len(self.physical_tables)} физических таблиц")
+        
+        # Получаем статистику
+        if self.physical_tables:
+            print("\n📊 Сбор статистики для физических таблиц:")
+            for schema, table in sorted(self.physical_tables):
+                key = f"{schema}.{table}"
+                stats = self._get_real_table_stats(schema, table)
+                if stats:
+                    self.discovered_tables[key] = {
+                        'schema': schema,
+                        'table': table,
+                        'current_rows': stats.rows_estimate,
+                        'size_gb': stats.memory_estimate_gb,
+                        'avg_row_size_bytes': stats.avg_row_size_bytes,
+                        'columns': stats.columns,
+                        'user_rows': stats.rows_estimate
+                    }
+                    print(f"  📈 {key}: {stats.rows_estimate:,} строк, {stats.memory_estimate_gb:.3f} GB")
+                else:
+                    self.discovered_tables[key] = {
+                        'schema': schema,
+                        'table': table,
+                        'current_rows': 0,
+                        'size_gb': 0,
+                        'avg_row_size_bytes': 0,
+                        'columns': 0,
+                        'user_rows': 0
+                    }
+                    print(f"  ⚠️ {key}: статистика недоступна")
+        
+        return {
+            'input_type': 'query',
+            'blocks_count': len(self.blocks),
+            'block_types': self.block_types,
+            'discovered_tables': self.discovered_tables,
+            'view_to_tables_map': self.view_to_tables_map,
+            'physical_tables_count': len(self.physical_tables),
             'status': 'tables_discovered'
         }
     
@@ -802,13 +954,21 @@ class DetailedGreenplumFunctionAnalyzer:
 
     def analyze_with_user_sizes(self, user_params: List[str], user_table_sizes: Dict[str, int]) -> Dict:
         """Второй этап: анализ нагрузки с пользовательскими размерами таблиц."""
+        
+        if self.input_type == 'function':
+            return self._analyze_function_with_user_sizes(user_params, user_table_sizes)
+        else:
+            return self._analyze_query_with_user_sizes(user_params, user_table_sizes)
+
+    def _analyze_function_with_user_sizes(self, user_params: List[str], user_table_sizes: Dict[str, int]) -> Dict:
+        """Анализ нагрузки для функции"""
         function_body = '\n'.join(self.blocks)
         print("\n[DEBUG] Первые 20 строк тела функции:")
         for i, line in enumerate(function_body.split('\n')[:20]):
             print(f"  {i+1}: {line}")
 
         self.block_results = []
-        print("\n🔍 Этап 2: Анализ нагрузки с пользовательскими размерами")
+        print("\n🔍 Этап 2: Анализ нагрузки функции с пользовательскими размерами")
         
         if not self.blocks:
             print("❌ Нет блоков для анализа")
@@ -835,26 +995,23 @@ class DetailedGreenplumFunctionAnalyzer:
         
         print(f"[DEBUG] После сопоставления: {param_values}")
         
-        # 1. Получаем начальные значения из DECLARE
+        # Получаем начальные значения из DECLARE
         print("\n[DEBUG] Парсинг секции DECLARE:")
+        function_body = '\n'.join(self.blocks)
         declare_vars = self._parse_declare_section(function_body)
         print("\n[DEBUG] Начальные переменные из DECLARE:")
         
         current_vars = {}
         
-        # Добавляем переменные из DECLARE
         for var_name, (var_value, line) in declare_vars.items():
             current_vars[var_name] = var_value
             print(f"  {var_name} = {var_value}")
         
-        # Добавляем параметры функции
         for param_name, param_value in param_values.items():
             current_vars[param_name] = param_value
             print(f"  [PARAM] {param_name} = {param_value}")
         
-        # !!! ПРИНУДИТЕЛЬНОЕ ВЫЧИСЛЕНИЕ КЛЮЧЕВЫХ ПЕРЕМЕННЫХ
-        
-        # Вычисляем v_run_dt из p_run_dt
+        # Принудительное вычисление ключевых переменных
         if 'p_run_dt' in current_vars:
             p_run_dt = current_vars['p_run_dt']
             if p_run_dt == 'current_date':
@@ -863,28 +1020,23 @@ class DetailedGreenplumFunctionAnalyzer:
                 current_vars['v_run_dt'] = f"'{p_run_dt}'::date"
             print(f"  [ВЫЧИСЛЕНО] v_run_dt = {current_vars['v_run_dt']}")
         
-        # Вычисляем v_hist_start из p_hist_depth
         if 'p_hist_depth' in current_vars:
             current_vars['v_hist_start'] = f"'{current_vars['p_hist_depth']}'::date"
             print(f"  [ВЫЧИСЛЕНО] v_hist_start = {current_vars['v_hist_start']}")
         
-        # Вычисляем производные от v_run_dt
         if 'v_run_dt' in current_vars:
             v_run_dt = current_vars['v_run_dt']
-            
             current_vars['v_prev_run_dt'] = f"({v_run_dt} - interval '1 day')::date"
             current_vars['v_prev_two_month_end_eom'] = f"(date_trunc('month', {v_run_dt} - interval '2 months') + interval '1 month' - interval '1 day')::date"
             current_vars['v_prev_month_start'] = f"date_trunc('month', {v_run_dt} - interval '1 month')::date"
             current_vars['v_curr_month_start'] = f"date_trunc('month', {v_run_dt})::date"
             current_vars['v_next_month_start'] = f"date_trunc('month', {v_run_dt} + interval '1 month')::date"
-            
             print(f"  [ВЫЧИСЛЕНО] v_prev_run_dt = {current_vars['v_prev_run_dt']}")
             print(f"  [ВЫЧИСЛЕНО] v_prev_two_month_end_eom = {current_vars['v_prev_two_month_end_eom']}")
             print(f"  [ВЫЧИСЛЕНО] v_prev_month_start = {current_vars['v_prev_month_start']}")
             print(f"  [ВЫЧИСЛЕНО] v_curr_month_start = {current_vars['v_curr_month_start']}")
             print(f"  [ВЫЧИСЛЕНО] v_next_month_start = {current_vars['v_next_month_start']}")
         
-        # Вычисляем v_reload_start
         if 'p_reload_start_date' in current_vars and current_vars['p_reload_start_date']:
             reload_start = current_vars['p_reload_start_date']
             current_vars['v_reload_start'] = f"date_trunc('month', '{reload_start}'::date)::date"
@@ -895,7 +1047,6 @@ class DetailedGreenplumFunctionAnalyzer:
             current_vars['v_reload_start'] = f"date_trunc('month', {v_run_dt} - (interval '1 month') * {months})::date"
             print(f"  [ВЫЧИСЛЕНО] v_reload_start = {current_vars['v_reload_start']}")
         
-        # Корректировка v_reload_start если меньше v_hist_start
         if 'v_reload_start' in current_vars and 'v_hist_start' in current_vars:
             print(f"  [ИНФО] v_reload_start будет проверен на >= v_hist_start в SQL")
         
@@ -908,11 +1059,9 @@ class DetailedGreenplumFunctionAnalyzer:
             
             print(f"\n--- Блок {idx+1} [{block_type}] ---")
             
-            # Пропускаем нетекстовые блоки
             if block_type in ['DECLARE', 'END', 'OTHER']:
                 continue
             
-            # Ищем присваивания в блоке
             if ':=' in block:
                 block_vars = self._extract_assignments_from_block_recursive(block)
                 
@@ -921,7 +1070,6 @@ class DetailedGreenplumFunctionAnalyzer:
                     
                     for var_name, expr in block_vars.items():
                         if expr != 'NULL':
-                            # Подставляем текущие значения переменных
                             computed_expr = expr
                             for other_var, other_val in current_vars.items():
                                 if other_var != var_name and other_val != 'NULL':
@@ -931,7 +1079,6 @@ class DetailedGreenplumFunctionAnalyzer:
                             current_vars[var_name] = computed_expr
                             print(f"    ⚡ {var_name} = {computed_expr[:50]}...")
             
-            # Ищем SELECT INTO
             if 'SELECT' in block.upper() and 'INTO' in block.upper():
                 select_vars = self._extract_select_into_from_block(block)
                 for var_name in select_vars:
@@ -939,9 +1086,7 @@ class DetailedGreenplumFunctionAnalyzer:
                         current_vars[var_name] = 'NULL'
                         print(f"    📍 {var_name} = (из SELECT INTO)")
             
-            # Выполняем SQL блок
             if block_parser.is_executable_sql(block_type):
-                # Заменяем переменные в SQL
                 block_with_vars = block
                 for var_name, var_value in current_vars.items():
                     if var_value != 'NULL' and var_value != '':
@@ -955,29 +1100,24 @@ class DetailedGreenplumFunctionAnalyzer:
                     tables_in_block = self._extract_objects_from_sql(clean_sql)
                     print(f"  📋 Таблицы в блоке: {[f'{sch}.{tbl}' for sch, tbl in tables_in_block]}")
                     
-                    # Получаем план
                     plan_json = self._get_plan_for_block(clean_sql)
                     if plan_json:
-                        # Улучшаем план с учётом временных таблиц
                         enhanced_plan = self.temp_table_tracker.enhance_plan_with_temp_table_stats(
                             plan_json, self.discovered_tables
                         )
                         
-                        # !!! ВАЖНО: Применяем пользовательские размеры
                         print(f"  📊 Применение пользовательских размеров (таблиц: {len(user_table_sizes)})")
                         try:
-                            # Передаем view_to_tables_map для маппинга представлений в физические таблицы
                             adjusted_plan = plan_adjuster.apply_user_sizes_to_plan(
                                 enhanced_plan, 
                                 user_table_sizes, 
-                                self.view_to_tables_map,  # добавляем маппинг представлений
+                                self.view_to_tables_map,
                                 self.config.segments
                             )
                         except Exception as e:
                             print(f"⚠️ Ошибка коррекции плана: {e}")
                             adjusted_plan = enhanced_plan
                         
-                        # Вычисляем нагрузку
                         block_load = plan_adjuster.compute_block_load(
                             adjusted_plan,
                             multipliers=self.multipliers,
@@ -999,7 +1139,6 @@ class DetailedGreenplumFunctionAnalyzer:
                     else:
                         print(f"  ❌ Не удалось получить план для SQL")
             
-            # Обработка GET DIAGNOSTICS
             if 'GET DIAGNOSTICS' in block.upper():
                 diag_vars = self._extract_get_diagnostics(block)
                 for var_name in diag_vars:
@@ -1014,6 +1153,7 @@ class DetailedGreenplumFunctionAnalyzer:
         top_blocks = self._get_top_blocks(self.block_results, 3)
         
         result = {
+            'input_type': 'function',
             'function': self.func_name,
             'blocks_count': len(self.blocks),
             'analyzed_blocks': len(self.block_results),
@@ -1052,7 +1192,123 @@ class DetailedGreenplumFunctionAnalyzer:
         
         self._print_detailed_report(result)
         return result
-    
+
+    def _analyze_query_with_user_sizes(self, user_params: List[str], user_table_sizes: Dict[str, int]) -> Dict:
+        """Анализ нагрузки для обычного SQL запроса"""
+        
+        self.block_results = []
+        print("\n🔍 Анализ нагрузки SQL запроса с пользовательскими размерами")
+        
+        if not self.blocks:
+            print("❌ Нет блоков для анализа")
+            return {}
+        
+        if not self.conn:
+            print("❌ Нет подключения к БД")
+            return {'error': 'Нет подключения к БД', 'status': 'error'}
+        
+        # Для запроса анализируем каждый блок (CTE, основной запрос)
+        for idx, block in enumerate(self.blocks):
+            block_type = self.block_types[idx] if idx < len(self.block_types) else 'UNKNOWN'
+            
+            print(f"\n--- Блок {idx+1} [{block_type}] ---")
+            
+            if not block_parser.is_executable_sql(block_type):
+                continue
+            
+            clean_sql = self._clean_sql_for_explain(block)
+            if not clean_sql:
+                continue
+            
+            print(f"  SQL (первые 100): {clean_sql[:100]}...")
+            
+            # Извлекаем таблицы в блоке
+            tables_in_block = self._extract_objects_from_sql(clean_sql)
+            print(f"  📋 Таблицы в блоке: {[f'{sch}.{tbl}' for sch, tbl in tables_in_block]}")
+            
+            # Получаем план
+            plan_json = self._get_plan_for_block(clean_sql)
+            if plan_json:
+                # Улучшаем план с учётом временных таблиц
+                enhanced_plan = self.temp_table_tracker.enhance_plan_with_temp_table_stats(
+                    plan_json, self.discovered_tables
+                )
+                
+                # Применяем пользовательские размеры
+                print(f"  📊 Применение пользовательских размеров (таблиц: {len(user_table_sizes)})")
+                try:
+                    adjusted_plan = plan_adjuster.apply_user_sizes_to_plan(
+                        enhanced_plan, 
+                        user_table_sizes, 
+                        self.view_to_tables_map,
+                        self.config.segments
+                    )
+                except Exception as e:
+                    print(f"⚠️ Ошибка коррекции плана: {e}")
+                    adjusted_plan = enhanced_plan
+                
+                # Вычисляем нагрузку
+                block_load = plan_adjuster.compute_block_load(
+                    adjusted_plan,
+                    multipliers=self.multipliers,
+                    segments=self.config.segments
+                )
+                
+                self.block_results.append({
+                    'index': idx+1,
+                    'type': block_type,
+                    'category': block_parser.get_block_category(block_type),
+                    'sql_preview': clean_sql[:200] + '...',
+                    'plan': adjusted_plan,
+                    'load': block_load,
+                    'tables': [f"{sch}.{tbl}" for sch, tbl in tables_in_block]
+                })
+                print(f"  ✅ Нагрузка блока: {block_load['max_memory_gb']:.3f} GB")
+            else:
+                print(f"  ❌ Не удалось получить план для SQL")
+        
+        # Формируем отчёт
+        total_load = self._calculate_total_load(self.block_results)
+        top_blocks = self._get_top_blocks(self.block_results, 3)
+        
+        result = {
+            'input_type': 'query',
+            'blocks_count': len(self.blocks),
+            'analyzed_blocks': len(self.block_results),
+            'total_memory_gb': total_load['total_memory_gb'],
+            'max_utilization': total_load['max_utilization'],
+            'risk': total_load['risk'],
+            'estimated_time_sec': total_load['estimated_time_sec'],
+            'user_params': user_params,
+            'user_table_sizes': user_table_sizes,
+            'discovered_tables': self.discovered_tables,
+            'temp_tables': list(self.temp_tables),
+            'top_blocks': [
+                {
+                    'index': b['index'],
+                    'type': b['type'],
+                    'category': b['category'],
+                    'max_memory_gb': b['load']['max_memory_gb'],
+                    'sql_preview': b['sql_preview'],
+                    'tables': b['tables']
+                } for b in top_blocks
+            ],
+            'block_details': [
+                {
+                    'index': b['index'],
+                    'type': b['type'],
+                    'category': b['category'],
+                    'max_memory_gb': b['load']['max_memory_gb'],
+                    'total_rows': b['load']['total_rows'],
+                    'sql_preview': b['sql_preview'],
+                    'tables': b['tables']
+                } for b in self.block_results
+            ],
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        self._print_detailed_report(result)
+        return result
 
     def _calculate_total_load(self, block_results: List[Dict]) -> Dict:
         """Вычисляет суммарную нагрузку"""
@@ -1102,7 +1358,13 @@ class DetailedGreenplumFunctionAnalyzer:
         print("\n" + "="*80)
         print("ИТОГОВЫЙ ОТЧЁТ ДЕТАЛЬНОГО АНАЛИЗА")
         print("="*80)
-        print(f"Функция: {result['function']}")
+        
+        if result.get('input_type') == 'function':
+            print(f"Тип: Функция")
+            print(f"Функция: {result.get('function', 'unknown')}")
+        else:
+            print(f"Тип: SQL запрос")
+        
         print(f"Всего блоков: {result['blocks_count']}, проанализировано: {result['analyzed_blocks']}")
         
         if result.get('temp_tables'):
@@ -1117,7 +1379,7 @@ class DetailedGreenplumFunctionAnalyzer:
                 print(f"  • {table}: {info['current_rows']:,} строк, {info['size_gb']:.3f} GB{user_info}")
         
         if result.get('user_params'):
-            print(f"\n📋 Параметры функции: {', '.join(result['user_params'])}")
+            print(f"\n📋 Параметры: {', '.join(result['user_params'])}")
         
         print(f"\nТОП-3 САМЫХ ТЯЖЁЛЫХ ЗАПРОСА:")
         for i, b in enumerate(result['top_blocks'], 1):

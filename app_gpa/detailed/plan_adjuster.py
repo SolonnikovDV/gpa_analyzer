@@ -110,7 +110,7 @@ def apply_user_sizes_to_plan(plan: dict, user_table_sizes: Dict[str, int], view_
                 if not found:
                     print(f"    ❌ {rel_name} не найдено в пользовательских размерах")
         
-        # !!! ВАЖНО: Рекурсивно обрабатываем дочерние узлы
+        # Рекурсивно обрабатываем дочерние узлы
         if 'Plans' in node:
             for child in node['Plans']:
                 adjust_node(child)
