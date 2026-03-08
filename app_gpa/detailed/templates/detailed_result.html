@@ -12,6 +12,9 @@
     .table-sm th, .table-sm td { padding: 0.3rem; }
     .nav-tabs .nav-link { color: #495057; }
     .nav-tabs .nav-link.active { font-weight: 600; }
+    .block-row { cursor: pointer; }
+    .block-row:hover { background-color: #f0f0f0; }
+    .modal { background-color: rgba(0,0,0,0.5); }
   </style>
 </head>
 <body>
@@ -65,6 +68,9 @@
             <li class="nav-item" role="presentation">
               <button class="nav-link" id="top-tab" data-bs-toggle="tab" data-bs-target="#top" type="button" role="tab">Топ-3 запроса</button>
             </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="perf-tab" data-bs-toggle="tab" data-bs-target="#perf" type="button" role="tab">Производительность</button>
+            </li>
           </ul>
         </div>
         <div class="card-body">
@@ -89,14 +95,17 @@
             
             <!-- Вкладка со всеми блоками -->
             <div class="tab-pane fade" id="blocks" role="tabpanel">
+              <div class="mb-2">
+                <small class="text-muted">Нажмите на строку для просмотра деталей</small>
+              </div>
               <table class="table table-sm table-striped">
                 <thead>
                   <tr>
                     <th>№</th>
                     <th>Тип</th>
+                    <th>Категория</th>
                     <th>Нагрузка (GB)</th>
                     <th>Строк</th>
-                    <th>Время (сек)</th>
                     <th>Таблицы</th>
                   </tr>
                 </thead>
@@ -108,6 +117,40 @@
             <div class="tab-pane fade" id="top" role="tabpanel">
               <div id="top-blocks"></div>
             </div>
+
+            <!-- Вкладка с производительностью -->
+            <div class="tab-pane fade" id="perf" role="tabpanel">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="card mb-3">
+                    <div class="card-header">Память (MB)</div>
+                    <div class="card-body">
+                      <canvas id="memory-chart" style="height: 200px;"></canvas>
+                      <div class="mt-2" id="memory-stats"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card mb-3">
+                    <div class="card-header">CPU (%)</div>
+                    <div class="card-body">
+                      <canvas id="cpu-chart" style="height: 200px;"></canvas>
+                      <div class="mt-2" id="cpu-stats"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-12">
+                  <div class="card">
+                    <div class="card-header">Рекомендации</div>
+                    <div class="card-body" id="perf-recommendations">
+                      <div class="text-muted">Сбор данных...</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -115,7 +158,34 @@
   </div>
 </div>
 
+<!-- Форма для автоматического перезапуска анализа (скрытая) -->
+<form id="restart-form" method="post" action="{{ url_for('detailed_analyze') }}" style="display: none;">
+  <input type="hidden" name="job_id" value="{{ job_id }}">
+  <input type="hidden" name="params" id="restart-params" value="">
+  <div id="restart-sizes-container"></div>
+</form>
+
+<!-- Модальное окно прогресса -->
+<div id="progress-modal" class="modal" tabindex="-1" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1050;">
+  <div class="modal-dialog" style="margin: 20% auto;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Выполняется анализ</h5>
+      </div>
+      <div class="modal-body">
+        <div class="progress" style="height: 30px;">
+          <div id="analysis-progress" class="progress-bar progress-bar-striped progress-bar-animated" 
+               style="width: 0%; background-color: #0d6efd;">0%</div>
+        </div>
+        <p id="progress-status" class="mt-3 text-center">Подготовка...</p>
+        <p id="progress-detail" class="text-center text-muted small">Идет обработка блоков функции</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (function(){
   const jobId = {{ job_id | tojson }};
@@ -128,8 +198,82 @@
   const blocksTbody = document.getElementById('blocks-tbody');
   const topBlocks = document.getElementById('top-blocks');
   const applySizes = document.getElementById('apply-sizes');
+  const restartForm = document.getElementById('restart-form');
+  const restartParams = document.getElementById('restart-params');
+  const restartSizesContainer = document.getElementById('restart-sizes-container');
+  const progressModal = document.getElementById('progress-modal');
+  const progressBar = document.getElementById('analysis-progress');
+  const progressStatus = document.getElementById('progress-status');
+  const progressDetail = document.getElementById('progress-detail');
 
   let currentResult = null;
+  let currentParams = [];
+  
+  // Для графиков производительности
+  let perfInterval;
+  let memoryChart, cpuChart;
+  let memoryData = [], cpuData = [], timeLabels = [];
+  let progressInterval;
+
+  // Функция валидации больших чисел
+  window.validateBigNumber = function(input) {
+    let value = input.value.replace(/,/g, '');
+    if (value.includes('e') || value.includes('E')) {
+      value = Number(value);
+    }
+    value = parseInt(value);
+    if (isNaN(value) || value < 0) {
+      input.value = 0;
+    } else {
+      input.value = value;
+    }
+  };
+
+  // Функция отслеживания прогресса
+  function startProgressTracking() {
+    progressModal.style.display = 'block';
+    let progress = 0;
+    
+    progressInterval = setInterval(() => {
+      const logText = logEl.textContent;
+      const lines = logText.split('\n');
+      const lastLine = lines[lines.length - 1] || '';
+      
+      // Оценка прогресса на основе последних строк лога
+      if (lastLine.includes('Блок 54') || lastLine.includes('Блок 55')) {
+        progress = 20;
+        progressDetail.textContent = 'Загрузка месячных данных (блоки 54-55)';
+      } else if (lastLine.includes('Блок 58') || lastLine.includes('Блок 59')) {
+        progress = 35;
+        progressDetail.textContent = 'Загрузка дневных данных (блоки 58-59)';
+      } else if (lastLine.includes('Блок 61')) {
+        progress = 45;
+        progressDetail.textContent = 'Анализ буфера (блок 61)';
+      } else if (lastLine.includes('Блок 70') || lastLine.includes('Блок 71')) {
+        progress = 60;
+        progressDetail.textContent = 'Перегрузка в итоговую таблицу (блоки 70-71)';
+      } else if (lastLine.includes('Блок 75') || lastLine.includes('Блок 76')) {
+        progress = 75;
+        progressDetail.textContent = 'Подсчет статистики (блоки 75-76)';
+      } else if (lastLine.includes('Блок 77')) {
+        progress = 90;
+        progressDetail.textContent = 'Финальные расчеты (блок 77)';
+      } else if (lastLine.includes('ИТОГОВЫЙ ОТЧЁТ')) {
+        progress = 100;
+        progressDetail.textContent = 'Завершение анализа';
+      }
+      
+      progressBar.style.width = progress + '%';
+      progressBar.textContent = progress + '%';
+      progressStatus.textContent = `Обработано ${progress}% блоков`;
+      
+      if (progress >= 100) {
+        setTimeout(() => {
+          progressModal.style.display = 'none';
+        }, 1000);
+      }
+    }, 1000);
+  }
 
   // Stream logs via SSE
   const es = new EventSource(`/stream/${jobId}`);
@@ -150,25 +294,35 @@
       const js = await r.json();
       statusEl.textContent = js.status;
       statusEl.className = 'badge bg-' + (js.status === 'done' ? 'success' : js.status === 'error' ? 'danger' : 'secondary');
+      
       if (js.status === 'done') {
         clearInterval(interval);
+        if (progressInterval) clearInterval(progressInterval);
+        progressModal.style.display = 'none';
+        
+        // Сохраняем параметры из статуса
+        if (js.summary && js.summary.user_params) {
+          currentParams = js.summary.user_params;
+          console.log('Сохранены параметры из статуса:', currentParams);
+        }
+        
         const s = js.summary;
         summaryEl.innerHTML = `
           <ul class="list-group small">
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              Функция <span class="pill bg-light text-dark">${s.function}</span>
+              Функция/Запрос <span class="pill bg-light text-dark">${s.function || 'SQL Query'}</span>
             </li>
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              Проанализировано блоков <span class="pill bg-light text-dark">${s.blocks_analyzed}</span>
+              Проанализировано блоков <span class="pill bg-light text-dark">${s.blocks_analyzed || 0}</span>
             </li>
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              Общая нагрузка <span class="pill bg-light text-dark">${s.total_memory_gb} GB</span>
+              Общая нагрузка <span class="pill bg-light text-dark">${s.total_memory_gb || 0} GB</span>
             </li>
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              Оценка времени <span class="pill bg-light text-dark">${s.estimated_time_sec} сек</span>
+              Оценка времени <span class="pill bg-light text-dark">${s.estimated_time_sec || 0} сек</span>
             </li>
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              Риск <span class="pill ${s.risk==='ВЫСОКИЙ'?'bg-danger':'bg-warning-subtle'}">${s.risk}</span>
+              Риск <span class="pill ${s.risk === 'ВЫСОКИЙ' ? 'bg-danger' : s.risk === 'СРЕДНИЙ' ? 'bg-warning' : 'bg-success'} text-white">${s.risk || 'Н/Д'}</span>
             </li>
           </ul>`;
         btnDetails.classList.remove('disabled');
@@ -177,14 +331,26 @@
         // Загружаем детали
         const detailsResp = await fetch(`/details/${jobId}`);
         currentResult = await detailsResp.json();
+        
+        // Сохраняем параметры из результата
+        if (currentResult.user_params) {
+          currentParams = currentResult.user_params;
+          console.log('Сохранены параметры из результата:', currentParams);
+        }
+        
         displayResults(currentResult);
+        
+        // Запускаем мониторинг производительности
+        startPerformanceMonitoring();
       }
       if (js.status === 'error') {
         clearInterval(interval);
+        if (progressInterval) clearInterval(progressInterval);
+        progressModal.style.display = 'none';
         summaryEl.innerHTML = `<div class="alert alert-danger">Ошибка: ${js.error || 'Неизвестная ошибка'}</div>`;
       }
     } catch(e) {
-      // ignore
+      console.error('Polling error:', e);
     }
   }, 1500);
 
@@ -193,63 +359,283 @@
     
     // Отображаем таблицы
     if (result.discovered_tables) {
-      tablesTbody.innerHTML = Object.entries(result.discovered_tables).map(([key, info]) => `
-        <tr>
-          <td>${key}</td>
-          <td>${info.current_rows.toLocaleString()}</td>
-          <td>${info.size_gb.toFixed(2)}</td>
-          <td><input type="number" class="form-control form-control-sm user-rows" data-table="${key}" value="${info.user_rows}" min="0"></td>
-          <td><button class="btn btn-sm btn-outline-primary update-row" data-table="${key}">Обновить</button></td>
-        </tr>
-      `).join('');
+      let tablesHtml = '';
+      let hasAnyRows = false;
+      
+      // Получаем пользовательские размеры из результата
+      const userSizes = result.user_table_sizes || {};
+      
+      for (const [key, info] of Object.entries(result.discovered_tables)) {
+        const currentRows = info.current_rows || 0;
+        const userRows = userSizes[key] !== undefined ? userSizes[key] : currentRows;
+        if (currentRows > 0) hasAnyRows = true;
+        
+        tablesHtml += `
+          <tr>
+            <td><strong>${key}</strong></td>
+            <td class="text-end">${currentRows.toLocaleString()}</td>
+            <td class="text-end">${(info.size_gb || 0).toFixed(3)}</td>
+            <td><input type="number" class="form-control form-control-sm user-rows" 
+                       data-table="${key}" value="${userRows}" min="0" step="1000000" 
+                       onchange="validateBigNumber(this)"></td>
+            <td><button class="btn btn-sm btn-outline-primary update-row" data-table="${key}">Обновить</button></td>
+          </tr>
+        `;
+      }
+      
+      if (!hasAnyRows) {
+        tablesHtml += `
+          <tr>
+            <td colspan="5" class="text-center text-warning">
+              <em>Все таблицы пустые</em>
+            </td>
+          </tr>
+        `;
+      }
+      
+      tablesTbody.innerHTML = tablesHtml;
+      
+      // Добавляем обработчики для кнопок "Обновить"
+      document.querySelectorAll('.update-row').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const table = this.dataset.table;
+          const input = document.querySelector(`.user-rows[data-table="${table}"]`);
+          const newSize = parseInt(input.value);
+          
+          // Подсвечиваем строку
+          this.closest('tr').style.backgroundColor = '#fff3cd';
+          
+          // Показываем сообщение
+          alert(`Для таблицы ${table} установлено ${newSize.toLocaleString()} строк. Нажмите "Применить размеры и пересчитать" для запуска анализа.`);
+        });
+      });
     }
     
     // Отображаем блоки
-    if (result.block_details) {
-      blocksTbody.innerHTML = result.block_details.map(b => `
-        <tr>
-          <td>${b.index}</td>
-          <td>${b.type}</td>
-          <td>${b.max_memory_gb.toFixed(3)}</td>
-          <td>${b.total_rows}</td>
-          <td>${b.estimated_time.toFixed(2)}</td>
-          <td><small>${(b.tables || []).join('<br>')}</small></td>
-        </tr>
-      `).join('');
+    if (result.block_details && result.block_details.length > 0) {
+      let blocksHtml = '';
+      result.block_details.forEach(b => {
+        blocksHtml += `
+          <tr class="block-row" data-block-index="${b.index}">
+            <td>${b.index}</td>
+            <td>${b.type || 'N/A'}</td>
+            <td>${b.category || 'N/A'}</td>
+            <td class="text-end">${(b.max_memory_gb || 0).toFixed(3)}</td>
+            <td class="text-end">${(b.total_rows || 0).toLocaleString()}</td>
+            <td><small>${(b.tables || []).join('<br>')}</small></td>
+          </tr>
+        `;
+      });
+      blocksTbody.innerHTML = blocksHtml;
+      
+      // Добавляем обработчик клика на строку для просмотра SQL
+      document.querySelectorAll('.block-row').forEach(row => {
+        row.addEventListener('click', function() {
+          const index = this.dataset.blockIndex;
+          const block = result.block_details.find(b => b.index == index);
+          if (block && block.sql_preview) {
+            alert('SQL:\n' + block.sql_preview);
+          }
+        });
+      });
+    } else {
+      blocksTbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Нет данных о блоках</td></tr>';
     }
     
     // Отображаем топ-3
-    if (result.top_blocks) {
-      topBlocks.innerHTML = result.top_blocks.map((b, i) => `
-        <div class="card mb-2">
-          <div class="card-body py-2">
-            <h6>${i+1}. Блок ${b.index} [${b.type}] — ${b.max_memory_gb.toFixed(3)} GB</h6>
-            <p class="mb-0"><small>Таблицы: ${(b.tables || []).join(', ')}</small></p>
-            <p class="mb-0"><small class="text-muted">${b.sql_preview.substring(0,100)}</small></p>
+    if (result.top_blocks && result.top_blocks.length > 0) {
+      let topHtml = '';
+      result.top_blocks.forEach((b, i) => {
+        topHtml += `
+          <div class="card mb-2">
+            <div class="card-body py-2">
+              <h6 class="mb-1">${i+1}. Блок ${b.index} [${b.type || 'N/A'}]</h6>
+              <div class="row">
+                <div class="col-md-3">
+                  <small class="text-muted">Нагрузка:</small><br>
+                  <strong>${(b.max_memory_gb || 0).toFixed(3)} GB</strong>
+                </div>
+                <div class="col-md-9">
+                  <small class="text-muted">Таблицы:</small><br>
+                  <small>${(b.tables || []).join(', ')}</small>
+                </div>
+              </div>
+              <div class="mt-1">
+                <small class="text-muted">SQL:</small><br>
+                <small class="text-secondary">${(b.sql_preview || '').substring(0, 150)}...</small>
+              </div>
+            </div>
           </div>
-        </div>
-      `).join('');
-    }
-
-    // Обработчик кнопки обновления размера таблицы
-    document.querySelectorAll('.update-row').forEach(btn => {
-      btn.addEventListener('click', function() {
-        const table = this.dataset.table;
-        const input = document.querySelector(`.user-rows[data-table="${table}"]`);
-        const newSize = parseInt(input.value);
-        alert(`Для таблицы ${table} установлено ${newSize} строк. Перезапустите анализ для пересчёта.`);
+        `;
       });
-    });
+      topBlocks.innerHTML = topHtml;
+    } else {
+      topBlocks.innerHTML = '<div class="alert alert-info">Нет данных о топ-3 запросах</div>';
+    }
   }
 
   // Кнопка применения всех размеров
   applySizes.addEventListener('click', function() {
+    // Собираем все размеры
     const sizes = {};
     document.querySelectorAll('.user-rows').forEach(input => {
-      sizes[input.dataset.table] = parseInt(input.value);
+      const val = parseInt(input.value);
+      if (!isNaN(val) && val >= 0) {
+        sizes[input.dataset.table] = val;
+      }
     });
-    alert('Новые размеры сохранены. Скопируйте этот JSON в поле "Размеры таблиц" и запустите анализ заново:\n' + JSON.stringify(sizes, null, 2));
+    
+    // Передаем параметры из currentParams
+    if (currentParams && currentParams.length > 0) {
+      // Формируем строку параметров в правильном формате
+      const paramsStr = currentParams.map(p => {
+        // Если параметр уже в кавычках, оставляем как есть
+        if (p.startsWith("'") && p.endsWith("'")) return p;
+        // Если это специальное значение
+        if (p === 'current_date') return p;
+        // Иначе добавляем кавычки
+        return `'${p}'`;
+      }).join(',');
+      
+      restartParams.value = paramsStr;
+      console.log('Передаются параметры:', paramsStr);
+    } else {
+      console.log('Нет сохраненных параметров для передачи');
+    }
+    
+    // Создаем скрытые поля для каждого размера
+    restartSizesContainer.innerHTML = '';
+    for (const [table, size] of Object.entries(sizes)) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = `size_${table}`;
+      input.value = size;
+      restartSizesContainer.appendChild(input);
+    }
+    
+    // Запускаем отслеживание прогресса
+    startProgressTracking();
+    
+    // Автоматически отправляем форму
+    restartForm.submit();
   });
+
+  // Функция для валидации ввода
+  window.validateInput = function(input) {
+    const value = parseInt(input.value);
+    if (isNaN(value) || value < 0) {
+      input.value = 0;
+    }
+  };
+
+  // Мониторинг производительности
+  function startPerformanceMonitoring() {
+    if (perfInterval) clearInterval(perfInterval);
+    
+    perfInterval = setInterval(async () => {
+      try {
+        const resp = await fetch(`/performance/${jobId}`);
+        const stats = await resp.json();
+        
+        if (stats.error) return;
+        
+        // Обновляем данные
+        const time = (stats.uptime_seconds / 60).toFixed(1) + 'm';
+        timeLabels.push(time);
+        memoryData.push(stats.current_memory_mb);
+        cpuData.push(stats.current_cpu_percent);
+        
+        if (timeLabels.length > 30) {
+          timeLabels.shift();
+          memoryData.shift();
+          cpuData.shift();
+        }
+        
+        // Обновляем графики
+        updateCharts();
+        
+        // Обновляем статистику
+        document.getElementById('memory-stats').innerHTML = `
+          <small>Текущая: ${stats.current_memory_mb} MB | Пик: ${stats.peak_memory_mb} MB | Средняя: ${stats.avg_memory_mb} MB</small>
+        `;
+        document.getElementById('cpu-stats').innerHTML = `
+          <small>Текущий: ${stats.current_cpu_percent}% | Пик: ${stats.peak_cpu_percent}% | Средний: ${stats.avg_cpu_percent}%</small>
+        `;
+        
+        // Рекомендации
+        const recommendations = [];
+        if (stats.peak_memory_mb > 1024) {
+          recommendations.push('⚠️ Высокое потребление памяти (>1GB). Рекомендуется перезапустить приложение.');
+        }
+        if (stats.avg_cpu_percent > 80) {
+          recommendations.push('⚠️ Высокая загрузка CPU (>80%). Возможно, требуется оптимизация запросов.');
+        }
+        if (stats.samples_count > 0 && memoryData.length > 10) {
+          const memoryGrowth = memoryData[memoryData.length-1] - memoryData[0];
+          if (memoryGrowth > 100) {
+            recommendations.push('⚠️ Обнаружена утечка памяти. Рекомендуется перезапустить после каждого анализа.');
+          }
+        }
+        
+        document.getElementById('perf-recommendations').innerHTML = recommendations.length ? 
+          recommendations.map(r => `<div class="alert alert-warning py-2">${r}</div>`).join('') :
+          '<div class="alert alert-success py-2">✅ Система работает стабильно</div>';
+        
+      } catch(e) {
+        console.error('Performance monitoring error:', e);
+      }
+    }, 2000);
+  }
+
+  function updateCharts() {
+    if (!memoryChart) {
+      const ctxMem = document.getElementById('memory-chart').getContext('2d');
+      memoryChart = new Chart(ctxMem, {
+        type: 'line',
+        data: {
+          labels: timeLabels,
+          datasets: [{
+            label: 'Память (MB)',
+            data: memoryData,
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+      
+      const ctxCpu = document.getElementById('cpu-chart').getContext('2d');
+      cpuChart = new Chart(ctxCpu, {
+        type: 'line',
+        data: {
+          labels: timeLabels,
+          datasets: [{
+            label: 'CPU %',
+            data: cpuData,
+            borderColor: 'rgb(255, 99, 132)',
+            tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true, max: 100 } }
+        }
+      });
+    } else {
+      memoryChart.data.labels = timeLabels;
+      memoryChart.data.datasets[0].data = memoryData;
+      memoryChart.update();
+      
+      cpuChart.data.labels = timeLabels;
+      cpuChart.data.datasets[0].data = cpuData;
+      cpuChart.update();
+    }
+  }
 })();
 </script>
 </body>

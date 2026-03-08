@@ -13,6 +13,7 @@ from flask import Flask, render_template, request, redirect, url_for, Response, 
 from jinja2 import ChoiceLoader, FileSystemLoader
 
 from detailed.detailed_analyzer import DetailedGreenplumFunctionAnalyzer, ClusterConfig
+from detailed.performance_monitor import PerformanceMonitor
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here-change-this-in-production'
@@ -45,6 +46,7 @@ STANDS = {
 # In-memory store of running jobs and logs
 _jobs: Dict[str, Dict[str, Any]] = {}
 _logs: Dict[str, "queue.Queue[str]"] = {}
+_performance_monitors: Dict[str, PerformanceMonitor] = {}
 
 
 def _build_conn_string(stand_type: str, user: str, password: str, host: Optional[str], port: Optional[int], dbname: Optional[str]) -> str:
@@ -122,7 +124,21 @@ def _run_analysis_job(job_id: str, payload: Dict[str, Any]):
             
             # Запускаем анализ с пользовательскими размерами
             params = payload.get('params', [])
+            
+            # Если параметры не переданы, пробуем взять из сохраненных
+            if not params and 'saved_params' in _jobs[job_id]:
+                params = _jobs[job_id]['saved_params']
+                print(f"🔄 Использованы сохраненные параметры из saved_params: {params}")
+            elif not params and 'discovery_result' in _jobs[job_id]:
+                # Пробуем взять из discovery_result если есть
+                discovery = _jobs[job_id]['discovery_result']
+                params = discovery.get('user_params', [])
+                print(f"🔄 Использованы параметры из discovery: {params}")
+            
             user_sizes = payload.get('user_sizes', {})
+            
+            print(f"🔍 Запуск анализа с параметрами: {params}")
+            print(f"📊 Размеры таблиц: {len(user_sizes)} шт.")
             
             result = analyzer.analyze_with_user_sizes(params, user_sizes)
             _jobs[job_id]['result'] = result
@@ -131,6 +147,8 @@ def _run_analysis_job(job_id: str, payload: Dict[str, Any]):
         _jobs[job_id]['status'] = 'error'
         _jobs[job_id]['error'] = str(e)
         _enqueue_log(job_id, f"\n❌ Ошибка: {e}\n")
+        import traceback
+        traceback.print_exc()
     finally:
         _enqueue_log(job_id, "\n[STREAM_END]\n")
 
@@ -215,11 +233,28 @@ def detailed_analyze():
     if job_id not in _jobs:
         return jsonify({'error': 'Задача не найдена'}), 404
     
-    # Получаем параметры функции - ЭТО ВАЖНО!
+    # Получаем параметры функции из формы
     params_str = request.form.get('params', '').strip()
     params = [p.strip() for p in params_str.split(',') if p.strip()] if params_str else []
     
-    print(f"DEBUG: Получены параметры для анализа: {params}")  # Отладка
+    print(f"DEBUG: Получены параметры для анализа из формы: {params}")
+    
+    # СОХРАНЯЕМ параметры в задаче для последующих запусков
+    _jobs[job_id]['saved_params'] = params
+    
+    # Также сохраняем в discovery_result если он есть
+    if 'discovery_result' in _jobs[job_id] and _jobs[job_id]['discovery_result']:
+        _jobs[job_id]['discovery_result']['user_params'] = params
+        print(f"Сохранены параметры в discovery_result: {params}")
+    
+    # Очищаем старые данные перед новым запуском
+    analyzer = _jobs[job_id].get('analyzer')
+    if analyzer:
+        analyzer.reset_for_rerun()
+        print(f"🔄 Состояние анализатора сброшено для job_id: {job_id}")
+    
+    # Обновляем статус
+    _jobs[job_id]['status'] = 'running'
     
     # Получаем пользовательские размеры из формы
     user_sizes = {}
@@ -233,12 +268,16 @@ def detailed_analyze():
             except ValueError:
                 pass
     
-    # Обновляем статус
-    _jobs[job_id]['status'] = 'running'
+    print(f"DEBUG: Получены пользовательские размеры: {len(user_sizes)} таблиц")
     
-    # Запускаем анализ в отдельном потоке с ПЕРЕДАЧЕЙ ПАРАМЕТРОВ
+    # Запускаем мониторинг производительности
+    monitor = PerformanceMonitor()
+    monitor.start_monitoring()
+    _performance_monitors[job_id] = monitor
+    
+    # Запускаем анализ в отдельном потоке
     th = threading.Thread(target=_run_analysis_job, args=(job_id, {
-        'params': params,  # ← вот здесь передаём параметры!
+        'params': params,
         'user_sizes': user_sizes
     }), daemon=True)
     th.start()
@@ -310,6 +349,15 @@ def details(job_id: str):
     if not job or job['status'] != 'done':
         return jsonify({'error': 'Результат недоступен'}), 400
     return jsonify(job['result'])
+
+
+@app.route('/performance/<job_id>')
+def get_performance(job_id: str):
+    """Возвращает статистику производительности"""
+    monitor = _performance_monitors.get(job_id)
+    if not monitor:
+        return jsonify({'error': 'Монитор не найден'}), 404
+    return jsonify(monitor.get_stats())
 
 
 if __name__ == '__main__':

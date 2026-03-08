@@ -1,6 +1,7 @@
 import re
 import json
 import psycopg2
+import hashlib
 from typing import Dict, List, Any, Optional, Tuple, Set
 from datetime import datetime, timedelta
 from dataclasses import dataclass
@@ -54,6 +55,7 @@ class DetailedGreenplumFunctionAnalyzer:
         self.temp_table_tracker = TempTableTracker()
         self.input_type = None  # 'function' или 'query'
         self.view_to_tables_map = {}  # маппинг представление -> физические таблицы
+        self.plan_cache = {}  # кэш для планов запросов
         self.multipliers = {
             'Seq Scan': 1.15,
             'Index Scan': 0.05,
@@ -71,6 +73,19 @@ class DetailedGreenplumFunctionAnalyzer:
             'Broadcast Motion': 1.5,
             'ModifyTable': 1.0,
         }
+    
+    def reset_for_rerun(self):
+        """
+        Сбрасывает состояние анализатора для повторного запуска
+        Очищает результаты предыдущего анализа, сохраняя discovery данные
+        """
+        print("🔄 Сброс состояния анализатора для повторного запуска")
+        self.block_results = []
+        self.variables = {}  # Очищаем переменные
+        # Не очищаем весь кэш, только текущую версию
+        if hasattr(self, 'versioned_plan_cache'):
+            # Оставляем версионированный кэш, он будет использован для соответствующих размеров
+            pass
     
     def connect(self, conn_string: str) -> bool:
         """Устанавливает соединение с Greenplum"""
@@ -961,7 +976,7 @@ class DetailedGreenplumFunctionAnalyzer:
             return self._analyze_query_with_user_sizes(user_params, user_table_sizes)
 
     def _analyze_function_with_user_sizes(self, user_params: List[str], user_table_sizes: Dict[str, int]) -> Dict:
-        """Анализ нагрузки для функции"""
+        """Анализ нагрузки для функции с оптимизацией"""
         function_body = '\n'.join(self.blocks)
         print("\n[DEBUG] Первые 20 строк тела функции:")
         for i, line in enumerate(function_body.split('\n')[:20]):
@@ -1054,13 +1069,17 @@ class DetailedGreenplumFunctionAnalyzer:
         
         last_sql_block_index = -1
         
+        # Очищаем кэш планов для нового запуска
+        self.plan_cache = {}
+        
         for idx, block in enumerate(self.blocks):
             block_type = self.block_types[idx] if idx < len(self.block_types) else 'UNKNOWN'
             
-            print(f"\n--- Блок {idx+1} [{block_type}] ---")
-            
-            if block_type in ['DECLARE', 'END', 'OTHER']:
+            # Пропускаем нетекстовые блоки для ускорения
+            if block_type in ['DECLARE', 'END', 'OTHER', 'CREATE', 'RETURN']:
                 continue
+            
+            print(f"\n--- Блок {idx+1} [{block_type}] ---")
             
             if ':=' in block:
                 block_vars = self._extract_assignments_from_block_recursive(block)
@@ -1100,7 +1119,16 @@ class DetailedGreenplumFunctionAnalyzer:
                     tables_in_block = self._extract_objects_from_sql(clean_sql)
                     print(f"  📋 Таблицы в блоке: {[f'{sch}.{tbl}' for sch, tbl in tables_in_block]}")
                     
-                    plan_json = self._get_plan_for_block(clean_sql)
+                    # Используем кэш для планов
+                    cache_key = hashlib.md5(clean_sql.encode()).hexdigest()
+                    if cache_key in self.plan_cache:
+                        plan_json = self.plan_cache[cache_key]
+                        print(f"  🔄 Использован кэшированный план")
+                    else:
+                        plan_json = self._get_plan_for_block(clean_sql)
+                        if plan_json:
+                            self.plan_cache[cache_key] = plan_json
+                    
                     if plan_json:
                         enhanced_plan = self.temp_table_tracker.enhance_plan_with_temp_table_stats(
                             plan_json, self.discovered_tables
@@ -1207,6 +1235,20 @@ class DetailedGreenplumFunctionAnalyzer:
             print("❌ Нет подключения к БД")
             return {'error': 'Нет подключения к БД', 'status': 'error'}
         
+        # Создаем хеш от пользовательских размеров для версионирования кэша
+        sizes_hash = hashlib.md5(str(sorted(user_table_sizes.items())).encode()).hexdigest()
+        versioned_cache_key = f"plan_cache_{sizes_hash}"
+        
+        # Используем версионированный кэш или создаем новый
+        if not hasattr(self, 'versioned_plan_cache'):
+            self.versioned_plan_cache = {}
+        
+        if versioned_cache_key not in self.versioned_plan_cache:
+            self.versioned_plan_cache[versioned_cache_key] = {}
+            print(f"🆕 Создан новый кэш планов для текущих размеров")
+        
+        current_cache = self.versioned_plan_cache[versioned_cache_key]
+        
         # Для запроса анализируем каждый блок (CTE, основной запрос)
         for idx, block in enumerate(self.blocks):
             block_type = self.block_types[idx] if idx < len(self.block_types) else 'UNKNOWN'
@@ -1226,8 +1268,17 @@ class DetailedGreenplumFunctionAnalyzer:
             tables_in_block = self._extract_objects_from_sql(clean_sql)
             print(f"  📋 Таблицы в блоке: {[f'{sch}.{tbl}' for sch, tbl in tables_in_block]}")
             
-            # Получаем план
-            plan_json = self._get_plan_for_block(clean_sql)
+            # Используем версионированный кэш для планов
+            cache_key = hashlib.md5(clean_sql.encode()).hexdigest()
+            if cache_key in current_cache:
+                plan_json = current_cache[cache_key]
+                print(f"  🔄 Использован кэшированный план (версия {sizes_hash[:8]})")
+            else:
+                plan_json = self._get_plan_for_block(clean_sql)
+                if plan_json:
+                    current_cache[cache_key] = plan_json
+                    print(f"  ✅ Получен новый план")
+            
             if plan_json:
                 # Улучшаем план с учётом временных таблиц
                 enhanced_plan = self.temp_table_tracker.enhance_plan_with_temp_table_stats(
@@ -1309,6 +1360,7 @@ class DetailedGreenplumFunctionAnalyzer:
         
         self._print_detailed_report(result)
         return result
+
 
     def _calculate_total_load(self, block_results: List[Dict]) -> Dict:
         """Вычисляет суммарную нагрузку"""
