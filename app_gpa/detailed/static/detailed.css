@@ -1,0 +1,6 @@
+/* Дополнительные стили для детального анализа */
+#db_fields {
+    border-left: 3px solid #0d6efd;
+    padding-left: 1rem;
+    margin-top: 0.5rem;
+}

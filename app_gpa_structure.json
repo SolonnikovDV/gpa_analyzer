@@ -1,0 +1,36 @@
+{
+  "requirements.txt": "file",
+  "detailed": {
+    "load_calculator.py": "file",
+    "__init__.py": "file",
+    "__pycache__": {
+      "load_calculator.cpython-313.pyc": "file",
+      "plan_adjuster.cpython-313.pyc": "file",
+      "block_parser.cpython-313.pyc": "file",
+      "detailed_analyzer.cpython-313.pyc": "file",
+      "__init__.cpython-313.pyc": "file"
+    },
+    "detailed_analyzer.py": "file",
+    "plan_adjuster.py": "file",
+    "static": {
+      "detailed.css": "file"
+    },
+    "block_parser.py": "file",
+    "templates": {
+      "detailed_input.html": "file",
+      "table_sizes.html": "file",
+      "detailed_result.html": "file"
+    }
+  },
+  "webapp.py": "file",
+  "__pycache__": {
+    "analyzer_app.cpython-313.pyc": "file"
+  },
+  "static": {
+    "styles.css": "file"
+  },
+  "templates": {
+    "index.html": "file",
+    "result.html": "file"
+  }
+}

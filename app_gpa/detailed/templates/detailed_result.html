@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Результат детального анализа</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <style>
+    #log { font-family: monospace; white-space: pre-wrap; background: #0b1220; color: #cfe3ff; padding: 1rem; border-radius: .25rem; height: 50vh; overflow: auto; }
+    .pill { border-radius: 999px; padding: .25rem .6rem; font-weight: 600; }
+    .table-sm th, .table-sm td { padding: 0.3rem; }
+    .nav-tabs .nav-link { color: #495057; }
+    .nav-tabs .nav-link.active { font-weight: 600; }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">Analyzer</a>
+  </div>
+</nav>
+
+<div class="container my-4">
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>Онлайн-лог</span>
+          <span id="status" class="badge bg-secondary">{{ status }}</span>
+        </div>
+        <div class="card-body">
+          <div id="log"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-header">Краткая статистика</div>
+        <div class="card-body">
+          <div id="summary">
+            <div class="text-muted">Ожидание завершения...</div>
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <a id="btn-details" href="#" class="btn btn-outline-primary disabled" target="_blank">Полный JSON</a>
+            <a href="/detailed" class="btn btn-outline-secondary">Новый анализ</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Вкладки с результатами (появятся после завершения) -->
+  <div class="row mt-4" id="results-tabs" style="display: none;">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <ul class="nav nav-tabs card-header-tabs" id="resultTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="tables-tab" data-bs-toggle="tab" data-bs-target="#tables" type="button" role="tab">Таблицы</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="blocks-tab" data-bs-toggle="tab" data-bs-target="#blocks" type="button" role="tab">Блоки</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="top-tab" data-bs-toggle="tab" data-bs-target="#top" type="button" role="tab">Топ-3 запроса</button>
+            </li>
+          </ul>
+        </div>
+        <div class="card-body">
+          <div class="tab-content" id="resultTabsContent">
+            <!-- Вкладка с таблицами -->
+            <div class="tab-pane fade show active" id="tables" role="tabpanel">
+              <h6>Найденные таблицы (задайте желаемое количество строк)</h6>
+              <table class="table table-sm table-striped">
+                <thead>
+                  <tr>
+                    <th>Таблица</th>
+                    <th>Текущее строк</th>
+                    <th>Размер (GB)</th>
+                    <th>Желаемое строк</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="tables-tbody"></tbody>
+              </table>
+              <button class="btn btn-sm btn-primary" id="apply-sizes">Применить размеры и пересчитать</button>
+            </div>
+            
+            <!-- Вкладка со всеми блоками -->
+            <div class="tab-pane fade" id="blocks" role="tabpanel">
+              <table class="table table-sm table-striped">
+                <thead>
+                  <tr>
+                    <th>№</th>
+                    <th>Тип</th>
+                    <th>Нагрузка (GB)</th>
+                    <th>Строк</th>
+                    <th>Время (сек)</th>
+                    <th>Таблицы</th>
+                  </tr>
+                </thead>
+                <tbody id="blocks-tbody"></tbody>
+              </table>
+            </div>
+            
+            <!-- Вкладка с топ-3 запросами -->
+            <div class="tab-pane fade" id="top" role="tabpanel">
+              <div id="top-blocks"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function(){
+  const jobId = {{ job_id | tojson }};
+  const logEl = document.getElementById('log');
+  const statusEl = document.getElementById('status');
+  const summaryEl = document.getElementById('summary');
+  const btnDetails = document.getElementById('btn-details');
+  const resultsTabs = document.getElementById('results-tabs');
+  const tablesTbody = document.getElementById('tables-tbody');
+  const blocksTbody = document.getElementById('blocks-tbody');
+  const topBlocks = document.getElementById('top-blocks');
+  const applySizes = document.getElementById('apply-sizes');
+
+  let currentResult = null;
+
+  // Stream logs via SSE
+  const es = new EventSource(`/stream/${jobId}`);
+  es.onmessage = (e) => {
+    const t = e.data || '';
+    if (t === '[STREAM_END]') {
+      es.close();
+      return;
+    }
+    logEl.textContent += t + "\n";
+    logEl.scrollTop = logEl.scrollHeight;
+  };
+
+  // Poll status
+  const interval = setInterval(async () => {
+    try {
+      const r = await fetch(`/status/${jobId}`);
+      const js = await r.json();
+      statusEl.textContent = js.status;
+      statusEl.className = 'badge bg-' + (js.status === 'done' ? 'success' : js.status === 'error' ? 'danger' : 'secondary');
+      if (js.status === 'done') {
+        clearInterval(interval);
+        const s = js.summary;
+        summaryEl.innerHTML = `
+          <ul class="list-group small">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Функция <span class="pill bg-light text-dark">${s.function}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Проанализировано блоков <span class="pill bg-light text-dark">${s.blocks_analyzed}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Общая нагрузка <span class="pill bg-light text-dark">${s.total_memory_gb} GB</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Оценка времени <span class="pill bg-light text-dark">${s.estimated_time_sec} сек</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Риск <span class="pill ${s.risk==='ВЫСОКИЙ'?'bg-danger':'bg-warning-subtle'}">${s.risk}</span>
+            </li>
+          </ul>`;
+        btnDetails.classList.remove('disabled');
+        btnDetails.href = `/details/${jobId}`;
+        
+        // Загружаем детали
+        const detailsResp = await fetch(`/details/${jobId}`);
+        currentResult = await detailsResp.json();
+        displayResults(currentResult);
+      }
+      if (js.status === 'error') {
+        clearInterval(interval);
+        summaryEl.innerHTML = `<div class="alert alert-danger">Ошибка: ${js.error || 'Неизвестная ошибка'}</div>`;
+      }
+    } catch(e) {
+      // ignore
+    }
+  }, 1500);
+
+  function displayResults(result) {
+    resultsTabs.style.display = 'block';
+    
+    // Отображаем таблицы
+    if (result.discovered_tables) {
+      tablesTbody.innerHTML = Object.entries(result.discovered_tables).map(([key, info]) => `
+        <tr>
+          <td>${key}</td>
+          <td>${info.current_rows.toLocaleString()}</td>
+          <td>${info.size_gb.toFixed(2)}</td>
+          <td><input type="number" class="form-control form-control-sm user-rows" data-table="${key}" value="${info.user_rows}" min="0"></td>
+          <td><button class="btn btn-sm btn-outline-primary update-row" data-table="${key}">Обновить</button></td>
+        </tr>
+      `).join('');
+    }
+    
+    // Отображаем блоки
+    if (result.block_details) {
+      blocksTbody.innerHTML = result.block_details.map(b => `
+        <tr>
+          <td>${b.index}</td>
+          <td>${b.type}</td>
+          <td>${b.max_memory_gb.toFixed(3)}</td>
+          <td>${b.total_rows}</td>
+          <td>${b.estimated_time.toFixed(2)}</td>
+          <td><small>${(b.tables || []).join('<br>')}</small></td>
+        </tr>
+      `).join('');
+    }
+    
+    // Отображаем топ-3
+    if (result.top_blocks) {
+      topBlocks.innerHTML = result.top_blocks.map((b, i) => `
+        <div class="card mb-2">
+          <div class="card-body py-2">
+            <h6>${i+1}. Блок ${b.index} [${b.type}] — ${b.max_memory_gb.toFixed(3)} GB</h6>
+            <p class="mb-0"><small>Таблицы: ${(b.tables || []).join(', ')}</small></p>
+            <p class="mb-0"><small class="text-muted">${b.sql_preview.substring(0,100)}</small></p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Обработчик кнопки обновления размера таблицы
+    document.querySelectorAll('.update-row').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const table = this.dataset.table;
+        const input = document.querySelector(`.user-rows[data-table="${table}"]`);
+        const newSize = parseInt(input.value);
+        alert(`Для таблицы ${table} установлено ${newSize} строк. Перезапустите анализ для пересчёта.`);
+      });
+    });
+  }
+
+  // Кнопка применения всех размеров
+  applySizes.addEventListener('click', function() {
+    const sizes = {};
+    document.querySelectorAll('.user-rows').forEach(input => {
+      sizes[input.dataset.table] = parseInt(input.value);
+    });
+    alert('Новые размеры сохранены. Скопируйте этот JSON в поле "Размеры таблиц" и запустите анализ заново:\n' + JSON.stringify(sizes, null, 2));
+  });
+})();
+</script>
+</body>
+</html>
