@@ -3,3 +3,9 @@ app_gpa/__pycache__
 app_gpa/detailed/__pycache__
 restore_obj.sql
 extension_map.json
+arch
+test_cases
+app_gpa_structure.json
+extension_map.json
+*.log
+TreeINsideGit.py
