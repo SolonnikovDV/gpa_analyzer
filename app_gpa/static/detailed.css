@@ -1,0 +1,191 @@
+/* ============================================================
+   Детальный анализ: единая анимация ожидания (скан / расчёт / перерасчёт)
+   + нейтральные цвета
+   ============================================================ */
+
+/* Секции формы */
+.form-section {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--gpa-border, #dee2e6);
+}
+.form-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 0.75rem;
+}
+#db_fields {
+  border-left: 3px solid #0d6efd;
+  padding: 0.75rem 1rem;
+  margin-top: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 0 var(--gpa-radius-sm, 6px) var(--gpa-radius-sm, 6px) 0;
+}
+.form-body textarea.form-control {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+/* ---------- Единый блок ожидания (та же анимация везде) ---------- */
+.app-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border: 1px solid var(--gpa-border, #dee2e6);
+  border-radius: var(--gpa-radius, 8px);
+  min-height: 120px;
+}
+
+.app-loader__spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e9ecef;
+  border-top-color: #0d6efd;
+  border-radius: 50%;
+  animation: app-spin 0.75s linear infinite;
+}
+
+.app-loader__progress-wrap {
+  width: 100%;
+  max-width: 320px;
+}
+
+.app-loader__progress-bar {
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.app-loader__progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #0d6efd;
+  border-radius: 3px;
+  transition: width 0.35s ease;
+}
+
+.app-loader__status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  color: var(--gpa-text-muted, #6c757d);
+}
+
+.app-loader__status-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-loader__percent {
+  font-weight: 600;
+  color: #0d6efd;
+}
+
+@keyframes app-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Компактный лоадер (спиннер + текст) — для скана таблиц и ожидания завершения расчёта */
+.app-loader--compact {
+  flex-direction: row;
+  justify-content: center;
+  min-height: 90px;
+}
+.app-loader--compact .app-loader__progress-wrap {
+  display: none;
+}
+
+/* Плашка во время расчёта/перерасчёта — та же анимация спиннера */
+.system-stats {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #f8f9fa;
+  border-bottom: 1px solid var(--gpa-border, #dee2e6);
+  color: var(--gpa-text, #212529);
+  padding: 12px 20px;
+  margin-bottom: 15px;
+  display: none;
+  gap: 25px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 0.9rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.stat-item { display: flex; align-items: center; gap: 8px; }
+.stat-label { font-weight: 500; color: var(--gpa-text-muted, #6c757d); }
+.stat-value {
+  font-weight: 600;
+  background: #e9ecef;
+  color: #212529;
+  padding: 4px 10px;
+  border-radius: 6px;
+  min-width: 72px;
+  text-align: center;
+  font-size: 0.875rem;
+}
+.stat-value.warning {
+  background: #f8d7da;
+  color: #842029;
+  animation: app-pulse 1s infinite;
+}
+
+@keyframes app-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+.progress-container { flex-grow: 1; min-width: 220px; }
+.progress-bar-wrapper {
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: #0d6efd;
+  width: 0%;
+  transition: width 0.35s ease;
+  border-radius: 3px;
+}
+.progress-text {
+  font-size: 0.8125rem;
+  color: var(--gpa-text-muted, #6c757d);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e9ecef;
+  border-top-color: #0d6efd;
+  border-radius: 50%;
+  animation: app-spin 0.75s linear infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.btn.loading { pointer-events: none; opacity: 0.85; }
+.btn .app-loader__spinner {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}

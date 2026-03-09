@@ -6,11 +6,11 @@
   <title>Настройка размеров таблиц</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='detailed.css') }}">
   <style>
-    #log { font-family: monospace; white-space: pre-wrap; background: #0b1220; color: #cfe3ff; padding: 1rem; border-radius: .25rem; height: 40vh; overflow: auto; }
     .table-input { max-width: 120px; }
-    .param-input { font-family: monospace; }
-    .table-info { font-size: 0.9rem; color: #666; }
+    .param-input { font-family: ui-monospace, Consolas, monospace; }
+    .table-info { font-size: 0.9rem; color: #6c757d; }
   </style>
 </head>
 <body>
@@ -19,8 +19,8 @@
     <a class="navbar-brand" href="/">Analyzer</a>
     <div class="collapse navbar-collapse">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item"><a class="nav-link" href="/">Главная</a></li>
-        <li class="nav-item"><a class="nav-link active" href="/detailed">Детальный анализ</a></li>
+        <li class="nav-item"><a class="nav-link active" href="/">Детальный анализ</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#aboutModal">О приложении</a></li>
       </ul>
     </div>
   </div>
@@ -30,11 +30,16 @@
   <div class="row g-4">
     <div class="col-lg-5">
       <div class="card shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <span>Лог обнаружения таблиц</span>
-          <span id="status" class="badge bg-secondary">{{ status }}</span>
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span>Онлайн-лог</span>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-copy-log" title="Скопировать весь лог">
+              Копировать весь лог
+            </button>
+            <span id="status" class="badge bg-secondary">{{ status }}</span>
+          </div>
         </div>
-        <div class="card-body">
+        <div class="card-body p-0">
           <div id="log"></div>
         </div>
       </div>
@@ -103,11 +108,9 @@
               </div>
             </form>
           </div>
-          <div id="loading" class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Загрузка...</span>
-            </div>
-            <p class="mt-2">Ожидание завершения обнаружения таблиц...</p>
+          <div id="loading" class="app-loader app-loader--compact" role="status">
+            <span class="app-loader__spinner"></span>
+            <span class="app-loader__status-text">Сканирование таблиц…</span>
           </div>
         </div>
       </div>
@@ -115,6 +118,9 @@
   </div>
 </div>
 
+{% include 'about_modal.html' %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 (function(){
   const jobId = {{ job_id | tojson }};
@@ -131,7 +137,19 @@
     paramsInput.value = "'2024-01-01', 'current_date', '5', ''";
   };
 
-  // Stream logs
+  // Копировать весь лог (как на странице анализа)
+  const btnCopyLog = document.getElementById('btn-copy-log');
+  if (btnCopyLog && logEl) {
+    btnCopyLog.addEventListener('click', function() {
+      const text = logEl.innerText || logEl.textContent || '';
+      navigator.clipboard.writeText(text).then(function() {
+        btnCopyLog.textContent = 'Скопировано';
+        setTimeout(function() { btnCopyLog.textContent = 'Копировать весь лог'; }, 2000);
+      });
+    });
+  }
+
+  // Stream logs — построчно, в том же стиле что и при анализе
   const es = new EventSource(`/stream/${jobId}`);
   es.onmessage = (e) => {
     const t = e.data || '';
@@ -139,7 +157,17 @@
       es.close();
       return;
     }
-    logEl.textContent += t + "\n";
+    const lineDiv = document.createElement('div');
+    lineDiv.className = 'log-entry';
+    if (t.includes('❌') || t.includes('Error')) {
+      lineDiv.style.color = '#ff6b6b';
+    } else if (t.includes('⚠️') || t.includes('WARN')) {
+      lineDiv.style.color = '#ffd93d';
+    } else if (t.includes('✅')) {
+      lineDiv.style.color = '#51cf66';
+    }
+    lineDiv.textContent = t;
+    logEl.appendChild(lineDiv);
     logEl.scrollTop = logEl.scrollHeight;
   };
 
@@ -242,7 +270,10 @@
   // Предотвращение двойной отправки
   document.getElementById('sizes-form').addEventListener('submit', function() {
     analyzeBtn.disabled = true;
-    analyzeBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Анализ запущен...';
+    analyzeBtn.classList.add('loading');
+    analyzeBtn.disabled = true;
+    var btnText = analyzeBtn.textContent;
+    analyzeBtn.innerHTML = '<span class="app-loader__spinner" style="margin-right:8px;vertical-align:middle"></span> Расчёт нагрузки…';
   });
 
   // Обработка ошибок EventSource

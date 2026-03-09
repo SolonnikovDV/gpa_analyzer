@@ -9,3 +9,6 @@ app_gpa_structure.json
 extension_map.json
 *.log
 TreeINsideGit.py
+backup_to_zip.py
+get_project_struct.py
+restore_from_zip.py

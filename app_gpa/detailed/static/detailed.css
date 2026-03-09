@@ -1,89 +1,158 @@
-/* Дополнительные стили для детального анализа */
-#db_fields {
-    border-left: 3px solid #0d6efd;
-    padding-left: 1rem;
-    margin-top: 0.5rem;
+/* ============================================================
+   Детальный анализ: единая анимация ожидания (скан / расчёт / перерасчёт)
+   + нейтральные цвета
+   ============================================================ */
+
+.form-section {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--gpa-border, #dee2e6);
 }
-/* Плашка системной статистики */
+.form-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 0.75rem;
+}
+#db_fields {
+  border-left: 3px solid #0d6efd;
+  padding: 0.75rem 1rem;
+  margin-top: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 0 var(--gpa-radius-sm, 6px) var(--gpa-radius-sm, 6px) 0;
+}
+.form-body textarea.form-control {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.app-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border: 1px solid var(--gpa-border, #dee2e6);
+  border-radius: var(--gpa-radius, 8px);
+  min-height: 120px;
+}
+.app-loader__spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e9ecef;
+  border-top-color: #0d6efd;
+  border-radius: 50%;
+  animation: app-spin 0.75s linear infinite;
+}
+.app-loader__progress-wrap { width: 100%; max-width: 320px; }
+.app-loader__progress-bar {
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.app-loader__progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #0d6efd;
+  border-radius: 3px;
+  transition: width 0.35s ease;
+}
+.app-loader__status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  color: var(--gpa-text-muted, #6c757d);
+}
+.app-loader__status-text { display: inline-flex; align-items: center; gap: 8px; }
+.app-loader__percent { font-weight: 600; color: #0d6efd; }
+@keyframes app-spin { to { transform: rotate(360deg); } }
+
+.app-loader--compact {
+  flex-direction: row;
+  justify-content: center;
+  min-height: 90px;
+}
+.app-loader--compact .app-loader__progress-wrap { display: none; }
+
 .system-stats {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: #f8f9fa;
+  border-bottom: 1px solid var(--gpa-border, #dee2e6);
+  color: #212529;
   padding: 12px 20px;
   margin-bottom: 15px;
   display: none;
   gap: 25px;
   flex-wrap: wrap;
   align-items: center;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  border-radius: 0 0 8px 8px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.stat-label {
-  opacity: 0.9;
-  font-weight: 400;
-}
+.stat-item { display: flex; align-items: center; gap: 8px; }
+.stat-label { font-weight: 500; color: #6c757d; }
 .stat-value {
   font-weight: 600;
-  background: rgba(255,255,255,0.2);
+  background: #e9ecef;
+  color: #212529;
   padding: 4px 10px;
-  border-radius: 20px;
-  min-width: 80px;
+  border-radius: 6px;
+  min-width: 72px;
   text-align: center;
+  font-size: 0.875rem;
 }
 .stat-value.warning {
-  background: rgba(220, 53, 69, 0.8);
-  animation: pulse 1s infinite;
+  background: #f8d7da;
+  color: #842029;
+  animation: app-pulse 1s infinite;
 }
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.7; }
-  100% { opacity: 1; }
-}
+@keyframes app-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.85; } }
 
-/* Прогресс-бар */
-.progress-container {
-  flex-grow: 1;
-  min-width: 250px;
-}
+.progress-container { flex-grow: 1; min-width: 220px; }
 .progress-bar-wrapper {
-  height: 8px;
-  background-color: rgba(255,255,255,0.2);
-  border-radius: 4px;
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
   overflow: hidden;
   margin-bottom: 4px;
 }
 .progress-bar-fill {
   height: 100%;
-  background-color: #4ade80;
+  background: #0d6efd;
   width: 0%;
-  transition: width 0.3s ease;
-  border-radius: 4px;
+  transition: width 0.35s ease;
+  border-radius: 3px;
 }
 .progress-text {
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
+  color: #6c757d;
   display: flex;
   justify-content: space-between;
+  align-items: center;
 }
-
-/* Анимированная иконка */
 .loading-spinner {
   display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 3px solid rgba(255,255,255,0.3);
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e9ecef;
+  border-top-color: #0d6efd;
   border-radius: 50%;
-  border-top-color: white;
-  animation: spin 1s ease-in-out infinite;
+  animation: app-spin 0.75s linear infinite;
   margin-right: 8px;
+  vertical-align: middle;
 }
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.btn.loading { pointer-events: none; opacity: 0.85; }
+.btn .app-loader__spinner {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
 }

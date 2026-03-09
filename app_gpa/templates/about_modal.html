@@ -1,0 +1,23 @@
+{# Модальное окно «О приложении» — авторство и описание #}
+<div class="modal fade" id="aboutModal" tabindex="-1" aria-labelledby="aboutModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="aboutModalLabel">О приложении</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-1"><strong>{{ app_name }}</strong></p>
+        <p class="small text-muted mb-3">{{ app_description }}</p>
+        <hr class="my-3">
+        <p class="mb-1 small"><strong>Автор:</strong> {{ app_author }}</p>
+        <p class="mb-0 small text-muted">Версия: {{ app_version }}</p>
+        <p class="mt-2 mb-2 small text-muted">© {{ app_author }}</p>
+        <p class="mb-1 small">
+          Данная разработка и приложение распространяются по <strong>лицензии MIT</strong>.
+          Текст лицензии: <a href="{{ url_for('license_page') }}" target="_blank" rel="noopener">MIT License</a>.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

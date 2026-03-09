@@ -6,140 +6,19 @@
   <title>Результат детального анализа</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='detailed.css') }}">
   <style>
-    #log { 
-      font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
-      font-size: 0.85rem; 
-      line-height: 1.4;
-      white-space: pre-wrap; 
-      background: #0b1220; 
-      color: #cfe3ff; 
-      padding: 0.75rem; 
-      border-radius: .25rem; 
-      height: 50vh; 
-      overflow: auto; 
-    }
-    .log-entry {
-      margin: 0;
-      padding: 2px 0;
-      border-bottom: 1px solid #1e2a3a;
-    }
-    .log-entry:hover {
-      background-color: #1a2634;
-    }
-    .pill { 
-      border-radius: 999px; 
-      padding: .25rem .6rem; 
-      font-weight: 600; 
-      font-size: 0.85rem;
-    }
-    .table-sm th, .table-sm td { 
-      padding: 0.3rem; 
-      font-size: 0.9rem;
-    }
-    .nav-tabs .nav-link { 
-      color: #495057; 
-      font-size: 0.95rem;
-    }
-    .nav-tabs .nav-link.active { 
-      font-weight: 600; 
-    }
-    .block-row { 
-      cursor: pointer; 
-    }
-    .block-row:hover { 
-      background-color: #f0f0f0; 
-    }
-    
-    /* Плашка системной статистики */
-    .system-stats {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 12px 20px;
-      margin-bottom: 15px;
-      display: none;
-      gap: 25px;
-      flex-wrap: wrap;
-      align-items: center;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      border-radius: 0 0 8px 8px;
-      font-size: 0.95rem;
-    }
-    .stat-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .stat-label {
-      opacity: 0.9;
-      font-weight: 400;
-    }
-    .stat-value {
-      font-weight: 600;
-      background: rgba(255,255,255,0.2);
-      padding: 4px 10px;
-      border-radius: 20px;
-      min-width: 80px;
-      text-align: center;
-    }
-    .stat-value.warning {
-      background: rgba(220, 53, 69, 0.8);
-      animation: pulse 1s infinite;
-    }
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.7; }
-      100% { opacity: 1; }
-    }
-    
-    /* Прогресс-бар */
-    .progress-container {
-      flex-grow: 1;
-      min-width: 250px;
-    }
-    .progress-bar-wrapper {
-      height: 8px;
-      background-color: rgba(255,255,255,0.2);
-      border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 4px;
-    }
-    .progress-bar-fill {
-      height: 100%;
-      background-color: #4ade80;
-      width: 0%;
-      transition: width 0.3s ease;
-      border-radius: 4px;
-    }
-    .progress-text {
-      font-size: 0.85rem;
-      display: flex;
-      justify-content: space-between;
-    }
-    
-    /* Анимированная иконка */
-    .loading-spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(255,255,255,0.3);
-      border-radius: 50%;
-      border-top-color: white;
-      animation: spin 1s ease-in-out infinite;
-      margin-right: 8px;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    .block-row { cursor: pointer; }
+    .block-row:hover { background-color: #f1f3f5; }
   </style>
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
     <a class="navbar-brand" href="/">Analyzer</a>
+    <div class="navbar-nav ms-auto">
+      <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#aboutModal">О приложении</a>
+    </div>
   </div>
 </nav>
 
@@ -191,7 +70,11 @@
         <div class="card-header">Краткая статистика</div>
         <div class="card-body">
           <div id="summary">
-            <div class="text-muted">Ожидание завершения...</div>
+            <div id="summary-waiting" class="app-loader app-loader--compact">
+              <span class="app-loader__spinner"></span>
+              <span class="app-loader__status-text">Расчёт нагрузки…</span>
+            </div>
+            <div id="summary-content" style="display: none;"></div>
           </div>
           <div class="mt-3 d-flex gap-2">
             <a id="btn-details" href="#" class="btn btn-outline-primary disabled" target="_blank">Полный JSON</a>
@@ -202,6 +85,9 @@
     </div>
   </div>
   
+  <!-- Панель ключевых метрик (появляется после расчёта, по мотивам explain-визуализаторов) -->
+  <div id="metrics-strip" class="metrics-strip" style="display: none;"></div>
+
   <!-- Вкладки с результатами (появятся после завершения) -->
   <div class="row mt-4" id="results-tabs" style="display: none;">
     <div class="col-12">
@@ -314,6 +200,8 @@
   <div id="restart-sizes-container"></div>
 </form>
 
+{% include 'about_modal.html' %}
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -322,6 +210,8 @@
   const logEl = document.getElementById('log');
   const statusEl = document.getElementById('status');
   const summaryEl = document.getElementById('summary');
+  const summaryWaiting = document.getElementById('summary-waiting');
+  const summaryContent = document.getElementById('summary-content');
   const btnDetails = document.getElementById('btn-details');
   const resultsTabs = document.getElementById('results-tabs');
   const tablesTbody = document.getElementById('tables-tbody');
@@ -612,24 +502,28 @@
         }
         
         const s = js.summary;
-        summaryEl.innerHTML = `
-          <ul class="list-group small">
+        if (summaryWaiting) summaryWaiting.style.display = 'none';
+        if (summaryContent) {
+          summaryContent.style.display = 'block';
+          summaryContent.innerHTML = `
+          <ul class="list-group list-group-flush small">
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              Функция/Запрос <span class="pill bg-light text-dark">${s.function || 'SQL Query'}</span>
+              Функция/Запрос <span class="badge bg-secondary">${s.function || 'SQL Query'}</span>
             </li>
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              Проанализировано блоков <span class="pill bg-light text-dark">${s.blocks_analyzed || 0}</span>
+              Проанализировано блоков <span class="badge bg-secondary">${s.blocks_analyzed || 0}</span>
             </li>
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              Общая нагрузка <span class="pill bg-light text-dark">${s.total_memory_gb || 0} GB</span>
+              Общая нагрузка <span class="badge bg-secondary">${s.total_memory_gb || 0} GB</span>
             </li>
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              Оценка времени <span class="pill bg-light text-dark">${s.estimated_time_sec || 0} сек</span>
+              Оценка времени <span class="badge bg-secondary">${s.estimated_time_sec || 0} сек</span>
             </li>
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              Риск <span class="pill ${s.risk === 'ВЫСОКИЙ' ? 'bg-danger' : s.risk === 'СРЕДНИЙ' ? 'bg-warning' : 'bg-success'} text-white">${s.risk || 'Н/Д'}</span>
+              Риск <span class="badge ${s.risk === 'ВЫСОКИЙ' ? 'bg-danger' : s.risk === 'СРЕДНИЙ' ? 'bg-warning' : 'bg-success'}">${s.risk || 'Н/Д'}</span>
             </li>
           </ul>`;
+        }
         btnDetails.classList.remove('disabled');
         btnDetails.href = `/details/${jobId}`;
         
@@ -649,7 +543,11 @@
       if (js.status === 'error') {
         clearInterval(interval);
         stopProgressTracking();
-        summaryEl.innerHTML = `<div class="alert alert-danger">Ошибка: ${js.error || 'Неизвестная ошибка'}</div>`;
+        if (summaryWaiting) summaryWaiting.style.display = 'none';
+        if (summaryContent) {
+          summaryContent.style.display = 'block';
+          summaryContent.innerHTML = `<div class="alert alert-danger mb-0">Ошибка: ${js.error || 'Неизвестная ошибка'}</div>`;
+        }
       }
     } catch(e) {
       console.error('Polling error:', e);
@@ -658,6 +556,19 @@
 
   function displayResults(result) {
     resultsTabs.style.display = 'block';
+
+    const metricsStrip = document.getElementById('metrics-strip');
+    if (metricsStrip) {
+      const risk = (result.risk || 'N/A').toLowerCase();
+      const riskClass = risk.includes('высок') ? 'risk-high' : (risk.includes('средн') ? 'risk-medium' : 'risk-low');
+      metricsStrip.innerHTML = `
+        <span class="metrics-strip-item"><span class="text-muted">Риск:</span> <span class="metric-value ${riskClass}">${result.risk || 'N/A'}</span></span>
+        <span class="metrics-strip-item"><span class="text-muted">Нагрузка:</span> <span class="metric-value">${(result.total_memory_gb || 0).toFixed(2)} GB</span></span>
+        <span class="metrics-strip-item"><span class="text-muted">Блоков:</span> <span class="metric-value">${result.blocks_count || 0}</span></span>
+        <span class="metrics-strip-item"><span class="text-muted">Время:</span> <span class="metric-value">${(result.estimated_time_sec || 0).toFixed(1)} сек</span></span>
+      `;
+      metricsStrip.style.display = 'flex';
+    }
     
     if (result.blocks_count) {
       totalEstimatedBlocks = result.blocks_count;
@@ -690,12 +601,14 @@
     if (result.block_details && result.block_details.length > 0) {
       let blocksHtml = '';
       result.block_details.forEach(b => {
+        const gb = b.max_memory_gb || 0;
+        const loadClass = gb >= 1 ? 'load-high' : (gb >= 0.1 ? 'load-medium' : 'load-low');
         blocksHtml += `
-          <tr class="block-row" data-block-index="${b.index}">
+          <tr class="block-row ${loadClass}" data-block-index="${b.index}">
             <td>${b.index}</td>
             <td>${b.type || 'N/A'}</td>
             <td>${b.category || 'N/A'}</td>
-            <td class="text-end">${(b.max_memory_gb || 0).toFixed(3)}</td>
+            <td class="text-end">${(gb).toFixed(3)}</td>
             <td class="text-end">${(b.total_rows || 0).toLocaleString()}</td>
             <td><small>${(b.tables || []).join('<br>')}</small></td>
           </tr>
@@ -720,7 +633,7 @@
       let topHtml = '';
       result.top_blocks.forEach((b, i) => {
         topHtml += `
-          <div class="card mb-2">
+          <div class="card mb-2 card-hover">
             <div class="card-body py-2">
               <h6 class="mb-1">${i+1}. Блок ${b.index} [${b.type || 'N/A'}]</h6>
               <div class="row">
