@@ -1,0 +1,19 @@
+{# Модальное окно «Подсказки» для страницы детального анализа #}
+<div class="modal fade" id="tipsModal" tabindex="-1" aria-labelledby="tipsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tipsModalLabel">Подсказки</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="list-unstyled small mb-0">
+          <li class="mb-2"><strong>DDL функции</strong> — вставьте полный текст <code>CREATE OR REPLACE FUNCTION ... AS $function$ ... $function$</code>, включая тело.</li>
+          <li class="mb-2"><strong>Параметры</strong> — на шаге настройки размеров таблиц укажите параметры в том же порядке, что и в сигнатуре функции. Для строк используйте кавычки, например: <code>'2024-01-01', 'current_date', '5', ''</code>.</li>
+          <li class="mb-2"><strong>Желаемое количество строк</strong> — можно оставить текущее или задать своё для оценки нагрузки при других объёмах данных.</li>
+          <li class="mb-2"><strong>Подключение к БД</strong> — опционально. Если включено, статистика таблиц подтягивается из базы; иначе используются значения по умолчанию.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

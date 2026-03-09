@@ -1,3 +1,223 @@
-body { background: #f6f8fb; }
-.card-header { font-weight: 600; }
-.navbar-brand { font-weight: 700; letter-spacing: .3px; }
+/* ============================================================
+   GPA Analyzer — светлая нейтральная схема, акцент на формах
+   ============================================================ */
+
+:root {
+  --gpa-bg: #f6f8fb;
+  --gpa-surface: #ffffff;
+  --gpa-border: #dee2e6;
+  --gpa-border-focus: #0d6efd;
+  --gpa-text: #212529;
+  --gpa-text-muted: #6c757d;
+  --gpa-radius: 8px;
+  --gpa-radius-sm: 6px;
+  --gpa-font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --gpa-font-mono: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--gpa-bg);
+  color: var(--gpa-text);
+  font-family: var(--gpa-font-sans);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* Навбар — без изменений к стандартному Bootstrap */
+.navbar-brand {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Карточки */
+.card {
+  background: var(--gpa-surface);
+  border: 1px solid var(--gpa-border);
+  border-radius: var(--gpa-radius);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.card-header {
+  font-weight: 600;
+  background: #f8f9fa;
+  border-bottom: 1px solid var(--gpa-border);
+  border-radius: var(--gpa-radius) var(--gpa-radius) 0 0;
+  padding: 0.75rem 1rem;
+  color: var(--gpa-text);
+}
+.card-body {
+  padding: 1rem 1.25rem;
+}
+
+/* ---------- Формы: акцент на читаемость и удобство ---------- */
+.form-label {
+  font-weight: 500;
+  color: var(--gpa-text);
+  margin-bottom: 0.35rem;
+  font-size: 0.9375rem;
+}
+
+.form-control,
+.form-select {
+  border: 1px solid var(--gpa-border);
+  border-radius: var(--gpa-radius-sm);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9375rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.form-control:hover,
+.form-select:hover {
+  border-color: #adb5bd;
+}
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--gpa-border-focus);
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+  outline: 0;
+}
+.form-control::placeholder {
+  color: var(--gpa-text-muted);
+}
+.form-control:disabled,
+.form-select:disabled {
+  background-color: #e9ecef;
+  opacity: 0.9;
+}
+
+.form-text {
+  color: var(--gpa-text-muted);
+  font-size: 0.8125rem;
+  margin-top: 0.25rem;
+}
+
+.form-check-input {
+  margin-top: 0.15em;
+}
+.form-check-label {
+  margin-left: 0.35em;
+  color: var(--gpa-text);
+  font-size: 0.9375rem;
+}
+
+/* Группировка полей формы */
+.mb-3 > .form-label + .form-control,
+.mb-3 > .form-label + .form-select {
+  margin-top: 0;
+}
+.form-control.form-control-lg,
+input[type="number"].form-control {
+  max-width: 100%;
+}
+.row.g-3 .form-label {
+  margin-bottom: 0.35rem;
+}
+
+/* Кнопки — стандартный Bootstrap, без перекраски */
+.btn {
+  font-weight: 500;
+  border-radius: var(--gpa-radius-sm);
+}
+
+/* Алерты */
+.alert {
+  border-radius: var(--gpa-radius-sm);
+}
+
+/* Таблицы */
+.table th {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--gpa-text-muted);
+}
+
+/* Панель ключевых метрик (как в explain-визуализаторах) */
+.metrics-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border: 1px solid var(--gpa-border);
+  border-radius: var(--gpa-radius-sm);
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+.metrics-strip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.metrics-strip-item strong {
+  color: var(--gpa-text);
+}
+.metrics-strip-item .metric-value {
+  font-weight: 600;
+  color: #0d6efd;
+}
+.metrics-strip-item.risk-low .metric-value { color: #198754; }
+.metrics-strip-item.risk-medium .metric-value { color: #fd7e14; }
+.metrics-strip-item.risk-high .metric-value { color: #dc3545; }
+
+/* Цветовая полоска нагрузки в строках таблицы блоков */
+.block-row.load-low   { border-left: 3px solid #198754; }
+.block-row.load-medium { border-left: 3px solid #fd7e14; }
+.block-row.load-high   { border-left: 3px solid #dc3545; }
+.block-row { border-left: 3px solid transparent; }
+
+/* Карточки с лёгким акцентом при наведении (как в дашборд-шаблонах) */
+.card-hover:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.2s ease;
+}
+.card .card {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.card .card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Футер с авторством */
+.app-footer {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--gpa-border);
+  font-size: 0.8125rem;
+  color: var(--gpa-text-muted);
+  text-align: center;
+}
+.app-footer a {
+  color: var(--gpa-text-muted);
+  text-decoration: none;
+}
+.app-footer a:hover {
+  text-decoration: underline;
+  color: var(--gpa-text);
+}
+
+/* Лог — единый стиль для скана таблиц и анализа */
+#log, .log-panel {
+  font-family: var(--gpa-font-mono);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  background: #0b1220;
+  color: #cfe3ff;
+  padding: 0.875rem;
+  border-radius: 0;
+  border: none;
+  overflow: auto;
+  min-height: 120px;
+  height: 50vh;
+}
+.log-entry {
+  margin: 0;
+  padding: 2px 0;
+  border-bottom: 1px solid #1e2a3a;
+}
+.log-entry:hover {
+  background-color: #1a2634;
+}

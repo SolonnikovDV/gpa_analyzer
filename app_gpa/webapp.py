@@ -3,13 +3,14 @@
 
 import io
 import json
+import os
 import threading
 import queue
 from contextlib import redirect_stdout
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
-from flask import Flask, render_template, request, redirect, url_for, Response, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, Response, jsonify, session, send_file
 from jinja2 import ChoiceLoader, FileSystemLoader
 
 from detailed.detailed_analyzer import DetailedGreenplumFunctionAnalyzer, ClusterConfig
@@ -23,6 +24,26 @@ app.jinja_loader = ChoiceLoader([
     FileSystemLoader('templates'),
     FileSystemLoader('detailed/templates')
 ])
+
+# Информация об приложении для модального окна «О приложении»
+@app.context_processor
+def inject_app_info():
+    return {
+        'app_name': 'GPA Analyzer',
+        'app_author': 'Dmitry Solonnikov',
+        'app_version': '1.0',
+        'app_description': 'Оценка нагрузки и рисков выполнения PL/pgSQL-функций в Greenplum по планам запросов.',
+    }
+
+
+@app.route('/license')
+def license_page():
+    """Отдаёт текст MIT-лицензии из корня проекта."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    path = os.path.join(root, 'LICENSE')
+    if not os.path.isfile(path):
+        return 'License file not found', 404
+    return send_file(path, mimetype='text/plain', as_attachment=False, download_name='LICENSE')
 
 # Default stand presets
 STANDS = {
@@ -157,11 +178,6 @@ def _run_analysis_job(job_id: str, payload: Dict[str, Any]):
 
 
 @app.route('/')
-def index():
-    """Перенаправляем на страницу детального анализа"""
-    return redirect(url_for('detailed_index'))
-
-
 @app.route('/detailed')
 def detailed_index():
     """Страница ввода DDL"""

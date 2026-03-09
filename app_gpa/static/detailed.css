@@ -3,6 +3,7 @@
    + нейтральные цвета
    ============================================================ */
 
+/* Секции формы */
 .form-section {
   margin-top: 1.25rem;
   padding-top: 1.25rem;
@@ -27,6 +28,7 @@
   line-height: 1.45;
 }
 
+/* ---------- Единый блок ожидания (та же анимация везде) ---------- */
 .app-loader {
   display: flex;
   flex-direction: column;
@@ -39,6 +41,7 @@
   border-radius: var(--gpa-radius, 8px);
   min-height: 120px;
 }
+
 .app-loader__spinner {
   width: 36px;
   height: 36px;
@@ -47,7 +50,12 @@
   border-radius: 50%;
   animation: app-spin 0.75s linear infinite;
 }
-.app-loader__progress-wrap { width: 100%; max-width: 320px; }
+
+.app-loader__progress-wrap {
+  width: 100%;
+  max-width: 320px;
+}
+
 .app-loader__progress-bar {
   height: 6px;
   background: #e9ecef;
@@ -55,6 +63,7 @@
   overflow: hidden;
   margin-bottom: 6px;
 }
+
 .app-loader__progress-fill {
   height: 100%;
   width: 0%;
@@ -62,6 +71,7 @@
   border-radius: 3px;
   transition: width 0.35s ease;
 }
+
 .app-loader__status {
   display: flex;
   justify-content: space-between;
@@ -69,24 +79,40 @@
   font-size: 0.875rem;
   color: var(--gpa-text-muted, #6c757d);
 }
-.app-loader__status-text { display: inline-flex; align-items: center; gap: 8px; }
-.app-loader__percent { font-weight: 600; color: #0d6efd; }
-@keyframes app-spin { to { transform: rotate(360deg); } }
 
+.app-loader__status-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-loader__percent {
+  font-weight: 600;
+  color: #0d6efd;
+}
+
+@keyframes app-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Компактный лоадер (спиннер + текст) — для скана таблиц и ожидания завершения расчёта */
 .app-loader--compact {
   flex-direction: row;
   justify-content: center;
   min-height: 90px;
 }
-.app-loader--compact .app-loader__progress-wrap { display: none; }
+.app-loader--compact .app-loader__progress-wrap {
+  display: none;
+}
 
+/* Плашка во время расчёта/перерасчёта — та же анимация спиннера */
 .system-stats {
   position: sticky;
   top: 0;
   z-index: 100;
   background: #f8f9fa;
   border-bottom: 1px solid var(--gpa-border, #dee2e6);
-  color: #212529;
+  color: var(--gpa-text, #212529);
   padding: 12px 20px;
   margin-bottom: 15px;
   display: none;
@@ -96,8 +122,9 @@
   font-size: 0.9rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
+
 .stat-item { display: flex; align-items: center; gap: 8px; }
-.stat-label { font-weight: 500; color: #6c757d; }
+.stat-label { font-weight: 500; color: var(--gpa-text-muted, #6c757d); }
 .stat-value {
   font-weight: 600;
   background: #e9ecef;
@@ -113,7 +140,11 @@
   color: #842029;
   animation: app-pulse 1s infinite;
 }
-@keyframes app-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.85; } }
+
+@keyframes app-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
 
 .progress-container { flex-grow: 1; min-width: 220px; }
 .progress-bar-wrapper {
@@ -132,11 +163,12 @@
 }
 .progress-text {
   font-size: 0.8125rem;
-  color: #6c757d;
+  color: var(--gpa-text-muted, #6c757d);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
 .loading-spinner {
   display: inline-block;
   width: 16px;
@@ -148,6 +180,7 @@
   margin-right: 8px;
   vertical-align: middle;
 }
+
 .btn.loading { pointer-events: none; opacity: 0.85; }
 .btn .app-loader__spinner {
   width: 18px;
