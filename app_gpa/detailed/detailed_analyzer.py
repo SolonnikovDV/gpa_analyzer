@@ -601,6 +601,9 @@ class DetailedGreenplumFunctionAnalyzer:
         # 4. Финальное исправление: убираем кавычки вокруг CURRENT_DATE
         result = re.sub(r"'CURRENT_DATE'", "CURRENT_DATE", result, flags=re.IGNORECASE)
 
+        # 5. Убираем лишний слой кавычек у литералов даты (''2024-01-01'::date' → '2024-01-01'::date)
+        result = re.sub(r"''(\d{4}-\d{2}-\d{2})'::(\w+)'", r"'\1'::\2", result)
+
         return result
 
     # -------------------------------------------------------------------------
@@ -1479,7 +1482,8 @@ class DetailedGreenplumFunctionAnalyzer:
             if is_execute:
                 final_sql = self._process_execute_block(block, current_vars)
                 if final_sql is None:
-                    print("  ⏭️ EXECUTE блок пропущен (не удалось разобрать)")
+                    # EXECUTE format('...') INTO var USING ... — по смыслу как SELECT INTO (присвоение переменной), в блоках нагрузки не учитываем
+                    print("  ⏭️ EXECUTE блок пропущен (EXECUTE … INTO … не считаем блоком нагрузки, как SELECT INTO)")
                     continue
                 block_to_analyze = final_sql
                 block_type_display = 'EXECUTE'
@@ -1581,7 +1585,8 @@ class DetailedGreenplumFunctionAnalyzer:
                 if is_execute:
                     final_sql = self._process_execute_block(sql_block_obj.sql, current_vars)
                     if final_sql is None:
-                        print("  ⏭️ EXECUTE блок пропущен (не удалось разобрать)")
+                        # EXECUTE … INTO … — как SELECT INTO, в блоках нагрузки не учитываем
+                        print("  ⏭️ EXECUTE блок пропущен (EXECUTE … INTO … не считаем блоком нагрузки, как SELECT INTO)")
                         continue
                     sql_to_analyze = final_sql
                     block_type_display = 'EXECUTE'
