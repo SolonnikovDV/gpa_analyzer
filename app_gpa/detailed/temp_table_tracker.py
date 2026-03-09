@@ -6,6 +6,7 @@
 import re
 from typing import Dict, List, Set, Tuple, Optional, Any
 from dataclasses import dataclass, field
+from .sql_object_extractor import SQLObjectExtractor
 
 
 @dataclass
@@ -71,9 +72,8 @@ class TempTableTracker:
         source_tables = set()
         source_views = set()
         
-        # Извлекаем все объекты из SQL
-        from block_parser import extract_objects_from_sql
-        objects = extract_objects_from_sql(sql)
+        # Используем pglast для извлечения объектов
+        objects = SQLObjectExtractor.extract_objects(sql)
         
         for schema, obj_name in objects:
             obj_key = (schema.lower(), obj_name.lower())
@@ -84,7 +84,7 @@ class TempTableTracker:
                 # Рекурсивно раскрываем представление
                 if obj_key in view_definitions:
                     view_sql = view_definitions[obj_key]
-                    view_objects = extract_objects_from_sql(view_sql)
+                    view_objects = SQLObjectExtractor.extract_objects(view_sql)
                     for v_schema, v_name in view_objects:
                         v_key = (v_schema.lower(), v_name.lower())
                         if v_key in physical_tables:

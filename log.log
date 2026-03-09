@@ -1,0 +1,1227 @@
+🔍 Запуск анализа с параметрами: ["'2024-01-01'", "'current_date'", "'5'", "''"]
+📊 Размеры таблиц: 1 шт.
+[DEBUG] Первые 20 строк тела функции:
+  1: DECLARE
+  2:     v_report_date DATE;
+  3: v_start_date DATE;
+  4: v_prev_start_date DATE;
+  5: v_prev_end_date DATE;
+  6:     v_last_year_start_date DATE;
+  7:     v_last_year_end_date DATE;
+  8:     v_interval_days INTEGER;
+  9:     v_gosb_list TEXT[];
+  10:     v_gosb TEXT;
+  11:     v_current_unique_epk NUMERIC;
+  12:     v_prev_unique_epk NUMERIC;
+  13:     v_last_year_unique_epk NUMERIC;
+  14:     v_prev_dynamics NUMERIC;
+  15:     v_year_dynamics NUMERIC;
+  16:     v_has_prev_data BOOLEAN;
+  17:     v_has_year_data BOOLEAN;
+  18:     v_threshold NUMERIC;
+  19:     v_threshold_value_json JSON;
+  20:     v_global_alert BOOLEAN := FALSE;
+🔍 Этап 2: Анализ нагрузки функции с пользовательскими размерами
+[DEBUG] Параметры функции (входные): ["'2024-01-01'", "'current_date'", "'5'", "''"]
+[DEBUG] Имена параметров из сигнатуры: ['p_date', 'p_thread_name', 'p_search_depth', 'p_threshold_value']
+[DEBUG] После сопоставления: {'p_date': '2024-01-01', 'p_thread_name': 'current_date', 'p_search_depth': '5', 'p_threshold_value': ''}
+📋 [DEBUG] Начало обработки переменных
+[DEBUG] Параметры: {'p_date': '2024-01-01', 'p_thread_name': 'current_date', 'p_search_depth': '5', 'p_threshold_value': ''}
+  [DECLARE] v_report_date (date) = NULL
+  [DECLARE] v_start_date (date) = NULL
+  [DECLARE] v_prev_start_date (date) = NULL
+  [DECLARE] v_prev_end_date (date) = NULL
+  [DECLARE] v_last_year_start_date (date) = NULL
+  [DECLARE] v_last_year_end_date (date) = NULL
+  [DECLARE] v_interval_days (integer) = NULL
+  [DECLARE] v_gosb_list (text[]) = NULL
+  [DECLARE] v_gosb (text) = NULL
+  [DECLARE] v_current_unique_epk (numeric) = NULL
+  [DECLARE] v_prev_unique_epk (numeric) = NULL
+  [DECLARE] v_last_year_unique_epk (numeric) = NULL
+  [DECLARE] v_prev_dynamics (numeric) = NULL
+  [DECLARE] v_year_dynamics (numeric) = NULL
+  [DECLARE] v_has_prev_data (boolean) = NULL
+  [DECLARE] v_has_year_data (boolean) = NULL
+  [DECLARE] v_threshold (numeric) = NULL
+  [DECLARE] v_threshold_value_json (json) = NULL
+  [DECLARE] v_global_alert (boolean) = FALSE
+  [DECLARE] v_global_warn (boolean) = FALSE
+  [DECLARE] v_gosb_status (varchar) = NULL
+  [DECLARE] v_gosb_result (boolean) = NULL
+  [DECLARE] v_gosb_details (text) = NULL
+  [DECLARE] v_alert_reasons (text[]) = NULL
+  [DECLARE] v_warn_reasons (text[]) = NULL
+  [DECLARE] v_abs_prev_dynamics (numeric) = NULL
+  [DECLARE] v_abs_year_dynamics (numeric) = NULL
+  [DECLARE] v_metric_name (text) = NULL
+  [DECLARE] v_month_start (date) = NULL
+  [DECLARE] v_month_end (date) = NULL
+  [DECLARE] v_temp (numeric) = NULL
+  [DECLARE] v_sum_prev (numeric) = NULL
+  [DECLARE] v_count_prev (integer) = NULL
+  [DECLARE] v_current_json (text) = {
+  [DECLARE] v_prev_json (text) = {
+  [DECLARE] v_year_json (text) = {
+  [DECLARE] v_details_json (text) = {
+  [DECLARE] v_first (boolean) = TRUE
+  [DECLARE] v_gosb_has_prev_data (boolean) = NULL
+  [DECLARE] v_gosb_has_year_data (boolean) = NULL
+  [DECLARE] v_total_prev_months (integer) = NULL
+  [DECLARE] v_months_with_data (integer) = NULL
+  [PARAM] p_date = 2024-01-01
+  [PARAM] p_thread_name = current_date
+  [PARAM] p_search_depth = 5
+  [PARAM] p_threshold_value = 
+[DEBUG] Найдено 164 операторов для выполнения (после разбиения по ;)
+[DEBUG] Предварительная обработка DECLARE переменных:
+[DEBUG] Проход 1:
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day((current_date - interv
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day(p_date::date)
+      [DEBUG EXPR] v_start_date := s_grnplm_vd_rozn_ss_core.srv_first_day(v_report_date)
+      [DEBUG EXPR] v_prev_start_date := (v_start_date - p_search_depth::INTERVAL)::DATE
+    ⚡ v_prev_start_date = ('1900-01-01' - p_search_depth)...
+      [DEBUG EXPR] v_prev_end_date := (v_start_date - 1)::DATE
+    ⚡ v_prev_end_date = ('1900-01-01' - 1)...
+      [DEBUG EXPR] v_last_year_start_date := (v_start_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_last_year_end_date := (v_report_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_interval_days := (v_report_date - v_start_date) + 1
+    ⚡ v_interval_days = ('1900-01-01' - '1900-01-01') + 1...
+      [DEBUG EXPR] v_threshold_value_json := p_threshold_value::JSON
+    ⚡ v_threshold_value_json = p_threshold_value...
+      [DEBUG EXPR] v_threshold := COALESCE((v_threshold_value_json->>'check_limit')::NUMERIC, 
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG EXPR] v_threshold := 10
+    ⚡ v_threshold = 10...
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG] Found SELECT INTO: SELECT array_agg(DISTINCT gosb_name)
+    INTO v_gosb_list
+...
+      [DEBUG] _execute_select_into: processing SELECT INTO statement
+      [DEBUG] Calling ExecuteParser.parse_select_into...
+      [DEBUG] into_vars: ['v_gosb_list']
+      [DEBUG] agg_functions: {}
+      [DEBUG] var v_gosb_list = NULL (no agg function)
+    📍 v_gosb_list = NULL (из SELECT INTO)
+      [DEBUG EXPR] v_metric_name := 'ГОСБ ' || COALESCE(v_gosb, 'НЕИЗВЕСТНО')
+    ⚡ v_metric_name = 'ГОСБ ' || COALESCE(v_gosb, 'НЕИЗВЕСТНО')...
+      [DEBUG EXPR] v_current_unique_epk := COALESCE(v_current_unique_epk, 0)
+    ⚡ v_current_unique_epk = COALESCE(v_current_unique_epk, 0)...
+      [DEBUG EXPR] v_sum_prev := 0
+    ⚡ v_sum_prev = 0...
+    ⚡ v_count_prev = 0...
+    ⚡ v_months_with_data = 0...
+      [DEBUG EXPR] v_month_end := date_trunc('month', v_prev_end_date) + INTERVAL '1 month' - 
+      [DEBUG EXPR] v_month_start := date_trunc('month', v_month_end)
+      [DEBUG EXPR] v_month_start := v_prev_start_date
+      [DEBUG EXPR] v_month_end := v_prev_end_date
+      [DEBUG EXPR] v_temp := COALESCE(v_temp, 0)
+    ⚡ v_temp = COALESCE(v_temp, 0)...
+      [DEBUG EXPR] v_months_with_data := v_months_with_data + 1
+    ⚡ v_months_with_data = v_months_with_data + 1...
+      [DEBUG EXPR] v_sum_prev := v_sum_prev + v_temp
+    ⚡ v_sum_prev = 0 + 0.0...
+      [DEBUG EXPR] v_count_prev := v_count_prev + 1
+    ⚡ v_count_prev = v_count_prev + 1...
+      [DEBUG EXPR] v_month_end := v_month_start - INTERVAL '1 day'
+      [DEBUG EXPR] v_gosb_has_prev_data := (v_months_with_data > 0)
+    ⚡ v_gosb_has_prev_data = (NULL > 0)...
+      [DEBUG EXPR] v_prev_unique_epk := v_sum_prev / v_count_prev
+    ⚡ v_prev_unique_epk = 0.0 / 0...
+      [DEBUG EXPR] v_has_prev_data := true
+      [DEBUG EXPR] v_prev_unique_epk := 0
+    ⚡ v_prev_unique_epk = 0...
+      [DEBUG EXPR] v_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_prev_data := false
+      [DEBUG EXPR] v_last_year_unique_epk := COALESCE(v_last_year_unique_epk, 0)
+    ⚡ v_last_year_unique_epk = COALESCE(v_last_year_unique_epk, 0)...
+      [DEBUG EXPR] v_gosb_has_year_data := (v_last_year_unique_epk > 0)
+    ⚡ v_gosb_has_year_data = (NULL > 0)...
+      [DEBUG EXPR] v_has_year_data := v_gosb_has_year_data
+      [DEBUG EXPR] v_prev_dynamics := ROUND(((v_current_unique_epk - v_prev_unique_epk) / v_prev_u
+    ⚡ v_prev_dynamics = ROUND(((0.0 - 0) / 0) * 100, 2)...
+    ⚡ v_prev_dynamics = NULL...
+      [DEBUG EXPR] v_year_dynamics := ROUND(((v_current_unique_epk - v_last_year_unique_epk) / v_l
+    ⚡ v_year_dynamics = ROUND(((0.0 - 0.0) / 0.0) * 100, 2)...
+    ⚡ v_year_dynamics = NULL...
+      [DEBUG EXPR] v_alert_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_alert_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_warn_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_warn_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_abs_prev_dynamics := ABS(v_prev_dynamics)
+    ⚡ v_abs_prev_dynamics = ABS(v_prev_dynamics)...
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev_missing')
+      [DEBUG EXPR] v_abs_year_dynamics := ABS(v_year_dynamics)
+    ⚡ v_abs_year_dynamics = ABS(v_year_dynamics)...
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year_missing')
+      [DEBUG EXPR] v_gosb_status := 'ALERT'
+      🧹 Очищено: 'ALERT' → ALERT
+    ⚡ v_gosb_status = ALERT...
+    ⚡ v_gosb_result = FALSE...
+    ⚡ v_global_alert = TRUE...
+      [DEBUG EXPR] v_gosb_status := 'WARN'
+      🧹 Очищено: 'WARN' → WARN
+    ⚡ v_gosb_status = WARN...
+    ⚡ v_gosb_result = TRUE...
+    ⚡ v_global_warn = TRUE...
+      [DEBUG EXPR] v_gosb_status := 'INFO'
+      🧹 Очищено: 'INFO' → INFO
+    ⚡ v_gosb_status = INFO...
+      [DEBUG EXPR] v_current_json := v_current_json || ','
+    ⚡ v_current_json = v_current_json || ','...
+      [DEBUG EXPR] v_prev_json := v_prev_json || ','
+    ⚡ v_prev_json = v_prev_json || ','...
+      [DEBUG EXPR] v_year_json := v_year_json || ','
+    ⚡ v_year_json = v_year_json || ','...
+      [DEBUG EXPR] v_details_json := v_details_json || ','
+    ⚡ v_details_json = v_details_json || ','...
+      [DEBUG EXPR] v_first := FALSE
+    ⚡ v_first = FALSE...
+      [DEBUG EXPR] v_current_json := v_current_json || format('"%s": %s', v_gosb, v_current_uniqu
+      [DEBUG EXPR] v_prev_json := v_prev_json || format('"%s": %s', v_gosb, COALESCE(v_prev_dy
+      [DEBUG EXPR] v_year_json := v_year_json || format('"%s": %s', v_gosb, COALESCE(v_year_dy
+      [DEBUG EXPR] v_details_json := v_details_json || format('"%s": {"status": "%s", "result": %
+      [DEBUG EXPR] v_current_json := v_current_json || '}'
+    ⚡ v_current_json = v_current_json || '}'...
+      [DEBUG EXPR] v_prev_json := v_prev_json || '}'
+    ⚡ v_prev_json = v_prev_json || '}'...
+      [DEBUG EXPR] v_year_json := v_year_json || '}'
+    ⚡ v_year_json = v_year_json || '}'...
+      [DEBUG EXPR] v_details_json := v_details_json || '}'
+    ⚡ v_details_json = v_details_json || '}'...
+[DEBUG] Проход 2:
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day((current_date - interv
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day(p_date::date)
+      [DEBUG EXPR] v_start_date := s_grnplm_vd_rozn_ss_core.srv_first_day(v_report_date)
+      [DEBUG EXPR] v_prev_start_date := (v_start_date - p_search_depth::INTERVAL)::DATE
+      [DEBUG EXPR] v_prev_end_date := (v_start_date - 1)::DATE
+      [DEBUG EXPR] v_last_year_start_date := (v_start_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_last_year_end_date := (v_report_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_interval_days := (v_report_date - v_start_date) + 1
+      [DEBUG EXPR] v_threshold_value_json := p_threshold_value::JSON
+    ⚡ v_threshold_value_json = p_threshold_value...
+      [DEBUG EXPR] v_threshold := COALESCE((v_threshold_value_json->>'check_limit')::NUMERIC, 
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG] _execute_select_into: processing SELECT INTO statement
+      [DEBUG] Calling ExecuteParser.parse_select_into...
+      [DEBUG] into_vars: ['v_gosb_list']
+      [DEBUG] agg_functions: {}
+      [DEBUG] var v_gosb_list = NULL (no agg function)
+    📍 v_gosb_list = NULL (из SELECT INTO)
+    ⚡ v_sum_prev = 0...
+    ⚡ v_count_prev = 0...
+    ⚡ v_months_with_data = 0...
+      [DEBUG EXPR] v_month_end := date_trunc('month', v_prev_end_date) + INTERVAL '1 month' - 
+      [DEBUG EXPR] v_month_start := date_trunc('month', v_month_end)
+      [DEBUG EXPR] v_month_start := v_prev_start_date
+      [DEBUG EXPR] v_month_end := v_prev_end_date
+      [DEBUG EXPR] v_months_with_data := v_months_with_data + 1
+    ⚡ v_months_with_data = v_months_with_data + 1...
+      [DEBUG EXPR] v_sum_prev := v_sum_prev + v_temp
+    ⚡ v_sum_prev = 0 + 0.0...
+      [DEBUG EXPR] v_count_prev := v_count_prev + 1
+    ⚡ v_count_prev = v_count_prev + 1...
+      [DEBUG EXPR] v_month_end := v_month_start - INTERVAL '1 day'
+      [DEBUG EXPR] v_gosb_has_prev_data := (v_months_with_data > 0)
+      [DEBUG EXPR] v_prev_unique_epk := v_sum_prev / v_count_prev
+    ⚡ v_prev_unique_epk = 0.0 / 0...
+      [DEBUG EXPR] v_has_prev_data := true
+      [DEBUG EXPR] v_prev_unique_epk := 0
+    ⚡ v_prev_unique_epk = 0...
+      [DEBUG EXPR] v_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_year_data := (v_last_year_unique_epk > 0)
+      [DEBUG EXPR] v_has_year_data := v_gosb_has_year_data
+      [DEBUG EXPR] v_prev_dynamics := ROUND(((v_current_unique_epk - v_prev_unique_epk) / v_prev_u
+    ⚡ v_prev_dynamics = ROUND(((0.0 - 0) / 0) * 100, 2)...
+    ⚡ v_prev_dynamics = NULL...
+      [DEBUG EXPR] v_year_dynamics := ROUND(((v_current_unique_epk - v_last_year_unique_epk) / v_l
+    ⚡ v_year_dynamics = ROUND(((0.0 - 0.0) / 0.0) * 100, 2)...
+    ⚡ v_year_dynamics = NULL...
+      [DEBUG EXPR] v_alert_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_alert_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_warn_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_warn_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev_missing')
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year_missing')
+      [DEBUG EXPR] v_gosb_status := 'ALERT'
+      🧹 Очищено: 'ALERT' → ALERT
+    ⚡ v_gosb_status = ALERT...
+    ⚡ v_gosb_result = FALSE...
+      [DEBUG EXPR] v_gosb_status := 'WARN'
+      🧹 Очищено: 'WARN' → WARN
+    ⚡ v_gosb_status = WARN...
+    ⚡ v_gosb_result = TRUE...
+      [DEBUG EXPR] v_gosb_status := 'INFO'
+      🧹 Очищено: 'INFO' → INFO
+    ⚡ v_gosb_status = INFO...
+      [DEBUG EXPR] v_current_json := v_current_json || ','
+    ⚡ v_current_json = v_current_json || ','...
+      [DEBUG EXPR] v_prev_json := v_prev_json || ','
+    ⚡ v_prev_json = v_prev_json || ','...
+      [DEBUG EXPR] v_year_json := v_year_json || ','
+    ⚡ v_year_json = v_year_json || ','...
+      [DEBUG EXPR] v_details_json := v_details_json || ','
+    ⚡ v_details_json = v_details_json || ','...
+      [DEBUG EXPR] v_current_json := v_current_json || format('"%s": %s', v_gosb, v_current_uniqu
+      [DEBUG EXPR] v_prev_json := v_prev_json || format('"%s": %s', v_gosb, COALESCE(v_prev_dy
+      [DEBUG EXPR] v_year_json := v_year_json || format('"%s": %s', v_gosb, COALESCE(v_year_dy
+      [DEBUG EXPR] v_details_json := v_details_json || format('"%s": {"status": "%s", "result": %
+      [DEBUG EXPR] v_current_json := v_current_json || '}'
+    ⚡ v_current_json = v_current_json || '}'...
+      [DEBUG EXPR] v_prev_json := v_prev_json || '}'
+    ⚡ v_prev_json = v_prev_json || '}'...
+      [DEBUG EXPR] v_year_json := v_year_json || '}'
+    ⚡ v_year_json = v_year_json || '}'...
+      [DEBUG EXPR] v_details_json := v_details_json || '}'
+    ⚡ v_details_json = v_details_json || '}'...
+[DEBUG] Проход 3:
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day((current_date - interv
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day(p_date::date)
+      [DEBUG EXPR] v_start_date := s_grnplm_vd_rozn_ss_core.srv_first_day(v_report_date)
+      [DEBUG EXPR] v_prev_start_date := (v_start_date - p_search_depth::INTERVAL)::DATE
+      [DEBUG EXPR] v_prev_end_date := (v_start_date - 1)::DATE
+      [DEBUG EXPR] v_last_year_start_date := (v_start_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_last_year_end_date := (v_report_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_interval_days := (v_report_date - v_start_date) + 1
+      [DEBUG EXPR] v_threshold_value_json := p_threshold_value::JSON
+    ⚡ v_threshold_value_json = p_threshold_value...
+      [DEBUG EXPR] v_threshold := COALESCE((v_threshold_value_json->>'check_limit')::NUMERIC, 
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG] _execute_select_into: processing SELECT INTO statement
+      [DEBUG] Calling ExecuteParser.parse_select_into...
+      [DEBUG] into_vars: ['v_gosb_list']
+      [DEBUG] agg_functions: {}
+      [DEBUG] var v_gosb_list = NULL (no agg function)
+    📍 v_gosb_list = NULL (из SELECT INTO)
+    ⚡ v_sum_prev = 0...
+    ⚡ v_count_prev = 0...
+    ⚡ v_months_with_data = 0...
+      [DEBUG EXPR] v_month_end := date_trunc('month', v_prev_end_date) + INTERVAL '1 month' - 
+      [DEBUG EXPR] v_month_start := date_trunc('month', v_month_end)
+      [DEBUG EXPR] v_month_start := v_prev_start_date
+      [DEBUG EXPR] v_month_end := v_prev_end_date
+      [DEBUG EXPR] v_months_with_data := v_months_with_data + 1
+    ⚡ v_months_with_data = v_months_with_data + 1...
+      [DEBUG EXPR] v_sum_prev := v_sum_prev + v_temp
+    ⚡ v_sum_prev = 0 + 0.0...
+      [DEBUG EXPR] v_count_prev := v_count_prev + 1
+    ⚡ v_count_prev = v_count_prev + 1...
+      [DEBUG EXPR] v_month_end := v_month_start - INTERVAL '1 day'
+      [DEBUG EXPR] v_gosb_has_prev_data := (v_months_with_data > 0)
+      [DEBUG EXPR] v_prev_unique_epk := v_sum_prev / v_count_prev
+    ⚡ v_prev_unique_epk = 0.0 / 0...
+      [DEBUG EXPR] v_has_prev_data := true
+      [DEBUG EXPR] v_prev_unique_epk := 0
+    ⚡ v_prev_unique_epk = 0...
+      [DEBUG EXPR] v_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_year_data := (v_last_year_unique_epk > 0)
+      [DEBUG EXPR] v_has_year_data := v_gosb_has_year_data
+      [DEBUG EXPR] v_prev_dynamics := ROUND(((v_current_unique_epk - v_prev_unique_epk) / v_prev_u
+    ⚡ v_prev_dynamics = ROUND(((0.0 - 0) / 0) * 100, 2)...
+    ⚡ v_prev_dynamics = NULL...
+      [DEBUG EXPR] v_year_dynamics := ROUND(((v_current_unique_epk - v_last_year_unique_epk) / v_l
+    ⚡ v_year_dynamics = ROUND(((0.0 - 0.0) / 0.0) * 100, 2)...
+    ⚡ v_year_dynamics = NULL...
+      [DEBUG EXPR] v_alert_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_alert_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_warn_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_warn_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev_missing')
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year_missing')
+      [DEBUG EXPR] v_gosb_status := 'ALERT'
+      🧹 Очищено: 'ALERT' → ALERT
+    ⚡ v_gosb_status = ALERT...
+    ⚡ v_gosb_result = FALSE...
+      [DEBUG EXPR] v_gosb_status := 'WARN'
+      🧹 Очищено: 'WARN' → WARN
+    ⚡ v_gosb_status = WARN...
+    ⚡ v_gosb_result = TRUE...
+      [DEBUG EXPR] v_gosb_status := 'INFO'
+      🧹 Очищено: 'INFO' → INFO
+    ⚡ v_gosb_status = INFO...
+      [DEBUG EXPR] v_current_json := v_current_json || ','
+    ⚡ v_current_json = v_current_json || ','...
+      [DEBUG EXPR] v_prev_json := v_prev_json || ','
+    ⚡ v_prev_json = v_prev_json || ','...
+      [DEBUG EXPR] v_year_json := v_year_json || ','
+    ⚡ v_year_json = v_year_json || ','...
+      [DEBUG EXPR] v_details_json := v_details_json || ','
+    ⚡ v_details_json = v_details_json || ','...
+      [DEBUG EXPR] v_current_json := v_current_json || format('"%s": %s', v_gosb, v_current_uniqu
+      [DEBUG EXPR] v_prev_json := v_prev_json || format('"%s": %s', v_gosb, COALESCE(v_prev_dy
+      [DEBUG EXPR] v_year_json := v_year_json || format('"%s": %s', v_gosb, COALESCE(v_year_dy
+      [DEBUG EXPR] v_details_json := v_details_json || format('"%s": {"status": "%s", "result": %
+      [DEBUG EXPR] v_current_json := v_current_json || '}'
+    ⚡ v_current_json = v_current_json || '}'...
+      [DEBUG EXPR] v_prev_json := v_prev_json || '}'
+    ⚡ v_prev_json = v_prev_json || '}'...
+      [DEBUG EXPR] v_year_json := v_year_json || '}'
+    ⚡ v_year_json = v_year_json || '}'...
+      [DEBUG EXPR] v_details_json := v_details_json || '}'
+    ⚡ v_details_json = v_details_json || '}'...
+[DEBUG] Проход 4:
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day((current_date - interv
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day(p_date::date)
+      [DEBUG EXPR] v_start_date := s_grnplm_vd_rozn_ss_core.srv_first_day(v_report_date)
+      [DEBUG EXPR] v_prev_start_date := (v_start_date - p_search_depth::INTERVAL)::DATE
+      [DEBUG EXPR] v_prev_end_date := (v_start_date - 1)::DATE
+      [DEBUG EXPR] v_last_year_start_date := (v_start_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_last_year_end_date := (v_report_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_interval_days := (v_report_date - v_start_date) + 1
+      [DEBUG EXPR] v_threshold_value_json := p_threshold_value::JSON
+    ⚡ v_threshold_value_json = p_threshold_value...
+      [DEBUG EXPR] v_threshold := COALESCE((v_threshold_value_json->>'check_limit')::NUMERIC, 
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG] _execute_select_into: processing SELECT INTO statement
+      [DEBUG] Calling ExecuteParser.parse_select_into...
+      [DEBUG] into_vars: ['v_gosb_list']
+      [DEBUG] agg_functions: {}
+      [DEBUG] var v_gosb_list = NULL (no agg function)
+    📍 v_gosb_list = NULL (из SELECT INTO)
+    ⚡ v_sum_prev = 0...
+    ⚡ v_count_prev = 0...
+    ⚡ v_months_with_data = 0...
+      [DEBUG EXPR] v_month_end := date_trunc('month', v_prev_end_date) + INTERVAL '1 month' - 
+      [DEBUG EXPR] v_month_start := date_trunc('month', v_month_end)
+      [DEBUG EXPR] v_month_start := v_prev_start_date
+      [DEBUG EXPR] v_month_end := v_prev_end_date
+      [DEBUG EXPR] v_months_with_data := v_months_with_data + 1
+    ⚡ v_months_with_data = v_months_with_data + 1...
+      [DEBUG EXPR] v_sum_prev := v_sum_prev + v_temp
+    ⚡ v_sum_prev = 0 + 0.0...
+      [DEBUG EXPR] v_count_prev := v_count_prev + 1
+    ⚡ v_count_prev = v_count_prev + 1...
+      [DEBUG EXPR] v_month_end := v_month_start - INTERVAL '1 day'
+      [DEBUG EXPR] v_gosb_has_prev_data := (v_months_with_data > 0)
+      [DEBUG EXPR] v_prev_unique_epk := v_sum_prev / v_count_prev
+    ⚡ v_prev_unique_epk = 0.0 / 0...
+      [DEBUG EXPR] v_has_prev_data := true
+      [DEBUG EXPR] v_prev_unique_epk := 0
+    ⚡ v_prev_unique_epk = 0...
+      [DEBUG EXPR] v_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_year_data := (v_last_year_unique_epk > 0)
+      [DEBUG EXPR] v_has_year_data := v_gosb_has_year_data
+      [DEBUG EXPR] v_prev_dynamics := ROUND(((v_current_unique_epk - v_prev_unique_epk) / v_prev_u
+    ⚡ v_prev_dynamics = ROUND(((0.0 - 0) / 0) * 100, 2)...
+    ⚡ v_prev_dynamics = NULL...
+      [DEBUG EXPR] v_year_dynamics := ROUND(((v_current_unique_epk - v_last_year_unique_epk) / v_l
+    ⚡ v_year_dynamics = ROUND(((0.0 - 0.0) / 0.0) * 100, 2)...
+    ⚡ v_year_dynamics = NULL...
+      [DEBUG EXPR] v_alert_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_alert_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_warn_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_warn_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev_missing')
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year_missing')
+      [DEBUG EXPR] v_gosb_status := 'ALERT'
+      🧹 Очищено: 'ALERT' → ALERT
+    ⚡ v_gosb_status = ALERT...
+    ⚡ v_gosb_result = FALSE...
+      [DEBUG EXPR] v_gosb_status := 'WARN'
+      🧹 Очищено: 'WARN' → WARN
+    ⚡ v_gosb_status = WARN...
+    ⚡ v_gosb_result = TRUE...
+      [DEBUG EXPR] v_gosb_status := 'INFO'
+      🧹 Очищено: 'INFO' → INFO
+    ⚡ v_gosb_status = INFO...
+      [DEBUG EXPR] v_current_json := v_current_json || ','
+    ⚡ v_current_json = v_current_json || ','...
+      [DEBUG EXPR] v_prev_json := v_prev_json || ','
+    ⚡ v_prev_json = v_prev_json || ','...
+      [DEBUG EXPR] v_year_json := v_year_json || ','
+    ⚡ v_year_json = v_year_json || ','...
+      [DEBUG EXPR] v_details_json := v_details_json || ','
+    ⚡ v_details_json = v_details_json || ','...
+      [DEBUG EXPR] v_current_json := v_current_json || format('"%s": %s', v_gosb, v_current_uniqu
+      [DEBUG EXPR] v_prev_json := v_prev_json || format('"%s": %s', v_gosb, COALESCE(v_prev_dy
+      [DEBUG EXPR] v_year_json := v_year_json || format('"%s": %s', v_gosb, COALESCE(v_year_dy
+      [DEBUG EXPR] v_details_json := v_details_json || format('"%s": {"status": "%s", "result": %
+      [DEBUG EXPR] v_current_json := v_current_json || '}'
+    ⚡ v_current_json = v_current_json || '}'...
+      [DEBUG EXPR] v_prev_json := v_prev_json || '}'
+    ⚡ v_prev_json = v_prev_json || '}'...
+      [DEBUG EXPR] v_year_json := v_year_json || '}'
+    ⚡ v_year_json = v_year_json || '}'...
+      [DEBUG EXPR] v_details_json := v_details_json || '}'
+    ⚡ v_details_json = v_details_json || '}'...
+[DEBUG] Проход 5:
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day((current_date - interv
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day(p_date::date)
+      [DEBUG EXPR] v_start_date := s_grnplm_vd_rozn_ss_core.srv_first_day(v_report_date)
+      [DEBUG EXPR] v_prev_start_date := (v_start_date - p_search_depth::INTERVAL)::DATE
+      [DEBUG EXPR] v_prev_end_date := (v_start_date - 1)::DATE
+      [DEBUG EXPR] v_last_year_start_date := (v_start_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_last_year_end_date := (v_report_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_interval_days := (v_report_date - v_start_date) + 1
+      [DEBUG EXPR] v_threshold_value_json := p_threshold_value::JSON
+    ⚡ v_threshold_value_json = p_threshold_value...
+      [DEBUG EXPR] v_threshold := COALESCE((v_threshold_value_json->>'check_limit')::NUMERIC, 
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG] _execute_select_into: processing SELECT INTO statement
+      [DEBUG] Calling ExecuteParser.parse_select_into...
+      [DEBUG] into_vars: ['v_gosb_list']
+      [DEBUG] agg_functions: {}
+      [DEBUG] var v_gosb_list = NULL (no agg function)
+    📍 v_gosb_list = NULL (из SELECT INTO)
+    ⚡ v_sum_prev = 0...
+    ⚡ v_count_prev = 0...
+    ⚡ v_months_with_data = 0...
+      [DEBUG EXPR] v_month_end := date_trunc('month', v_prev_end_date) + INTERVAL '1 month' - 
+      [DEBUG EXPR] v_month_start := date_trunc('month', v_month_end)
+      [DEBUG EXPR] v_month_start := v_prev_start_date
+      [DEBUG EXPR] v_month_end := v_prev_end_date
+      [DEBUG EXPR] v_months_with_data := v_months_with_data + 1
+    ⚡ v_months_with_data = v_months_with_data + 1...
+      [DEBUG EXPR] v_sum_prev := v_sum_prev + v_temp
+    ⚡ v_sum_prev = 0 + 0.0...
+      [DEBUG EXPR] v_count_prev := v_count_prev + 1
+    ⚡ v_count_prev = v_count_prev + 1...
+      [DEBUG EXPR] v_month_end := v_month_start - INTERVAL '1 day'
+      [DEBUG EXPR] v_gosb_has_prev_data := (v_months_with_data > 0)
+      [DEBUG EXPR] v_prev_unique_epk := v_sum_prev / v_count_prev
+    ⚡ v_prev_unique_epk = 0.0 / 0...
+      [DEBUG EXPR] v_has_prev_data := true
+      [DEBUG EXPR] v_prev_unique_epk := 0
+    ⚡ v_prev_unique_epk = 0...
+      [DEBUG EXPR] v_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_year_data := (v_last_year_unique_epk > 0)
+      [DEBUG EXPR] v_has_year_data := v_gosb_has_year_data
+      [DEBUG EXPR] v_prev_dynamics := ROUND(((v_current_unique_epk - v_prev_unique_epk) / v_prev_u
+    ⚡ v_prev_dynamics = ROUND(((0.0 - 0) / 0) * 100, 2)...
+    ⚡ v_prev_dynamics = NULL...
+      [DEBUG EXPR] v_year_dynamics := ROUND(((v_current_unique_epk - v_last_year_unique_epk) / v_l
+    ⚡ v_year_dynamics = ROUND(((0.0 - 0.0) / 0.0) * 100, 2)...
+    ⚡ v_year_dynamics = NULL...
+      [DEBUG EXPR] v_alert_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_alert_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_warn_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_warn_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev_missing')
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year_missing')
+      [DEBUG EXPR] v_gosb_status := 'ALERT'
+      🧹 Очищено: 'ALERT' → ALERT
+    ⚡ v_gosb_status = ALERT...
+    ⚡ v_gosb_result = FALSE...
+      [DEBUG EXPR] v_gosb_status := 'WARN'
+      🧹 Очищено: 'WARN' → WARN
+    ⚡ v_gosb_status = WARN...
+    ⚡ v_gosb_result = TRUE...
+      [DEBUG EXPR] v_gosb_status := 'INFO'
+      🧹 Очищено: 'INFO' → INFO
+    ⚡ v_gosb_status = INFO...
+      [DEBUG EXPR] v_current_json := v_current_json || ','
+    ⚡ v_current_json = v_current_json || ','...
+      [DEBUG EXPR] v_prev_json := v_prev_json || ','
+    ⚡ v_prev_json = v_prev_json || ','...
+      [DEBUG EXPR] v_year_json := v_year_json || ','
+    ⚡ v_year_json = v_year_json || ','...
+      [DEBUG EXPR] v_details_json := v_details_json || ','
+    ⚡ v_details_json = v_details_json || ','...
+      [DEBUG EXPR] v_current_json := v_current_json || format('"%s": %s', v_gosb, v_current_uniqu
+      [DEBUG EXPR] v_prev_json := v_prev_json || format('"%s": %s', v_gosb, COALESCE(v_prev_dy
+      [DEBUG EXPR] v_year_json := v_year_json || format('"%s": %s', v_gosb, COALESCE(v_year_dy
+      [DEBUG EXPR] v_details_json := v_details_json || format('"%s": {"status": "%s", "result": %
+      [DEBUG EXPR] v_current_json := v_current_json || '}'
+    ⚡ v_current_json = v_current_json || '}'...
+      [DEBUG EXPR] v_prev_json := v_prev_json || '}'
+    ⚡ v_prev_json = v_prev_json || '}'...
+      [DEBUG EXPR] v_year_json := v_year_json || '}'
+    ⚡ v_year_json = v_year_json || '}'...
+      [DEBUG EXPR] v_details_json := v_details_json || '}'
+    ⚡ v_details_json = v_details_json || '}'...
+[DEBUG] Проход 6:
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day((current_date - interv
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day(p_date::date)
+      [DEBUG EXPR] v_start_date := s_grnplm_vd_rozn_ss_core.srv_first_day(v_report_date)
+      [DEBUG EXPR] v_prev_start_date := (v_start_date - p_search_depth::INTERVAL)::DATE
+      [DEBUG EXPR] v_prev_end_date := (v_start_date - 1)::DATE
+      [DEBUG EXPR] v_last_year_start_date := (v_start_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_last_year_end_date := (v_report_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_interval_days := (v_report_date - v_start_date) + 1
+      [DEBUG EXPR] v_threshold_value_json := p_threshold_value::JSON
+    ⚡ v_threshold_value_json = p_threshold_value...
+      [DEBUG EXPR] v_threshold := COALESCE((v_threshold_value_json->>'check_limit')::NUMERIC, 
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG] _execute_select_into: processing SELECT INTO statement
+      [DEBUG] Calling ExecuteParser.parse_select_into...
+      [DEBUG] into_vars: ['v_gosb_list']
+      [DEBUG] agg_functions: {}
+      [DEBUG] var v_gosb_list = NULL (no agg function)
+    📍 v_gosb_list = NULL (из SELECT INTO)
+    ⚡ v_sum_prev = 0...
+    ⚡ v_count_prev = 0...
+    ⚡ v_months_with_data = 0...
+      [DEBUG EXPR] v_month_end := date_trunc('month', v_prev_end_date) + INTERVAL '1 month' - 
+      [DEBUG EXPR] v_month_start := date_trunc('month', v_month_end)
+      [DEBUG EXPR] v_month_start := v_prev_start_date
+      [DEBUG EXPR] v_month_end := v_prev_end_date
+      [DEBUG EXPR] v_months_with_data := v_months_with_data + 1
+    ⚡ v_months_with_data = v_months_with_data + 1...
+      [DEBUG EXPR] v_sum_prev := v_sum_prev + v_temp
+    ⚡ v_sum_prev = 0 + 0.0...
+      [DEBUG EXPR] v_count_prev := v_count_prev + 1
+    ⚡ v_count_prev = v_count_prev + 1...
+      [DEBUG EXPR] v_month_end := v_month_start - INTERVAL '1 day'
+      [DEBUG EXPR] v_gosb_has_prev_data := (v_months_with_data > 0)
+      [DEBUG EXPR] v_prev_unique_epk := v_sum_prev / v_count_prev
+    ⚡ v_prev_unique_epk = 0.0 / 0...
+      [DEBUG EXPR] v_has_prev_data := true
+      [DEBUG EXPR] v_prev_unique_epk := 0
+    ⚡ v_prev_unique_epk = 0...
+      [DEBUG EXPR] v_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_year_data := (v_last_year_unique_epk > 0)
+      [DEBUG EXPR] v_has_year_data := v_gosb_has_year_data
+      [DEBUG EXPR] v_prev_dynamics := ROUND(((v_current_unique_epk - v_prev_unique_epk) / v_prev_u
+    ⚡ v_prev_dynamics = ROUND(((0.0 - 0) / 0) * 100, 2)...
+    ⚡ v_prev_dynamics = NULL...
+      [DEBUG EXPR] v_year_dynamics := ROUND(((v_current_unique_epk - v_last_year_unique_epk) / v_l
+    ⚡ v_year_dynamics = ROUND(((0.0 - 0.0) / 0.0) * 100, 2)...
+    ⚡ v_year_dynamics = NULL...
+      [DEBUG EXPR] v_alert_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_alert_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_warn_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_warn_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev_missing')
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year_missing')
+      [DEBUG EXPR] v_gosb_status := 'ALERT'
+      🧹 Очищено: 'ALERT' → ALERT
+    ⚡ v_gosb_status = ALERT...
+    ⚡ v_gosb_result = FALSE...
+      [DEBUG EXPR] v_gosb_status := 'WARN'
+      🧹 Очищено: 'WARN' → WARN
+    ⚡ v_gosb_status = WARN...
+    ⚡ v_gosb_result = TRUE...
+      [DEBUG EXPR] v_gosb_status := 'INFO'
+      🧹 Очищено: 'INFO' → INFO
+    ⚡ v_gosb_status = INFO...
+      [DEBUG EXPR] v_current_json := v_current_json || ','
+    ⚡ v_current_json = v_current_json || ','...
+      [DEBUG EXPR] v_prev_json := v_prev_json || ','
+    ⚡ v_prev_json = v_prev_json || ','...
+      [DEBUG EXPR] v_year_json := v_year_json || ','
+    ⚡ v_year_json = v_year_json || ','...
+      [DEBUG EXPR] v_details_json := v_details_json || ','
+    ⚡ v_details_json = v_details_json || ','...
+      [DEBUG EXPR] v_current_json := v_current_json || format('"%s": %s', v_gosb, v_current_uniqu
+      [DEBUG EXPR] v_prev_json := v_prev_json || format('"%s": %s', v_gosb, COALESCE(v_prev_dy
+      [DEBUG EXPR] v_year_json := v_year_json || format('"%s": %s', v_gosb, COALESCE(v_year_dy
+      [DEBUG EXPR] v_details_json := v_details_json || format('"%s": {"status": "%s", "result": %
+      [DEBUG EXPR] v_current_json := v_current_json || '}'
+    ⚡ v_current_json = v_current_json || '}'...
+      [DEBUG EXPR] v_prev_json := v_prev_json || '}'
+    ⚡ v_prev_json = v_prev_json || '}'...
+      [DEBUG EXPR] v_year_json := v_year_json || '}'
+    ⚡ v_year_json = v_year_json || '}'...
+      [DEBUG EXPR] v_details_json := v_details_json || '}'
+    ⚡ v_details_json = v_details_json || '}'...
+[DEBUG] Проход 7:
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day((current_date - interv
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day(p_date::date)
+      [DEBUG EXPR] v_start_date := s_grnplm_vd_rozn_ss_core.srv_first_day(v_report_date)
+      [DEBUG EXPR] v_prev_start_date := (v_start_date - p_search_depth::INTERVAL)::DATE
+      [DEBUG EXPR] v_prev_end_date := (v_start_date - 1)::DATE
+      [DEBUG EXPR] v_last_year_start_date := (v_start_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_last_year_end_date := (v_report_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_interval_days := (v_report_date - v_start_date) + 1
+      [DEBUG EXPR] v_threshold_value_json := p_threshold_value::JSON
+    ⚡ v_threshold_value_json = p_threshold_value...
+      [DEBUG EXPR] v_threshold := COALESCE((v_threshold_value_json->>'check_limit')::NUMERIC, 
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG] _execute_select_into: processing SELECT INTO statement
+      [DEBUG] Calling ExecuteParser.parse_select_into...
+      [DEBUG] into_vars: ['v_gosb_list']
+      [DEBUG] agg_functions: {}
+      [DEBUG] var v_gosb_list = NULL (no agg function)
+    📍 v_gosb_list = NULL (из SELECT INTO)
+    ⚡ v_sum_prev = 0...
+    ⚡ v_count_prev = 0...
+    ⚡ v_months_with_data = 0...
+      [DEBUG EXPR] v_month_end := date_trunc('month', v_prev_end_date) + INTERVAL '1 month' - 
+      [DEBUG EXPR] v_month_start := date_trunc('month', v_month_end)
+      [DEBUG EXPR] v_month_start := v_prev_start_date
+      [DEBUG EXPR] v_month_end := v_prev_end_date
+      [DEBUG EXPR] v_months_with_data := v_months_with_data + 1
+    ⚡ v_months_with_data = v_months_with_data + 1...
+      [DEBUG EXPR] v_sum_prev := v_sum_prev + v_temp
+    ⚡ v_sum_prev = 0 + 0.0...
+      [DEBUG EXPR] v_count_prev := v_count_prev + 1
+    ⚡ v_count_prev = v_count_prev + 1...
+      [DEBUG EXPR] v_month_end := v_month_start - INTERVAL '1 day'
+      [DEBUG EXPR] v_gosb_has_prev_data := (v_months_with_data > 0)
+      [DEBUG EXPR] v_prev_unique_epk := v_sum_prev / v_count_prev
+    ⚡ v_prev_unique_epk = 0.0 / 0...
+      [DEBUG EXPR] v_has_prev_data := true
+      [DEBUG EXPR] v_prev_unique_epk := 0
+    ⚡ v_prev_unique_epk = 0...
+      [DEBUG EXPR] v_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_year_data := (v_last_year_unique_epk > 0)
+      [DEBUG EXPR] v_has_year_data := v_gosb_has_year_data
+      [DEBUG EXPR] v_prev_dynamics := ROUND(((v_current_unique_epk - v_prev_unique_epk) / v_prev_u
+    ⚡ v_prev_dynamics = ROUND(((0.0 - 0) / 0) * 100, 2)...
+    ⚡ v_prev_dynamics = NULL...
+      [DEBUG EXPR] v_year_dynamics := ROUND(((v_current_unique_epk - v_last_year_unique_epk) / v_l
+    ⚡ v_year_dynamics = ROUND(((0.0 - 0.0) / 0.0) * 100, 2)...
+    ⚡ v_year_dynamics = NULL...
+      [DEBUG EXPR] v_alert_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_alert_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_warn_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_warn_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev_missing')
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year_missing')
+      [DEBUG EXPR] v_gosb_status := 'ALERT'
+      🧹 Очищено: 'ALERT' → ALERT
+    ⚡ v_gosb_status = ALERT...
+    ⚡ v_gosb_result = FALSE...
+      [DEBUG EXPR] v_gosb_status := 'WARN'
+      🧹 Очищено: 'WARN' → WARN
+    ⚡ v_gosb_status = WARN...
+    ⚡ v_gosb_result = TRUE...
+      [DEBUG EXPR] v_gosb_status := 'INFO'
+      🧹 Очищено: 'INFO' → INFO
+    ⚡ v_gosb_status = INFO...
+      [DEBUG EXPR] v_current_json := v_current_json || ','
+    ⚡ v_current_json = v_current_json || ','...
+      [DEBUG EXPR] v_prev_json := v_prev_json || ','
+    ⚡ v_prev_json = v_prev_json || ','...
+      [DEBUG EXPR] v_year_json := v_year_json || ','
+    ⚡ v_year_json = v_year_json || ','...
+      [DEBUG EXPR] v_details_json := v_details_json || ','
+    ⚡ v_details_json = v_details_json || ','...
+      [DEBUG EXPR] v_current_json := v_current_json || format('"%s": %s', v_gosb, v_current_uniqu
+      [DEBUG EXPR] v_prev_json := v_prev_json || format('"%s": %s', v_gosb, COALESCE(v_prev_dy
+      [DEBUG EXPR] v_year_json := v_year_json || format('"%s": %s', v_gosb, COALESCE(v_year_dy
+      [DEBUG EXPR] v_details_json := v_details_json || format('"%s": {"status": "%s", "result": %
+      [DEBUG EXPR] v_current_json := v_current_json || '}'
+    ⚡ v_current_json = v_current_json || '}'...
+      [DEBUG EXPR] v_prev_json := v_prev_json || '}'
+    ⚡ v_prev_json = v_prev_json || '}'...
+      [DEBUG EXPR] v_year_json := v_year_json || '}'
+    ⚡ v_year_json = v_year_json || '}'...
+      [DEBUG EXPR] v_details_json := v_details_json || '}'
+    ⚡ v_details_json = v_details_json || '}'...
+[DEBUG] Проход 8:
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day((current_date - interv
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day(p_date::date)
+      [DEBUG EXPR] v_start_date := s_grnplm_vd_rozn_ss_core.srv_first_day(v_report_date)
+      [DEBUG EXPR] v_prev_start_date := (v_start_date - p_search_depth::INTERVAL)::DATE
+      [DEBUG EXPR] v_prev_end_date := (v_start_date - 1)::DATE
+      [DEBUG EXPR] v_last_year_start_date := (v_start_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_last_year_end_date := (v_report_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_interval_days := (v_report_date - v_start_date) + 1
+      [DEBUG EXPR] v_threshold_value_json := p_threshold_value::JSON
+    ⚡ v_threshold_value_json = p_threshold_value...
+      [DEBUG EXPR] v_threshold := COALESCE((v_threshold_value_json->>'check_limit')::NUMERIC, 
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG] _execute_select_into: processing SELECT INTO statement
+      [DEBUG] Calling ExecuteParser.parse_select_into...
+      [DEBUG] into_vars: ['v_gosb_list']
+      [DEBUG] agg_functions: {}
+      [DEBUG] var v_gosb_list = NULL (no agg function)
+    📍 v_gosb_list = NULL (из SELECT INTO)
+    ⚡ v_sum_prev = 0...
+    ⚡ v_count_prev = 0...
+    ⚡ v_months_with_data = 0...
+      [DEBUG EXPR] v_month_end := date_trunc('month', v_prev_end_date) + INTERVAL '1 month' - 
+      [DEBUG EXPR] v_month_start := date_trunc('month', v_month_end)
+      [DEBUG EXPR] v_month_start := v_prev_start_date
+      [DEBUG EXPR] v_month_end := v_prev_end_date
+      [DEBUG EXPR] v_months_with_data := v_months_with_data + 1
+    ⚡ v_months_with_data = v_months_with_data + 1...
+      [DEBUG EXPR] v_sum_prev := v_sum_prev + v_temp
+    ⚡ v_sum_prev = 0 + 0.0...
+      [DEBUG EXPR] v_count_prev := v_count_prev + 1
+    ⚡ v_count_prev = v_count_prev + 1...
+      [DEBUG EXPR] v_month_end := v_month_start - INTERVAL '1 day'
+      [DEBUG EXPR] v_gosb_has_prev_data := (v_months_with_data > 0)
+      [DEBUG EXPR] v_prev_unique_epk := v_sum_prev / v_count_prev
+    ⚡ v_prev_unique_epk = 0.0 / 0...
+      [DEBUG EXPR] v_has_prev_data := true
+      [DEBUG EXPR] v_prev_unique_epk := 0
+    ⚡ v_prev_unique_epk = 0...
+      [DEBUG EXPR] v_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_year_data := (v_last_year_unique_epk > 0)
+      [DEBUG EXPR] v_has_year_data := v_gosb_has_year_data
+      [DEBUG EXPR] v_prev_dynamics := ROUND(((v_current_unique_epk - v_prev_unique_epk) / v_prev_u
+    ⚡ v_prev_dynamics = ROUND(((0.0 - 0) / 0) * 100, 2)...
+    ⚡ v_prev_dynamics = NULL...
+      [DEBUG EXPR] v_year_dynamics := ROUND(((v_current_unique_epk - v_last_year_unique_epk) / v_l
+    ⚡ v_year_dynamics = ROUND(((0.0 - 0.0) / 0.0) * 100, 2)...
+    ⚡ v_year_dynamics = NULL...
+      [DEBUG EXPR] v_alert_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_alert_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_warn_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_warn_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev_missing')
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year_missing')
+      [DEBUG EXPR] v_gosb_status := 'ALERT'
+      🧹 Очищено: 'ALERT' → ALERT
+    ⚡ v_gosb_status = ALERT...
+    ⚡ v_gosb_result = FALSE...
+      [DEBUG EXPR] v_gosb_status := 'WARN'
+      🧹 Очищено: 'WARN' → WARN
+    ⚡ v_gosb_status = WARN...
+    ⚡ v_gosb_result = TRUE...
+      [DEBUG EXPR] v_gosb_status := 'INFO'
+      🧹 Очищено: 'INFO' → INFO
+    ⚡ v_gosb_status = INFO...
+      [DEBUG EXPR] v_current_json := v_current_json || ','
+    ⚡ v_current_json = v_current_json || ','...
+      [DEBUG EXPR] v_prev_json := v_prev_json || ','
+    ⚡ v_prev_json = v_prev_json || ','...
+      [DEBUG EXPR] v_year_json := v_year_json || ','
+    ⚡ v_year_json = v_year_json || ','...
+      [DEBUG EXPR] v_details_json := v_details_json || ','
+    ⚡ v_details_json = v_details_json || ','...
+      [DEBUG EXPR] v_current_json := v_current_json || format('"%s": %s', v_gosb, v_current_uniqu
+      [DEBUG EXPR] v_prev_json := v_prev_json || format('"%s": %s', v_gosb, COALESCE(v_prev_dy
+      [DEBUG EXPR] v_year_json := v_year_json || format('"%s": %s', v_gosb, COALESCE(v_year_dy
+      [DEBUG EXPR] v_details_json := v_details_json || format('"%s": {"status": "%s", "result": %
+      [DEBUG EXPR] v_current_json := v_current_json || '}'
+    ⚡ v_current_json = v_current_json || '}'...
+      [DEBUG EXPR] v_prev_json := v_prev_json || '}'
+    ⚡ v_prev_json = v_prev_json || '}'...
+      [DEBUG EXPR] v_year_json := v_year_json || '}'
+    ⚡ v_year_json = v_year_json || '}'...
+      [DEBUG EXPR] v_details_json := v_details_json || '}'
+    ⚡ v_details_json = v_details_json || '}'...
+[DEBUG] Проход 9:
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day((current_date - interv
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day(p_date::date)
+      [DEBUG EXPR] v_start_date := s_grnplm_vd_rozn_ss_core.srv_first_day(v_report_date)
+      [DEBUG EXPR] v_prev_start_date := (v_start_date - p_search_depth::INTERVAL)::DATE
+      [DEBUG EXPR] v_prev_end_date := (v_start_date - 1)::DATE
+      [DEBUG EXPR] v_last_year_start_date := (v_start_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_last_year_end_date := (v_report_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_interval_days := (v_report_date - v_start_date) + 1
+      [DEBUG EXPR] v_threshold_value_json := p_threshold_value::JSON
+    ⚡ v_threshold_value_json = p_threshold_value...
+      [DEBUG EXPR] v_threshold := COALESCE((v_threshold_value_json->>'check_limit')::NUMERIC, 
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG] _execute_select_into: processing SELECT INTO statement
+      [DEBUG] Calling ExecuteParser.parse_select_into...
+      [DEBUG] into_vars: ['v_gosb_list']
+      [DEBUG] agg_functions: {}
+      [DEBUG] var v_gosb_list = NULL (no agg function)
+    📍 v_gosb_list = NULL (из SELECT INTO)
+    ⚡ v_sum_prev = 0...
+    ⚡ v_count_prev = 0...
+    ⚡ v_months_with_data = 0...
+      [DEBUG EXPR] v_month_end := date_trunc('month', v_prev_end_date) + INTERVAL '1 month' - 
+      [DEBUG EXPR] v_month_start := date_trunc('month', v_month_end)
+      [DEBUG EXPR] v_month_start := v_prev_start_date
+      [DEBUG EXPR] v_month_end := v_prev_end_date
+      [DEBUG EXPR] v_months_with_data := v_months_with_data + 1
+    ⚡ v_months_with_data = v_months_with_data + 1...
+      [DEBUG EXPR] v_sum_prev := v_sum_prev + v_temp
+    ⚡ v_sum_prev = 0 + 0.0...
+      [DEBUG EXPR] v_count_prev := v_count_prev + 1
+    ⚡ v_count_prev = v_count_prev + 1...
+      [DEBUG EXPR] v_month_end := v_month_start - INTERVAL '1 day'
+      [DEBUG EXPR] v_gosb_has_prev_data := (v_months_with_data > 0)
+      [DEBUG EXPR] v_prev_unique_epk := v_sum_prev / v_count_prev
+    ⚡ v_prev_unique_epk = 0.0 / 0...
+      [DEBUG EXPR] v_has_prev_data := true
+      [DEBUG EXPR] v_prev_unique_epk := 0
+    ⚡ v_prev_unique_epk = 0...
+      [DEBUG EXPR] v_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_year_data := (v_last_year_unique_epk > 0)
+      [DEBUG EXPR] v_has_year_data := v_gosb_has_year_data
+      [DEBUG EXPR] v_prev_dynamics := ROUND(((v_current_unique_epk - v_prev_unique_epk) / v_prev_u
+    ⚡ v_prev_dynamics = ROUND(((0.0 - 0) / 0) * 100, 2)...
+    ⚡ v_prev_dynamics = NULL...
+      [DEBUG EXPR] v_year_dynamics := ROUND(((v_current_unique_epk - v_last_year_unique_epk) / v_l
+    ⚡ v_year_dynamics = ROUND(((0.0 - 0.0) / 0.0) * 100, 2)...
+    ⚡ v_year_dynamics = NULL...
+      [DEBUG EXPR] v_alert_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_alert_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_warn_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_warn_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev_missing')
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year_missing')
+      [DEBUG EXPR] v_gosb_status := 'ALERT'
+      🧹 Очищено: 'ALERT' → ALERT
+    ⚡ v_gosb_status = ALERT...
+    ⚡ v_gosb_result = FALSE...
+      [DEBUG EXPR] v_gosb_status := 'WARN'
+      🧹 Очищено: 'WARN' → WARN
+    ⚡ v_gosb_status = WARN...
+    ⚡ v_gosb_result = TRUE...
+      [DEBUG EXPR] v_gosb_status := 'INFO'
+      🧹 Очищено: 'INFO' → INFO
+    ⚡ v_gosb_status = INFO...
+      [DEBUG EXPR] v_current_json := v_current_json || ','
+    ⚡ v_current_json = v_current_json || ','...
+      [DEBUG EXPR] v_prev_json := v_prev_json || ','
+    ⚡ v_prev_json = v_prev_json || ','...
+      [DEBUG EXPR] v_year_json := v_year_json || ','
+    ⚡ v_year_json = v_year_json || ','...
+      [DEBUG EXPR] v_details_json := v_details_json || ','
+    ⚡ v_details_json = v_details_json || ','...
+      [DEBUG EXPR] v_current_json := v_current_json || format('"%s": %s', v_gosb, v_current_uniqu
+      [DEBUG EXPR] v_prev_json := v_prev_json || format('"%s": %s', v_gosb, COALESCE(v_prev_dy
+      [DEBUG EXPR] v_year_json := v_year_json || format('"%s": %s', v_gosb, COALESCE(v_year_dy
+      [DEBUG EXPR] v_details_json := v_details_json || format('"%s": {"status": "%s", "result": %
+      [DEBUG EXPR] v_current_json := v_current_json || '}'
+    ⚡ v_current_json = v_current_json || '}'...
+      [DEBUG EXPR] v_prev_json := v_prev_json || '}'
+    ⚡ v_prev_json = v_prev_json || '}'...
+      [DEBUG EXPR] v_year_json := v_year_json || '}'
+    ⚡ v_year_json = v_year_json || '}'...
+      [DEBUG EXPR] v_details_json := v_details_json || '}'
+    ⚡ v_details_json = v_details_json || '}'...
+[DEBUG] Проход 10:
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day((current_date - interv
+      [DEBUG EXPR] v_report_date := s_grnplm_vd_rozn_ss_core.srv_last_day(p_date::date)
+      [DEBUG EXPR] v_start_date := s_grnplm_vd_rozn_ss_core.srv_first_day(v_report_date)
+      [DEBUG EXPR] v_prev_start_date := (v_start_date - p_search_depth::INTERVAL)::DATE
+      [DEBUG EXPR] v_prev_end_date := (v_start_date - 1)::DATE
+      [DEBUG EXPR] v_last_year_start_date := (v_start_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_last_year_end_date := (v_report_date - INTERVAL '1 year')::DATE
+      [DEBUG EXPR] v_interval_days := (v_report_date - v_start_date) + 1
+      [DEBUG EXPR] v_threshold_value_json := p_threshold_value::JSON
+    ⚡ v_threshold_value_json = p_threshold_value...
+      [DEBUG EXPR] v_threshold := COALESCE((v_threshold_value_json->>'check_limit')::NUMERIC, 
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG EXPR] v_threshold_value_json := '{}'::JSON
+      🧹 Очищено: '{}' → {}
+    ⚡ v_threshold_value_json = {}...
+      [DEBUG] _execute_select_into: processing SELECT INTO statement
+      [DEBUG] Calling ExecuteParser.parse_select_into...
+      [DEBUG] into_vars: ['v_gosb_list']
+      [DEBUG] agg_functions: {}
+      [DEBUG] var v_gosb_list = NULL (no agg function)
+    📍 v_gosb_list = NULL (из SELECT INTO)
+    ⚡ v_sum_prev = 0...
+    ⚡ v_count_prev = 0...
+    ⚡ v_months_with_data = 0...
+      [DEBUG EXPR] v_month_end := date_trunc('month', v_prev_end_date) + INTERVAL '1 month' - 
+      [DEBUG EXPR] v_month_start := date_trunc('month', v_month_end)
+      [DEBUG EXPR] v_month_start := v_prev_start_date
+      [DEBUG EXPR] v_month_end := v_prev_end_date
+      [DEBUG EXPR] v_months_with_data := v_months_with_data + 1
+    ⚡ v_months_with_data = v_months_with_data + 1...
+      [DEBUG EXPR] v_sum_prev := v_sum_prev + v_temp
+    ⚡ v_sum_prev = 0 + 0.0...
+      [DEBUG EXPR] v_count_prev := v_count_prev + 1
+    ⚡ v_count_prev = v_count_prev + 1...
+      [DEBUG EXPR] v_month_end := v_month_start - INTERVAL '1 day'
+      [DEBUG EXPR] v_gosb_has_prev_data := (v_months_with_data > 0)
+      [DEBUG EXPR] v_prev_unique_epk := v_sum_prev / v_count_prev
+    ⚡ v_prev_unique_epk = 0.0 / 0...
+      [DEBUG EXPR] v_has_prev_data := true
+      [DEBUG EXPR] v_prev_unique_epk := 0
+    ⚡ v_prev_unique_epk = 0...
+      [DEBUG EXPR] v_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_prev_data := false
+      [DEBUG EXPR] v_gosb_has_year_data := (v_last_year_unique_epk > 0)
+      [DEBUG EXPR] v_has_year_data := v_gosb_has_year_data
+      [DEBUG EXPR] v_prev_dynamics := ROUND(((v_current_unique_epk - v_prev_unique_epk) / v_prev_u
+    ⚡ v_prev_dynamics = ROUND(((0.0 - 0) / 0) * 100, 2)...
+    ⚡ v_prev_dynamics = NULL...
+      [DEBUG EXPR] v_year_dynamics := ROUND(((v_current_unique_epk - v_last_year_unique_epk) / v_l
+    ⚡ v_year_dynamics = ROUND(((0.0 - 0.0) / 0.0) * 100, 2)...
+    ⚡ v_year_dynamics = NULL...
+      [DEBUG EXPR] v_alert_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_alert_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_warn_reasons := ARRAY[]::TEXT[]
+      🧹 Очищено: ARRAY[]::TEXT[] → ARRAY[][]
+    ⚡ v_warn_reasons = ARRAY[][]...
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'prev_missing')
+      [DEBUG EXPR] v_alert_reasons := array_append(v_alert_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year')
+      [DEBUG EXPR] v_warn_reasons := array_append(v_warn_reasons, 'year_missing')
+      [DEBUG EXPR] v_gosb_status := 'ALERT'
+      🧹 Очищено: 'ALERT' → ALERT
+    ⚡ v_gosb_status = ALERT...
+    ⚡ v_gosb_result = FALSE...
+      [DEBUG EXPR] v_gosb_status := 'WARN'
+      🧹 Очищено: 'WARN' → WARN
+    ⚡ v_gosb_status = WARN...
+    ⚡ v_gosb_result = TRUE...
+      [DEBUG EXPR] v_gosb_status := 'INFO'
+      🧹 Очищено: 'INFO' → INFO
+    ⚡ v_gosb_status = INFO...
+      [DEBUG EXPR] v_current_json := v_current_json || ','
+    ⚡ v_current_json = v_current_json || ','...
+      [DEBUG EXPR] v_prev_json := v_prev_json || ','
+    ⚡ v_prev_json = v_prev_json || ','...
+      [DEBUG EXPR] v_year_json := v_year_json || ','
+    ⚡ v_year_json = v_year_json || ','...
+      [DEBUG EXPR] v_details_json := v_details_json || ','
+    ⚡ v_details_json = v_details_json || ','...
+      [DEBUG EXPR] v_current_json := v_current_json || format('"%s": %s', v_gosb, v_current_uniqu
+      [DEBUG EXPR] v_prev_json := v_prev_json || format('"%s": %s', v_gosb, COALESCE(v_prev_dy
+      [DEBUG EXPR] v_year_json := v_year_json || format('"%s": %s', v_gosb, COALESCE(v_year_dy
+      [DEBUG EXPR] v_details_json := v_details_json || format('"%s": {"status": "%s", "result": %
+      [DEBUG EXPR] v_current_json := v_current_json || '}'
+    ⚡ v_current_json = v_current_json || '}'...
+      [DEBUG EXPR] v_prev_json := v_prev_json || '}'
+    ⚡ v_prev_json = v_prev_json || '}'...
+      [DEBUG EXPR] v_year_json := v_year_json || '}'
+    ⚡ v_year_json = v_year_json || '}'...
+      [DEBUG EXPR] v_details_json := v_details_json || '}'
+    ⚡ v_details_json = v_details_json || '}'...
+[DEBUG] Все переменные после обработки:
+  p_date = 2024-01-01
+  p_search_depth = 5
+  p_thread_name = current_date
+  p_threshold_value = 
+  v_abs_prev_dynamics = ABS(v_prev_dynamics)
+  v_abs_year_dynamics = ABS(v_year_dynamics)
+  v_alert_reasons = ARRAY[][]
+  v_count_prev = v_count_prev + 1
+  v_current_json = v_current_json || '}'
+  v_current_unique_epk = COALESCE(v_current_unique_epk, 0)
+  v_details_json = v_details_json || '}'
+  v_first = FALSE
+  v_global_alert = TRUE
+  v_global_warn = TRUE
+  v_gosb = NULL
+  v_gosb_details = NULL
+  v_gosb_has_prev_data = (NULL > 0)
+  v_gosb_has_year_data = (NULL > 0)
+  v_gosb_list = NULL
+  v_gosb_result = TRUE
+  v_gosb_status = INFO
+  v_has_prev_data = NULL
+  v_has_year_data = NULL
+  v_interval_days = ('1900-01-01' - '1900-01-01') + 1
+  v_last_year_end_date = NULL
+  v_last_year_start_date = NULL
+  v_last_year_unique_epk = COALESCE(v_last_year_unique_epk, 0)
+  v_metric_name = 'ГОСБ ' || COALESCE(v_gosb, 'НЕИЗВЕСТНО')
+  v_month_end = NULL
+  v_month_start = NULL
+  v_months_with_data = v_months_with_data + 1
+  v_prev_dynamics = NULL
+  v_prev_end_date = ('1900-01-01' - 1)
+  v_prev_json = v_prev_json || '}'
+  v_prev_start_date = ('1900-01-01' - p_search_depth)
+  v_prev_unique_epk = 0
+  v_report_date = NULL
+  v_start_date = NULL
+  v_sum_prev = 0 + 0.0
+  v_temp = COALESCE(v_temp, 0)
+  v_threshold = 10
+  v_threshold_value_json = {}
+  v_total_prev_months = NULL
+  v_warn_reasons = ARRAY[][]
+  v_year_dynamics = NULL
+  v_year_json = v_year_json || '}'
+[DEBUG] Переменные после вычисления:
+  p_date = 2024-01-01
+  p_search_depth = 5
+  p_thread_name = current_date
+  p_threshold_value = 
+  v_abs_prev_dynamics = ABS(v_prev_dynamics)
+  v_abs_year_dynamics = ABS(v_year_dynamics)
+  v_alert_reasons = ARRAY[][]
+  v_count_prev = v_count_prev + 1
+  v_current_json = v_current_json || '}'
+  v_current_unique_epk = COALESCE(v_current_unique_epk, 0)
+  v_details_json = v_details_json || '}'
+  v_first = FALSE
+  v_global_alert = TRUE
+  v_global_warn = TRUE
+  v_gosb = NULL
+  v_gosb_details = NULL
+  v_gosb_has_prev_data = (NULL > 0)
+  v_gosb_has_year_data = (NULL > 0)
+  v_gosb_list = NULL
+  v_gosb_result = TRUE
+  v_gosb_status = INFO
+  v_has_prev_data = NULL
+  v_has_year_data = NULL
+  v_interval_days = ('1900-01-01' - '1900-01-01') + 1
+  v_last_year_end_date = NULL
+  v_last_year_start_date = NULL
+  v_last_year_unique_epk = COALESCE(v_last_year_unique_epk, 0)
+  v_metric_name = 'ГОСБ ' || COALESCE(v_gosb, 'НЕИЗВЕСТНО')
+  v_month_end = NULL
+  v_month_start = NULL
+  v_months_with_data = v_months_with_data + 1
+  v_prev_dynamics = NULL
+  v_prev_end_date = ('1900-01-01' - 1)
+  v_prev_json = v_prev_json || '}'
+  v_prev_start_date = ('1900-01-01' - p_search_depth)
+  v_prev_unique_epk = 0
+  v_report_date = NULL
+  v_start_date = NULL
+  v_sum_prev = 0 + 0.0
+  v_temp = COALESCE(v_temp, 0)
+  v_threshold = 10
+  v_threshold_value_json = {}
+  v_total_prev_months = NULL
+  v_warn_reasons = ARRAY[][]
+  v_year_dynamics = NULL
+  v_year_json = v_year_json || '}'
+[DEBUG] Последовательное выполнение блоков:
+[DEBUG] АНАЛИЗ ВЛОЖЕННЫХ SQL БЛОКОВ
+📊 Найдено 4 вложенных SQL блоков
+  📌 SELECT блок (линия 82)
+    SQL: SELECT array_agg(DISTINCT gosb_name)
+    FROM s_grnplm_vd_rozn_ss_core.pens_pre...
+    [DEBUG] Полный SQL: SELECT array_agg(DISTINCT gosb_name)
+    FROM s_grnplm_vd_rozn_ss_core.pens_pre_result_gosb
+    WHERE gosb_name IS NOT NULL AND gosb_name != ''
+      AND report_dt BETWEEN '1900-01-01'::date AND '1900-01-01'::date;
+    📋 Таблицы: ['s_grnplm_vd_rozn_ss_core.pens_pre_result_gosb']
+  📊 Применение пользовательских размеров:
+    Доступные размеры: ['s_grnplm_vd_rozn_ss_core.pens_pre_result_gosb']
+    Маппинг представлений: {'s_grnplm_vd_rozn_ss_core.pens_pre_result_gosb': ['s_grnplm_vd_rozn_ss_core.pens_pre_result_gosb']}
+    🔍 Обработка узла: s_grnplm_vd_rozn_ss_core.pens_pre_result_gosb
+    📋 Представление s_grnplm_vd_rozn_ss_core.pens_pre_result_gosb -> физические таблицы: ['s_grnplm_vd_rozn_ss_core.pens_pre_result_gosb']
+    ✅ pens_pre_result_gosb (представление) -> 5,000,000,000 строк (через s_grnplm_vd_rozn_ss_core.pens_pre_result_gosb)
+    📊 Вычисление нагрузки блока (segments=120)
+📌 Узел: Aggregate
+   Строки: 1
+   Ширина: 3 байт
+   Множитель: 1.0
+   Нагрузка узла: 0.000000 GB
+      📌 Узел: Seq Scan
+         Строки: 5,000,000,000
+         Ширина: 3 байт
+         Множитель: 1.15
+         Нагрузка узла: 0.143750 GB
+      🔝 Максимум для узла Seq Scan: 0.143750 GB
+🔝 Максимум для узла Aggregate: 0.143750 GB
+    📊 Итоговая нагрузка блока: 0.143750 GB
+    📊 Всего строк в плане: 0
+    ✅ Нагрузка: 0.144 GB
+  📌 OTHER блок (линия 103)
+  ⏭️ EXECUTE блок пропущен (не удалось разобрать)
+  📌 OTHER блок (линия 130)
+  ⏭️ EXECUTE блок пропущен (не удалось разобрать)
+  📌 OTHER блок (линия 163)
+  ⏭️ EXECUTE блок пропущен (не удалось разобрать)
+================================================================================
+ИТОГОВЫЙ ОТЧЁТ ДЕТАЛЬНОГО АНАЛИЗА
+================================================================================
+Тип: Функция
+Функция: f_dq_check_sp_fill_pens_gosb_agg
+Всего блоков: 4, проанализировано: 1
+📊 ФИЗИЧЕСКИЕ ТАБЛИЦЫ:
+  • s_grnplm_vd_rozn_ss_core.pens_pre_result_gosb: 73 строк, 0.000 GB (пользовательские: 5,000,000,000)
+📋 Параметры: '2024-01-01', 'current_date', '5', ''
+ТОП-3 САМЫХ ТЯЖЁЛЫХ ЗАПРОСА:
+1. Блок 1 [SELECT/DATA_QUERY]: 0.144 GB
+   Таблицы: s_grnplm_vd_rozn_ss_core.pens_pre_result_gosb
+   SQL: SELECT array_agg(DISTINCT gosb_name)
+    FROM s_grnplm_vd_rozn_ss_core.pens_pre_result_gosb
+    WH...
+СУММАРНАЯ НАГРУЗКА: 0.14 GB
+МАКСИМАЛЬНАЯ УТИЛИЗАЦИЯ: 0.1% RAM/сегмент
+РИСК: НИЗКИЙ
+ОЦЕНОЧНОЕ ВРЕМЯ ВЫПОЛНЕНИЯ: 1.44 сек
+================================================================================

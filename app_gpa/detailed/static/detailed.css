@@ -4,3 +4,86 @@
     padding-left: 1rem;
     margin-top: 0.5rem;
 }
+/* Плашка системной статистики */
+.system-stats {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px 20px;
+  margin-bottom: 15px;
+  display: none;
+  gap: 25px;
+  flex-wrap: wrap;
+  align-items: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  border-radius: 0 0 8px 8px;
+  font-size: 0.95rem;
+}
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stat-label {
+  opacity: 0.9;
+  font-weight: 400;
+}
+.stat-value {
+  font-weight: 600;
+  background: rgba(255,255,255,0.2);
+  padding: 4px 10px;
+  border-radius: 20px;
+  min-width: 80px;
+  text-align: center;
+}
+.stat-value.warning {
+  background: rgba(220, 53, 69, 0.8);
+  animation: pulse 1s infinite;
+}
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+/* Прогресс-бар */
+.progress-container {
+  flex-grow: 1;
+  min-width: 250px;
+}
+.progress-bar-wrapper {
+  height: 8px;
+  background-color: rgba(255,255,255,0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+.progress-bar-fill {
+  height: 100%;
+  background-color: #4ade80;
+  width: 0%;
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+.progress-text {
+  font-size: 0.85rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Анимированная иконка */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

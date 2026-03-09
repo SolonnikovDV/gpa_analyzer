@@ -18,23 +18,23 @@ SQL_PATTERNS = {
     'GRANT': r'^\s*GRANT\s+',
     'REVOKE': r'^\s*REVOKE\s+',
     'COMMENT': r'^\s*COMMENT\s+',
-    'DECLARE': r'^\s*DECLARE\s+',  # PL/pgSQL
-    'BEGIN': r'^\s*BEGIN\s+',      # PL/pgSQL
-    'END': r'^\s*END\s+',          # PL/pgSQL
-    'RETURN': r'^\s*RETURN\s+',    # PL/pgSQL
-    'PERFORM': r'^\s*PERFORM\s+',  # PL/pgSQL
-    'EXECUTE': r'^\s*EXECUTE\s+',  # PL/pgSQL
-    'RAISE': r'^\s*RAISE\s+',      # PL/pgSQL
-    'ASSERT': r'^\s*ASSERT\s+',    # PL/pgSQL
-    'GET': r'^\s*GET\s+DIAGNOSTICS\s+',  # PL/pgSQL
-    'IF': r'^\s*IF\s+',            # PL/pgSQL
-    'CASE': r'^\s*CASE\s+',         # PL/pgSQL
-    'LOOP': r'^\s*LOOP\s+',         # PL/pgSQL
-    'WHILE': r'^\s*WHILE\s+',       # PL/pgSQL
-    'FOR': r'^\s*FOR\s+',           # PL/pgSQL
-    'EXIT': r'^\s*EXIT\s+',         # PL/pgSQL
-    'CONTINUE': r'^\s*CONTINUE\s+', # PL/pgSQL
-    'NULL': r'^\s*NULL\s*;',        # PL/pgSQL
+    'DECLARE': r'^\s*DECLARE\s+',
+    'BEGIN': r'^\s*BEGIN\s+',
+    'END': r'^\s*END\s+',
+    'RETURN': r'^\s*RETURN\s+',
+    'PERFORM': r'^\s*PERFORM\s+',
+    'EXECUTE': r'^\s*EXECUTE\s+',
+    'RAISE': r'^\s*RAISE\s+',
+    'ASSERT': r'^\s*ASSERT\s+',
+    'GET': r'^\s*GET\s+DIAGNOSTICS\s+',
+    'IF': r'^\s*IF\s+',
+    'CASE': r'^\s*CASE\s+',
+    'LOOP': r'^\s*LOOP\s+',
+    'WHILE': r'^\s*WHILE\s+',
+    'FOR': r'^\s*FOR\s+',
+    'EXIT': r'^\s*EXIT\s+',
+    'CONTINUE': r'^\s*CONTINUE\s+',
+    'NULL': r'^\s*NULL\s*;',
 }
 
 # Группировка типов по категориям
@@ -116,17 +116,267 @@ def split_sql_blocks(sql_text: str) -> List[str]:
     return blocks
 
 
+def split_plpgsql_blocks(text: str) -> List[str]:
+    """
+    Разделяет PL/pgSQL текст на отдельные операторы.
+    Учитывает:
+    - долларовые кавычки с тегами (например, $function$)
+    - обычные кавычки ' и экранирование ''
+    - комментарии -- и /* */
+    - вложенные BEGIN/END и EXCEPTION блоки
+    - точку с запятой как разделитель только на верхнем уровне (глубина блоков = 0)
+    """
+    statements = []
+    current = []
+    depth = 0
+    in_string = False
+    dollar_tag = None
+    dollar_stack = []
+    in_comment_line = False
+    in_comment_block = False
+    i = 0
+    n = len(text)
+
+    while i < n:
+        ch = text[i]
+        next_ch = text[i+1] if i+1 < n else ''
+
+        # ----- однострочные комментарии --
+        if not in_string and not dollar_tag and not in_comment_block and ch == '-' and next_ch == '-':
+            in_comment_line = True
+            i += 2
+            continue
+        if in_comment_line:
+            if ch == '\n':
+                in_comment_line = False
+                current.append(ch)
+            i += 1
+            continue
+
+        # ----- блочные комментарии /* */
+        if not in_string and not dollar_tag and not in_comment_line and ch == '/' and next_ch == '*':
+            in_comment_block = True
+            i += 2
+            continue
+        if in_comment_block:
+            if ch == '*' and next_ch == '/':
+                in_comment_block = False
+                i += 2
+                continue
+            i += 1
+            continue
+
+        if in_comment_line or in_comment_block:
+            i += 1
+            continue
+
+        # ----- обычные кавычки '
+        if ch == "'" and not dollar_tag:
+            in_string = not in_string
+            current.append(ch)
+            i += 1
+            continue
+
+        # ----- долларовые кавычки $tag$
+        if ch == '$' and not in_string:
+            j = i + 1
+            while j < n and (text[j].isalnum() or text[j] == '_'):
+                j += 1
+            if j < n and text[j] == '$':
+                tag = text[i:j+1]
+                if not dollar_tag:
+                    dollar_tag = tag
+                    dollar_stack.append(tag)
+                else:
+                    if dollar_stack and dollar_stack[-1] == tag:
+                        dollar_stack.pop()
+                        dollar_tag = dollar_stack[-1] if dollar_stack else None
+                current.append(tag)
+                i = j
+                i += 1
+                continue
+
+        if dollar_tag:
+            current.append(ch)
+            i += 1
+            continue
+
+        # ----- отслеживание глубины блоков BEGIN/END
+        # Проверяем BEGIN (с учётом возможных пробелов)
+        if not in_string:
+            # Ищем BEGIN как отдельное слово
+            if (ch.upper() == 'B' and 
+                i+4 < n and 
+                text[i:i+5].upper() == 'BEGIN' and 
+                (i+5 == n or not text[i+5].isalnum())):
+                depth += 1
+                for k in range(5):
+                    current.append(text[i+k])
+                i += 5
+                continue
+            
+            # Ищем END как отдельное слово
+            if (ch.upper() == 'E' and 
+                i+2 < n and 
+                text[i:i+3].upper() == 'END' and 
+                (i+3 == n or not text[i+3].isalnum())):
+                depth -= 1
+                for k in range(3):
+                    current.append(text[i+k])
+                i += 3
+                continue
+            
+            # Ищем EXCEPTION
+            if (ch.upper() == 'E' and 
+                i+8 < n and 
+                text[i:i+9].upper() == 'EXCEPTION' and 
+                (i+9 == n or not text[i+9].isalnum())):
+                for k in range(9):
+                    current.append(text[i+k])
+                i += 9
+                continue
+
+        current.append(ch)
+
+        # разделение по точке с запятой на верхнем уровне
+        if ch == ';' and depth == 0 and not in_string and not dollar_tag:
+            stmt = ''.join(current).strip()
+            if stmt:
+                statements.append(stmt)
+            current = []
+
+        i += 1
+
+    if current:
+        stmt = ''.join(current).strip()
+        if stmt:
+            statements.append(stmt)
+
+    return statements
+
+
 def classify_block(sql: str) -> str:
     """
     Определяет тип SQL-блока по паттернам.
     Возвращает один из ключей из SQL_PATTERNS или 'OTHER'.
     """
+    if not sql or not sql.strip():
+        return 'OTHER'
+    
     sql_upper = sql.strip().upper()
     
-    # Проверяем паттерны в порядке приоритета
-    for pattern_name, pattern in SQL_PATTERNS.items():
-        if re.match(pattern, sql_upper, re.IGNORECASE):
-            return pattern_name
+    # Сначала проверяем самые специфичные паттерны
+    # CREATE TEMP TABLE
+    if re.match(r'^\s*CREATE\s+(?:TEMP|TEMPORARY)\s+TABLE', sql_upper, re.IGNORECASE):
+        return 'CREATE_TEMP'
+    
+    # CREATE TABLE
+    if re.match(r'^\s*CREATE\s+TABLE', sql_upper, re.IGNORECASE):
+        return 'CREATE'
+    
+    # INSERT
+    if re.match(r'^\s*INSERT\s+INTO', sql_upper, re.IGNORECASE):
+        return 'INSERT'
+    
+    # UPDATE
+    if re.match(r'^\s*UPDATE', sql_upper, re.IGNORECASE):
+        return 'UPDATE'
+    
+    # DELETE
+    if re.match(r'^\s*DELETE\s+FROM', sql_upper, re.IGNORECASE):
+        return 'DELETE'
+    
+    # TRUNCATE
+    if re.match(r'^\s*TRUNCATE', sql_upper, re.IGNORECASE):
+        return 'TRUNCATE'
+    
+    # WITH (CTE)
+    if re.match(r'^\s*WITH\s+', sql_upper, re.IGNORECASE):
+        return 'WITH'
+    
+    # SELECT
+    if re.match(r'^\s*SELECT\s+', sql_upper, re.IGNORECASE):
+        return 'SELECT'
+    
+    # ANALYZE
+    if re.match(r'^\s*ANALYZE', sql_upper, re.IGNORECASE):
+        return 'ANALYZE'
+    
+    # VACUUM
+    if re.match(r'^\s*VACUUM', sql_upper, re.IGNORECASE):
+        return 'VACUUM'
+    
+    # ALTER
+    if re.match(r'^\s*ALTER', sql_upper, re.IGNORECASE):
+        return 'ALTER'
+    
+    # DROP
+    if re.match(r'^\s*DROP', sql_upper, re.IGNORECASE):
+        return 'DROP'
+    
+    # GRANT
+    if re.match(r'^\s*GRANT', sql_upper, re.IGNORECASE):
+        return 'GRANT'
+    
+    # REVOKE
+    if re.match(r'^\s*REVOKE', sql_upper, re.IGNORECASE):
+        return 'REVOKE'
+    
+    # COMMENT
+    if re.match(r'^\s*COMMENT', sql_upper, re.IGNORECASE):
+        return 'COMMENT'
+    
+    # PL/pgSQL конструкции
+    if re.match(r'^\s*DECLARE\s+', sql_upper, re.IGNORECASE):
+        return 'DECLARE'
+    
+    if re.match(r'^\s*BEGIN\s+', sql_upper, re.IGNORECASE):
+        return 'BEGIN'
+    
+    if re.match(r'^\s*END\s+', sql_upper, re.IGNORECASE):
+        return 'END'
+    
+    if re.match(r'^\s*RETURN\s+', sql_upper, re.IGNORECASE):
+        return 'RETURN'
+    
+    if re.match(r'^\s*PERFORM\s+', sql_upper, re.IGNORECASE):
+        return 'PERFORM'
+    
+    if re.match(r'^\s*EXECUTE\s+', sql_upper, re.IGNORECASE):
+        return 'EXECUTE'
+    
+    if re.match(r'^\s*RAISE\s+', sql_upper, re.IGNORECASE):
+        return 'RAISE'
+    
+    if re.match(r'^\s*ASSERT\s+', sql_upper, re.IGNORECASE):
+        return 'ASSERT'
+    
+    if re.match(r'^\s*GET\s+DIAGNOSTICS', sql_upper, re.IGNORECASE):
+        return 'GET'
+    
+    if re.match(r'^\s*IF\s+', sql_upper, re.IGNORECASE):
+        return 'IF'
+    
+    if re.match(r'^\s*CASE\s+', sql_upper, re.IGNORECASE):
+        return 'CASE'
+    
+    if re.match(r'^\s*LOOP\s+', sql_upper, re.IGNORECASE):
+        return 'LOOP'
+    
+    if re.match(r'^\s*WHILE\s+', sql_upper, re.IGNORECASE):
+        return 'WHILE'
+    
+    if re.match(r'^\s*FOR\s+', sql_upper, re.IGNORECASE):
+        return 'FOR'
+    
+    if re.match(r'^\s*EXIT\s+', sql_upper, re.IGNORECASE):
+        return 'EXIT'
+    
+    if re.match(r'^\s*CONTINUE\s+', sql_upper, re.IGNORECASE):
+        return 'CONTINUE'
+    
+    if re.match(r'^\s*NULL\s*;', sql_upper, re.IGNORECASE):
+        return 'NULL'
     
     return 'OTHER'
 
@@ -142,11 +392,8 @@ def get_block_category(block_type: str) -> str:
 
 
 def is_executable_sql(block_type: str) -> bool:
-    """
-    Проверяет, является ли блок выполняемым SQL (можно сделать EXPLAIN).
-    """
-    executable_types = ['SELECT', 'WITH', 'INSERT', 'UPDATE', 'DELETE', 'CREATE_TEMP']
-    return block_type in executable_types
+    # Пропускаем только DECLARE и RETURN — всё остальное анализируем
+    return block_type not in ['DECLARE', 'RETURN']
 
 
 def clean_sql_for_explain(sql: str) -> str:
@@ -176,7 +423,6 @@ def substitute_params(sql: str, params: List[str]) -> str:
     Заменяет позиционные параметры $1, $2, ... на фактические значения.
     """
     for i, val in enumerate(params, start=1):
-        # Заменяем только целые слова $1, $2 и т.д.
         sql = re.sub(rf'\${i}\b', val, sql)
     return sql
 
@@ -187,7 +433,6 @@ def extract_temp_tables_from_ddl(ddl: str) -> Set[str]:
     """
     temp_tables = set()
     
-    # Паттерн для CREATE TEMP TABLE имя_таблицы
     pattern = r'CREATE\s+(?:TEMP|TEMPORARY)\s+TABLE\s+(\w+)'
     matches = re.findall(pattern, ddl, re.IGNORECASE)
     
@@ -207,7 +452,6 @@ def extract_tables_from_block(sql: str, default_schema: str, temp_tables: Set[st
     
     tables = set()
     
-    # Ищем schema.table или table после ключевых слов
     patterns = [
         r'(?:FROM|JOIN|UPDATE|INTO|USING)\s+([a-z_][a-z0-9_]*)\.([a-z_][a-z0-9_]+)',
         r'(?:FROM|JOIN|UPDATE|INTO|USING)\s+([a-z_][a-z0-9_]+)\b',
@@ -221,17 +465,16 @@ def extract_tables_from_block(sql: str, default_schema: str, temp_tables: Set[st
         matches = re.findall(pattern, sql, re.IGNORECASE)
         for match in matches:
             if isinstance(match, tuple):
-                if len(match) == 2:  # schema.table
+                if len(match) == 2:
                     schema, table = match
                     tables.add((schema, table))
-                else:  # только table
+                else:
                     table = match[0]
-                    # Проверяем, не является ли таблица временной
                     if table.lower() in temp_tables:
                         tables.add((None, table))
                     else:
                         tables.add((default_schema, table))
-            else:  # строка - только table
+            else:
                 table = match
                 if table.lower() in temp_tables:
                     tables.add((None, table))

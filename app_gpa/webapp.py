@@ -67,10 +67,13 @@ def _enqueue_log(job_id: str, text: str):
 
 
 def _stream_stdout_to_queue(job_id: str):
-    """Перенаправляет stdout в очередь логов"""
+    """Перенаправляет stdout в очередь логов с немедленной отправкой"""
     class Stream(io.TextIOBase):
         def write(self, s):
             _enqueue_log(job_id, str(s))
+            # Принудительно сбрасываем буфер
+            if hasattr(self, 'flush'):
+                self.flush()
             return len(s)
     return Stream()
 
