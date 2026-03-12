@@ -3,6 +3,83 @@
    + нейтральные цвета
    ============================================================ */
 
+/* Модальное окно ввода кредов: подсветка незаполненных полей */
+#agentCredentialsModal .form-control.empty,
+#agentCredentialsModal .form-select.empty {
+  background-color: #fffde7;
+}
+#agentCredentialsModal .form-control.empty:focus,
+#agentCredentialsModal .form-select.empty:focus {
+  background-color: #fff;
+}
+
+/* Поля ввода размеров источников (таблиц): подсветка доступных для редактирования */
+.form-control.table-input,
+.form-control.user-rows {
+  background-color: #fffde7;
+}
+.form-control.table-input:focus,
+.form-control.user-rows:focus {
+  background-color: #fff;
+}
+
+/* Статус ползунка (toggle-state): подсветка бледно-голубым */
+.toggle-state {
+  background-color: #e3f2fd;
+  padding: 0.15em 0.5em;
+  border-radius: 4px;
+}
+
+/* Главное окно: все поля ввода — очень бледный жёлтый (песочный) */
+.form-body .form-control,
+.form-body .form-select,
+.form-body textarea.form-control {
+  background-color: #fffef5;
+}
+.form-body .form-control:focus,
+.form-body .form-select:focus,
+.form-body textarea.form-control:focus {
+  background-color: #fff;
+}
+
+/* Кнопка ввода ключа и статус — зелёные при успешной проверке */
+#agentKeyBtn.validated,
+#agent_auth_status.validated {
+  color: #198754 !important;
+  font-weight: 500;
+}
+#agentKeyBtn.validated {
+  border-color: #198754;
+  color: #198754;
+}
+#agentKeyBtn.validated:hover {
+  background-color: #198754;
+  color: #fff;
+}
+
+/* Ключ не задан — явная подсветка как обязательное действие */
+#agent_auth_status.needs-input,
+#agentKeyBtn.needs-input {
+  background-color: #fff3cd;
+  color: #856404;
+  font-weight: 500;
+}
+#agentKeyBtn.needs-input {
+  border-color: #ffc107;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+#agent_auth_status.needs-input {
+  padding: 0.2em 0.5em;
+  border-radius: 4px;
+  display: inline-block;
+}
+#agentKeyBtn.needs-input:hover {
+  background-color: #ffc107;
+  color: #212529;
+  border-color: #ffc107;
+}
+
 /* Секции формы */
 .form-section {
   margin-top: 1.25rem;
@@ -22,10 +99,57 @@
   background: #f8f9fa;
   border-radius: 0 var(--gpa-radius-sm, 6px) var(--gpa-radius-sm, 6px) 0;
 }
+
+/* Плашка токенов (гибридный режим): не перекрывает контент, в потоке страницы */
+.token-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 0.35rem 1rem;
+  font-size: 0.8rem;
+  background: #e9ecef;
+  border-bottom: 1px solid #dee2e6;
+  color: #495057;
+}
+.token-strip .token-used { font-weight: 600; color: #0d6efd; }
+.token-strip .token-available { color: #198754; }
+.token-strip .token-available.na { color: #6c757d; }
+.token-strip .token-rate-limit { color: #6c757d; }
+.token-strip .token-rate-limit.warn { font-weight: 600; color: #dc3545; }
 .form-body textarea.form-control {
   font-family: ui-monospace, Consolas, monospace;
   font-size: 0.875rem;
   line-height: 1.45;
+}
+
+/* Ползунки в стиле мобильного приложения (form-switch) */
+.form-check.form-switch {
+  padding-left: 2.5em;
+  min-height: 1.8em;
+}
+.form-check-input:checked {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+.form-check-input {
+  width: 2.5em;
+  height: 1.25em;
+  margin-top: 0.1em;
+  background-size: 1.25em 1.25em;
+}
+.form-check.form-switch .form-check-input {
+  width: 2.5em;
+  height: 1.25em;
+  border-radius: 2em;
+  background-position: left center;
+}
+.form-check.form-switch .form-check-input:checked {
+  background-position: right center;
+}
+.form-check.form-switch .form-check-label {
+  padding-left: 0.35em;
+  line-height: 1.25em;
 }
 
 /* ---------- Единый блок ожидания (та же анимация везде) ---------- */
@@ -95,6 +219,51 @@
   to { transform: rotate(360deg); }
 }
 
+/* Режимные анимации: робот (агент), мозг (логика), робот+мозг (гибрид) */
+.app-loader__mode-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+}
+.app-loader--agent .app-loader__spinner { display: none; }
+.app-loader--agent .app-loader__mode-icon { display: inline-flex; }
+.app-loader--agent .app-loader__mode-icon::before { content: '🤖'; }
+.app-loader--agent .app-loader__mode-icon {
+  animation: app-robot-pulse 1.2s ease-in-out infinite;
+}
+@keyframes app-robot-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.9; }
+}
+
+.app-loader--logic .app-loader__spinner { display: none; }
+.app-loader--logic .app-loader__mode-icon { display: inline-flex; }
+.app-loader--logic .app-loader__mode-icon::before { content: '🧠'; }
+.app-loader--logic .app-loader__mode-icon {
+  animation: app-brain-pulse 1.5s ease-in-out infinite;
+}
+@keyframes app-brain-pulse {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.1); filter: brightness(1.15); }
+}
+
+.app-loader--hybrid .app-loader__spinner { display: none; }
+.app-loader--hybrid .app-loader__mode-icon { display: inline-flex; align-items: center; gap: 6px; }
+.app-loader--hybrid .app-loader__mode-icon::before,
+.app-loader--hybrid .app-loader__mode-icon::after {
+  display: inline-block;
+  animation: app-hybrid-bounce 1.5s ease-in-out infinite;
+}
+.app-loader--hybrid .app-loader__mode-icon::before { content: '🤖'; }
+.app-loader--hybrid .app-loader__mode-icon::after { content: '🧠'; animation-delay: 0.75s; }
+@keyframes app-hybrid-bounce {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.9; }
+}
+
 /* Компактный лоадер (спиннер + текст) — для скана таблиц и ожидания завершения расчёта */
 .app-loader--compact {
   flex-direction: row;
@@ -103,6 +272,10 @@
 }
 .app-loader--compact .app-loader__progress-wrap {
   display: none;
+}
+.app-loader--compact .app-loader__mode-icon {
+  font-size: 2rem;
+  min-width: 40px;
 }
 
 /* Плашка во время расчёта/перерасчёта — та же анимация спиннера */

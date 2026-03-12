@@ -9,38 +9,122 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='detailed.css') }}">
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
   <div class="container-fluid">
     <a class="navbar-brand" href="/">Analyzer</a>
-    <div class="collapse navbar-collapse">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Меню">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarMain">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item"><a class="nav-link active" href="/">Детальный анализ</a></li>
         <li class="nav-item"><a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#aboutModal">О приложении</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#resetCacheModal">Сброс к базовым</a></li>
       </ul>
     </div>
   </div>
 </nav>
 
+<div id="token-strip" class="token-strip" style="display: none;" role="status" aria-live="polite">
+  <span>Токены: использовано <span class="token-used" id="token-used">0</span> (ввод <span id="token-prompt">0</span>, вывод <span id="token-completion">0</span>)</span>
+  <span>|</span>
+  <span>сессий: <span id="token-sessions">0</span></span>
+  <span>|</span>
+  <span>доступно: <span class="token-available na" id="token-available">—</span></span>
+  <span>|</span>
+  <span>429: <span id="token-rate-limit" class="token-rate-limit" title="Превышение лимита запросов GigaChat">0</span></span>
+</div>
+
 <div class="container my-4">
   <div class="row">
     <div class="col-lg-10 mx-auto">
-      <!-- Блок для отображения ошибок -->
-      <div id="errorAlert" class="alert alert-danger alert-dismissible fade show" role="alert" style="display: none;">
-        <strong>Ошибка!</strong> <span id="errorMessage"></span>
+      <!-- Блок для отображения предупреждений (не блокирующий) -->
+      <div id="errorAlert" class="alert alert-warning alert-dismissible fade show" role="alert" style="display: none;">
+        <strong>Внимание!</strong> <span id="errorMessage"></span>
         <button type="button" class="btn-close" onclick="this.parentElement.style.display='none'"></button>
       </div>
 
       <div class="card shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
           <span>Детальный пошаговый анализ функции</span>
-          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#tipsModal" title="Подсказки по заполнению">Подсказки</button>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#resetCacheModal" title="Сброс кэшей (векторная база, ответы агента, состояния discovery)">Сброс к базовым</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#tipsModal" title="Краткая справка по режимам, DDL, БД и сбросу кэшей">Подсказки</button>
+          </div>
         </div>
         <div class="card-body">
           <form id="analysisForm" method="post" action="{{ url_for('detailed_discover') }}" class="form-body">
-            <div class="mb-3">
-              <label class="form-label">DDL функции (CREATE OR REPLACE FUNCTION ...)</label>
-              <textarea name="ddl" class="form-control" rows="12" required placeholder="Вставьте полный текст функции"></textarea>
-              <div class="form-text">Функция должна быть полной, включая тело.</div>
+            <input type="hidden" name="agent_credentials" id="form_agent_credentials" value="">
+            <input type="hidden" name="agent_scope" id="form_agent_scope" value="">
+            <input type="hidden" name="pure_agent_mode" id="form_pure_agent_mode" value="">
+            <div class="form-section">
+              <div class="form-section-title">Режим анализа</div>
+              <div class="mb-3 p-2 rounded bg-light border">
+                <div class="d-flex flex-wrap gap-3 align-items-center">
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" name="pure_agent" id="pure_agent" value="on" title="Чистый агент: объекты и планы от GigaChat, без БД.">
+                    <label class="form-check-label fw-semibold" for="pure_agent">Чистый агент</label>
+                  </div>
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" name="use_hybrid" id="mode_hybrid" value="on" title="Гибрид: агент + планы, с БД или без.">
+                    <label class="form-check-label" for="mode_hybrid">Гибрид</label>
+                  </div>
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" id="mode_logic" value="on" title="Логика: парсер + EXPLAIN из БД.">
+                    <label class="form-check-label" for="mode_logic">Логика</label>
+                  </div>
+                  <span class="toggle-state text-muted small" id="state_mode" title="Текущий режим">—</span>
+                </div>
+                <div class="form-text mt-1">Выберите один режим: Чистый агент (без БД), Гибрид (агент + БД/без БД), Логика (парсер + EXPLAIN).</div>
+              </div>
+            </div>
+
+            <div id="hybrid_options" class="form-section" style="display: none;">
+              <div class="form-section-title">Гибридный режим</div>
+              <div class="mb-3">
+                <span class="me-2">Авторизация GigaChat:</span>
+                <span id="agent_auth_status" class="small text-muted" title="Статус ключа API: задан — зелёный, не задан — требуется ввод">проверка…</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="agentKeyBtn" data-bs-toggle="modal" data-bs-target="#agentCredentialsModal" title="Открыть окно ввода ключа GigaChat API (ключ не сохраняется)">Ввести ключ</button>
+              </div>
+              <div class="mb-3">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" name="agent_input_generate" id="agent_generate" value="on" title="Вкл: опишите запрос/функцию на естественном языке, агент сгенерирует DDL. Выкл: вставьте текст вручную.">
+                    <label class="form-check-label" for="agent_generate">Сгенерировать запрос по описанию</label>
+                  </div>
+                  <span class="toggle-state text-muted small" id="state_agent_input" title="Вставка — ввод DDL вручную. По описанию — генерация агентом.">Вставка</span>
+                </div>
+                <div class="form-text mt-1">Переключает: вставка текста ↔ генерация по описанию.</div>
+              </div>
+              <div id="agent_description_block" class="mb-3" style="display: none;">
+                <label class="form-label">Текстовое описание запроса или функции</label>
+                <textarea name="agent_description" id="agent_description" class="form-control" rows="4" placeholder="Опишите, какой запрос или функцию нужно получить (на естественном языке)"></textarea>
+                <button type="button" class="btn btn-outline-primary mt-2" id="btnGenerateQuery" title="Отправить описание агенту GigaChat и получить сгенерированный DDL">Сгенерировать запрос</button>
+                <span id="agent_generate_status" class="ms-2 small text-muted"></span>
+                <div id="agent_review_block" class="mt-2 small" style="display: none;"></div>
+              </div>
+              <div class="mb-3" id="plan_source_row">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" name="plan_from_agent" id="plan_agent" value="on" disabled title="В гибриде всегда вкл: план синтезируется агентом. В режиме логики — план из EXPLAIN в БД.">
+                    <label class="form-check-label" for="plan_agent">Синтез плана агентом (в гибриде — всегда вкл)</label>
+                  </div>
+                  <span class="toggle-state text-muted small" id="state_plan" title="Источник плана: агент или БД">—</span>
+                </div>
+                <div class="form-text mt-1" id="plan_source_help">В гибридном режиме план только от агента. В режиме логики — только из БД (EXPLAIN).</div>
+              </div>
+            </div>
+
+            <div class="mb-3 position-relative" id="ddl_section">
+              <label class="form-label">Запрос или DDL функции (CREATE OR REPLACE FUNCTION ...)</label>
+              <div id="ddl_loading_overlay" class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center bg-light bg-opacity-90 rounded d-none" style="z-index: 10;">
+                <div class="text-center">
+                  <div class="spinner-border text-primary mb-2" role="status"><span class="visually-hidden">Загрузка</span></div>
+                  <div class="small text-muted">Генерация запроса…</div>
+                </div>
+              </div>
+              <textarea name="ddl" id="ddlTextarea" class="form-control" rows="12" required placeholder="Вставьте полный текст запроса или функции"></textarea>
+              <div class="form-text">Функция должна быть полной, включая тело. В режиме агента можно сгенерировать по описанию.</div>
             </div>
             
             <div class="form-section">
@@ -59,26 +143,33 @@
             
             <div class="form-section">
               <div class="form-section-title">Подключение к БД (для получения реальной статистики таблиц)</div>
-              <div class="form-check mb-3">
-              <input class="form-check-input" type="checkbox" name="use_db_connection" id="use_db">
-              <label class="form-check-label" for="use_db">
-                Использовать реальное подключение для получения статистики таблиц
-              </label>
-            </div>
+              <div class="mb-3">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" name="use_db_connection" id="use_db" value="on" title="Вкл: статистика таблиц из БД, планы из EXPLAIN. Выкл: в гибриде — чистый агент (объекты и планы от GigaChat).">
+                    <label class="form-check-label" for="use_db">
+                      Использовать реальное подключение для получения статистики таблиц
+                    </label>
+                  </div>
+                  <span class="toggle-state text-muted small" id="state_db" title="Без БД — чистый агент. С БД — гибрид с реальной статистикой.">Без БД</span>
+                </div>
+                <div class="form-text mt-1">Переключает: без БД ↔ с подключением к БД.</div>
+              </div>
             
             <div id="db_fields" style="display: none;">
               <div class="row g-3">
                 <div class="col-md-4">
                   <label class="form-label">Стенд</label>
-                  <select class="form-select" name="stand_type">
+                  <select class="form-select" name="stand_type" id="stand_type" title="Выберите стенд или «Пользовательский» — при вводе своего Host значение переключится автоматически">
                     {% for key in stands.keys() %}
                     <option value="{{ key }}">{{ key }}</option>
                     {% endfor %}
                   </select>
+                  <div class="form-text small">Если Host не совпадает — переключится на «Пользовательский»</div>
                 </div>
                 <div class="col-md-4">
                   <label class="form-label">Host</label>
-                  <input type="text" class="form-control" name="host" placeholder="по умолчанию">
+                  <input type="text" class="form-control" name="host" id="db_host" placeholder="по умолчанию">
                 </div>
                 <div class="col-md-2">
                   <label class="form-label">Port</label>
@@ -101,7 +192,7 @@
             
             <div class="form-section">
             <div class="text-end mt-2">
-              <button class="btn btn-primary" type="submit" id="submitBtn">
+              <button class="btn btn-primary" type="submit" id="submitBtn" title="Запустить первый этап: извлечение таблиц из DDL (парсер или агент) и подготовка к расчёту нагрузки">
                 <span class="btn-text">Обнаружить таблицы</span>
               </button>
             </div>
@@ -111,13 +202,140 @@
       </div>
     </div>
   </div>
-  <footer class="app-footer">
-    <a href="#" data-bs-toggle="modal" data-bs-target="#aboutModal">О приложении</a> · Автор: {{ app_author }}
-  </footer>
+  {% include 'app_footer.html' %}
 </div>
 
 {% include 'about_modal.html' %}
 {% include 'tips_modal.html' %}
+
+{# Модальное окно: подтверждение режима чистого агента #}
+<div class="modal fade" id="pureAgentConfirmModal" tabindex="-1" aria-labelledby="pureAgentConfirmLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="pureAgentConfirmLabel">Режим чистого агента</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">Включён режим чистого агента (гибрид без подключения к БД). Блоки и объекты будет искать агент, планы — синтезировать агентом.</p>
+        <p class="mb-0 mt-2">Продолжить выполнение?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="pureAgentCancel">Отмена</button>
+        <button type="button" class="btn btn-primary" id="pureAgentConfirm">Продолжить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Модальное окно: токены закончились / гибрид включить нельзя #}
+<div class="modal fade" id="tokensExhaustedModal" tabindex="-1" aria-labelledby="tokensExhaustedLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tokensExhaustedLabel">Гибридный режим недоступен</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body" id="tokensExhaustedBody">
+        <p class="mb-0">Токены закончились (или ключ не задан). Включение гибридного режима невозможно. Режим остаётся: Логика.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Модальное окно: данные подключения к БД не указаны #}
+<div class="modal fade" id="dbCredentialsMissingModal" tabindex="-1" aria-labelledby="dbCredentialsMissingLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="dbCredentialsMissingLabel">Данные подключения к БД не указаны</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">Укажите логин и пароль для подключения к БД или отключите опцию «Использовать реальное подключение».</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Модальное окно: ошибка подключения к БД #}
+<div class="modal fade" id="dbConnectionErrorModal" tabindex="-1" aria-labelledby="dbConnectionErrorLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="dbConnectionErrorLabel">Ошибка подключения к БД</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">Не удалось подключиться к базе данных.</p>
+        <pre id="dbConnectionErrorDetail" class="bg-light p-2 rounded small text-danger mb-0" style="max-height: 200px; overflow: auto;"></pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include 'reset_cache_modal.html' %}
+
+{# Модальное окно: ввод ключа GigaChat (не сохраняется нигде — только в памяти до перезагрузки) #}
+<div class="modal fade" id="agentCredentialsModal" tabindex="-1" aria-labelledby="agentCredentialsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="agentCredentialsModalLabel">Ключ GigaChat API</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted mb-2">Token не сохраняется. Профили — в <code>agent_profiles.json</code>. Профиль «разработчик» берёт токен из .key в корне проекта (первая строка или строка base64).</p>
+        <div class="mb-2">
+          <label class="form-label">Профиль</label>
+          <select class="form-select" id="agentMatchSelect">
+            <option value="">— новый —</option>
+          </select>
+        </div>
+        <div id="agentEnvTokenMessage" class="mb-2 alert py-2 small" style="display: none;" role="alert"></div>
+        <div class="mb-2">
+          <label class="form-label">Имя (для сохранения)</label>
+          <input type="text" class="form-control" id="agentMatchNameInput" placeholder="Имя пользователя или профиля" autocomplete="off">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Token</label>
+          <input type="password" class="form-control" id="agentCredentialsInput" placeholder="Токен из личного кабинета GigaChat" autocomplete="off">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Client ID</label>
+          <input type="text" class="form-control" id="agentClientIdInput" placeholder="Client ID" autocomplete="off">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Scope</label>
+          <select class="form-select" id="agentScopeSelect">
+            <option value="GIGACHAT_API_PERS">GIGACHAT_API_PERS (физлица)</option>
+            <option value="GIGACHAT_API_B2B">GIGACHAT_API_B2B (B2B prepaid)</option>
+            <option value="GIGACHAT_API_CORP">GIGACHAT_API_CORP (корпоративный)</option>
+          </select>
+        </div>
+        <div class="mb-2 form-check">
+          <input type="checkbox" class="form-check-input" id="agentVerifySslCheck" checked>
+          <label class="form-check-label" for="agentVerifySslCheck">Проверять SSL-сертификат</label>
+          <div class="form-text">Снимите галочку при ошибке «EOF occurred in violation of protocol»</div>
+        </div>
+        <div id="agentCredentialsMessage" class="mt-3" role="alert" aria-live="polite" style="display: none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="agentCredentialsApply" title="Проверить ключ и сохранить в память (до перезагрузки страницы)">Применить</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -129,23 +347,727 @@
   const errorAlert = document.getElementById('errorAlert');
   const errorMessage = document.getElementById('errorMessage');
   const form = document.getElementById('analysisForm');
+  const modeHybrid = document.getElementById('mode_hybrid');
+  const hybridOptions = document.getElementById('hybrid_options');
+  const agentGenerate = document.getElementById('agent_generate');
+  const agentDescriptionBlock = document.getElementById('agent_description_block');
+  const agentDescription = document.getElementById('agent_description');
+  const btnGenerateQuery = document.getElementById('btnGenerateQuery');
+  const agentGenerateStatus = document.getElementById('agent_generate_status');
+  const ddlTextarea = document.getElementById('ddlTextarea');
+  const agentAuthStatus = document.getElementById('agent_auth_status');
+  const pureAgentSwitch = document.getElementById('pure_agent');
+  const logicModeSwitch = document.getElementById('mode_logic');
+
+  try { window.rateLimit429Count = parseInt(sessionStorage.getItem('gpa_rate_limit_429') || '0', 10) || 0; } catch (e) { window.rateLimit429Count = 0; }
+
+  // Ключ в памяти (не сохраняется нигде)
+  window.agentCredentialsInMemory = null;
+  window.agentScopeInMemory = 'GIGACHAT_API_PERS';
+  // Флаг: пользователь выбрал профиль «разработчик» и прошёл проверку (токен из .key)
+  window.agentCredentialsFromKey = false;
+
+  function updateAgentAuthStatus() {
+    if (!agentAuthStatus) return;
+    var creds = window.agentCredentialsInMemory;
+    var fromKey = window.agentCredentialsFromKey;
+    var keyBtn = document.getElementById('agentKeyBtn');
+    function setValidated(ok) {
+      agentAuthStatus.classList.toggle('validated', ok);
+      agentAuthStatus.classList.toggle('needs-input', !ok);
+      if (keyBtn) {
+        keyBtn.classList.toggle('validated', ok);
+        keyBtn.classList.toggle('needs-input', !ok);
+      }
+    }
+    if (creds) {
+      agentAuthStatus.textContent = 'ключ введён (не сохраняется)';
+      agentAuthStatus.className = 'small text-success';
+      setValidated(true);
+      var fc = document.getElementById('form_agent_credentials');
+      var fs = document.getElementById('form_agent_scope');
+      if (fc) fc.value = creds;
+      if (fs) fs.value = window.agentScopeInMemory || 'GIGACHAT_API_PERS';
+      return;
+    }
+    if (fromKey) {
+      agentAuthStatus.textContent = 'ключ из .key (профиль «разработчик»)';
+      agentAuthStatus.className = 'small text-success';
+      setValidated(true);
+      return;
+    }
+    agentAuthStatus.textContent = 'ключ не задан — нажмите «Ввести ключ»';
+    agentAuthStatus.className = 'small text-muted';
+    setValidated(false);
+  }
+
+  function getAgentCredentialsForRequest() {
+    return window.agentCredentialsInMemory || null;
+  }
+
+  function getAgentScopeForRequest() {
+    return window.agentScopeInMemory || 'GIGACHAT_API_PERS';
+  }
+
+  function updateToggleStates() {
+    var stateMode = document.getElementById('state_mode');
+    var stateAgentInput = document.getElementById('state_agent_input');
+    var statePlan = document.getElementById('state_plan');
+    var stateDb = document.getElementById('state_db');
+    var planAgent = document.getElementById('plan_agent');
+    var planSourceHelp = document.getElementById('plan_source_help');
+    var pureAgentOn = pureAgentSwitch && pureAgentSwitch.checked;
+    var hybridOn = modeHybrid && modeHybrid.checked;
+    var logicOn = logicModeSwitch && logicModeSwitch.checked;
+    var modeLabel = pureAgentOn ? 'Чистый агент' : (hybridOn ? 'Гибрид' : (logicOn ? 'Логика' : '—'));
+    if (stateMode) stateMode.textContent = modeLabel;
+    if (stateAgentInput) stateAgentInput.textContent = (agentGenerate && agentGenerate.checked) ? 'По описанию' : 'Вставка';
+    if (stateDb) stateDb.textContent = (useDbCheck && useDbCheck.checked) ? 'С БД' : 'Без БД';
+    if (planAgent) {
+      if (pureAgentOn) {
+        planAgent.checked = true;
+        planAgent.disabled = true;
+        if (statePlan) statePlan.textContent = 'Всегда вкл';
+        if (planSourceHelp) planSourceHelp.textContent = 'В чистом агенте план всегда от GigaChat.';
+      } else if (hybridOn) {
+        planAgent.disabled = false;
+        if (statePlan) statePlan.textContent = planAgent.checked ? 'План от агента' : 'План из БД';
+        if (planSourceHelp) planSourceHelp.textContent = 'В гибриде можно выбрать: план от агента или EXPLAIN из БД.';
+      } else {
+        planAgent.checked = false;
+        planAgent.disabled = true;
+        if (statePlan) statePlan.textContent = 'План из БД';
+        if (planSourceHelp) planSourceHelp.textContent = 'В режиме логики план только из EXPLAIN в БД.';
+      }
+    }
+  }
+  function toggleHybridOptions() {
+    const showHybrid = (pureAgentSwitch && pureAgentSwitch.checked) || (modeHybrid && modeHybrid.checked);
+    hybridOptions.style.display = showHybrid ? 'block' : 'none';
+    agentDescriptionBlock.style.display = (agentGenerate && agentGenerate.checked) ? 'block' : 'none';
+    updateToggleStates();
+    var strip = document.getElementById('token-strip');
+    if (strip) strip.style.display = showHybrid ? 'flex' : 'none';
+    if (showHybrid) {
+      updateAgentAuthStatus();
+      updateTokenStrip();
+    }
+  }
+  function updateTokenStrip() {
+    var strip = document.getElementById('token-strip');
+    if (!strip || strip.style.display === 'none') return;
+    var opts = { method: 'GET' };
+    if (window.agentCredentialsInMemory) {
+      opts.method = 'POST';
+      opts.headers = { 'Content-Type': 'application/json' };
+      opts.body = JSON.stringify({
+        credentials: window.agentCredentialsInMemory,
+        scope: window.agentScopeInMemory || 'GIGACHAT_API_PERS'
+      });
+    } else if (window.agentCredentialsFromKey) {
+      opts.method = 'POST';
+      opts.headers = { 'Content-Type': 'application/json' };
+      opts.body = JSON.stringify({ scope: window.agentScopeInMemory || 'GIGACHAT_API_PERS' });
+    }
+    fetch('{{ url_for("api_agent_token_usage") }}', opts)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var u = data.used || {};
+        var total = u.total_tokens || 0;
+        var prompt = u.prompt_tokens || 0;
+        var comp = u.completion_tokens || 0;
+        var av = data.available;
+        var elTotal = document.getElementById('token-used');
+        var elPrompt = document.getElementById('token-prompt');
+        var elComp = document.getElementById('token-completion');
+        var elSess = document.getElementById('token-sessions');
+        var elAv = document.getElementById('token-available');
+        if (elTotal) elTotal.textContent = total.toLocaleString();
+        if (elPrompt) elPrompt.textContent = prompt.toLocaleString();
+        if (elComp) elComp.textContent = comp.toLocaleString();
+        if (elSess) elSess.textContent = (u.sessions || 0).toLocaleString();
+        if (elAv) {
+          elAv.textContent = av != null ? av.toLocaleString() : '—';
+          elAv.classList.toggle('na', av == null);
+        }
+        var el429 = document.getElementById('token-rate-limit');
+        if (el429) {
+          el429.textContent = (window.rateLimit429Count || 0).toLocaleString();
+          el429.classList.toggle('warn', (window.rateLimit429Count || 0) > 0);
+        }
+        if (av !== undefined && av !== null && av <= 0 && modeHybrid && modeHybrid.checked && typeof showTokensExhaustedModal === 'function') {
+          modeHybrid.checked = false;
+          toggleHybridOptions();
+          showTokensExhaustedModal('Токены закончились. Настройки сброшены на режим логики.');
+        }
+      })
+      .catch(function() {});
+  }
+  function checkAgentAvailable() {
+    if (window.agentCredentialsInMemory || window.agentCredentialsFromKey) return Promise.resolve(true);
+    return Promise.resolve(false);
+  }
+  function checkTokensForHybrid() {
+    var opts = { method: 'GET' };
+    if (window.agentCredentialsInMemory) {
+      opts.method = 'POST';
+      opts.headers = { 'Content-Type': 'application/json' };
+      opts.body = JSON.stringify({ credentials: window.agentCredentialsInMemory, scope: window.agentScopeInMemory || 'GIGACHAT_API_PERS' });
+    } else if (window.agentCredentialsFromKey) {
+      opts.method = 'POST';
+      opts.headers = { 'Content-Type': 'application/json' };
+      opts.body = JSON.stringify({ scope: window.agentScopeInMemory || 'GIGACHAT_API_PERS' });
+    }
+    return fetch('{{ url_for("api_agent_token_usage") }}', opts).then(function(r) { return r.json(); }).then(function(data) {
+      var av = data.available;
+      if (av !== undefined && av !== null && av <= 0) return false;
+      return true;
+    }).catch(function() { return false; });
+  }
+  function showTokensExhaustedModal(reason, modalTitle) {
+    var body = document.getElementById('tokensExhaustedBody');
+    var title = document.getElementById('tokensExhaustedLabel');
+    var msg = reason || 'Токены закончились (или ключ не задан). Режим остаётся: Логика.';
+    if (body) body.innerHTML = '<p class="mb-0">' + msg.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</p>';
+    if (title) title.textContent = modalTitle || 'Режим недоступен';
+    var modalEl = document.getElementById('tokensExhaustedModal');
+    if (modalEl && typeof bootstrap !== 'undefined') { var m = bootstrap.Modal.getOrCreateInstance(modalEl); m.show(); }
+  }
+  // Защита от каскадных change-событий при программном изменении чекбоксов
+  var modeUpdating = false;
+  // Строго взаимоисключающие режимы: всегда активен ровно один — Чистый агент, Гибрид или Логика.
+  function applyPureAgentState() {
+    var formPureAgent = document.getElementById('form_pure_agent_mode');
+    if (pureAgentSwitch) pureAgentSwitch.checked = true;
+    if (modeHybrid) modeHybrid.checked = false;
+    if (logicModeSwitch) logicModeSwitch.checked = false;
+    if (document.getElementById('plan_agent')) { document.getElementById('plan_agent').checked = true; document.getElementById('plan_agent').disabled = true; }
+    if (useDbCheck) { useDbCheck.checked = false; useDbCheck.disabled = true; }
+    if (agentGenerate) agentGenerate.disabled = false;
+    if (dbFields) dbFields.style.display = 'none';
+    if (formPureAgent) formPureAgent.value = '1';
+    toggleHybridOptions();
+    updateToggleStates();
+  }
+  function applyHybridState() {
+    var formPureAgent = document.getElementById('form_pure_agent_mode');
+    if (pureAgentSwitch) pureAgentSwitch.checked = false;
+    if (modeHybrid) modeHybrid.checked = true;
+    if (logicModeSwitch) logicModeSwitch.checked = false;
+    if (document.getElementById('plan_agent')) { document.getElementById('plan_agent').disabled = false; }
+    if (useDbCheck) { useDbCheck.checked = true; useDbCheck.disabled = true; }
+    if (agentGenerate) agentGenerate.disabled = false;
+    if (formPureAgent) formPureAgent.value = '';
+    if (dbFields) dbFields.style.display = useDbCheck.checked ? 'block' : 'none';
+    toggleHybridOptions();
+    updateToggleStates();
+  }
+  function applyLogicState() {
+    var formPureAgent = document.getElementById('form_pure_agent_mode');
+    if (pureAgentSwitch) pureAgentSwitch.checked = false;
+    if (modeHybrid) modeHybrid.checked = false;
+    if (logicModeSwitch) logicModeSwitch.checked = true;
+    if (document.getElementById('plan_agent')) { document.getElementById('plan_agent').checked = false; document.getElementById('plan_agent').disabled = true; }
+    if (useDbCheck) { useDbCheck.checked = true; useDbCheck.disabled = true; }
+    if (agentGenerate) { agentGenerate.checked = false; agentGenerate.disabled = true; }
+    if (formPureAgent) formPureAgent.value = '';
+    if (dbFields) dbFields.style.display = 'block';
+    toggleHybridOptions();
+    updateToggleStates();
+  }
+  function syncToPureAgentIfConfigMatches() {
+    if (!pureAgentSwitch || !modeHybrid || !useDbCheck || modeUpdating) return;
+    var planAgent = document.getElementById('plan_agent');
+    if (modeHybrid.checked && !pureAgentSwitch.checked && !logicModeSwitch.checked && !useDbCheck.checked && planAgent && planAgent.checked) {
+      modeUpdating = true;
+      pureAgentSwitch.checked = true;
+      applyPureAgentState();
+      modeUpdating = false;
+    }
+  }
+
+  if (pureAgentSwitch) {
+    pureAgentSwitch.addEventListener('change', function() {
+      if (modeUpdating) return;
+      modeUpdating = true;
+      if (pureAgentSwitch.checked) {
+        applyPureAgentState();
+      } else {
+        modeHybrid.checked = true;
+        applyHybridState();
+      }
+      modeUpdating = false;
+    });
+  }
+  if (modeHybrid) {
+    modeHybrid.addEventListener('change', function() {
+      if (modeUpdating) return;
+      modeUpdating = true;
+      if (modeHybrid.checked) {
+        applyHybridState();
+      } else {
+        applyLogicState();
+      }
+      modeUpdating = false;
+    });
+  }
+  function syncToLogicIfPlanOff() {
+    if (!modeHybrid || !logicModeSwitch || !pureAgentSwitch || modeUpdating) return;
+    var planAgent = document.getElementById('plan_agent');
+    if (modeHybrid.checked && !pureAgentSwitch.checked && !logicModeSwitch.checked && planAgent && !planAgent.checked) {
+      modeUpdating = true;
+      logicModeSwitch.checked = true;
+      applyLogicState();
+      modeUpdating = false;
+    }
+  }
+  var planAgentEl = document.getElementById('plan_agent');
+  if (planAgentEl) {
+    planAgentEl.addEventListener('change', function() {
+      syncToPureAgentIfConfigMatches();
+      syncToLogicIfPlanOff();
+      updateToggleStates();
+    });
+  }
+  if (logicModeSwitch) {
+    logicModeSwitch.addEventListener('change', function() {
+      if (modeUpdating) return;
+      modeUpdating = true;
+      if (logicModeSwitch.checked) {
+        applyLogicState();
+      } else {
+        modeHybrid.checked = true;
+        applyHybridState();
+      }
+      modeUpdating = false;
+    });
+  }
+  if (agentGenerate) agentGenerate.addEventListener('change', toggleHybridOptions);
+  if (useDbCheck) useDbCheck.addEventListener('change', function() {
+    if (!pureAgentSwitch || !pureAgentSwitch.checked) {
+      if (dbFields) dbFields.style.display = useDbCheck.checked ? 'block' : 'none';
+      syncToPureAgentIfConfigMatches();
+      toggleHybridOptions();
+      updateToggleStates();
+    }
+  });
+  setInterval(function() {
+    if ((pureAgentSwitch && pureAgentSwitch.checked) || (modeHybrid && modeHybrid.checked)) updateTokenStrip();
+  }, 12000);
+
+  if (btnGenerateQuery && agentDescription && ddlTextarea) {
+    btnGenerateQuery.addEventListener('click', async function() {
+      const desc = (agentDescription.value || '').trim();
+      if (!desc) {
+        agentGenerateStatus.textContent = 'Введите описание.';
+        agentGenerateStatus.className = 'ms-2 small text-danger';
+        return;
+      }
+      if (!window.agentCredentialsInMemory && !window.agentCredentialsFromKey) {
+        agentGenerateStatus.textContent = 'Введите ключ в модальном окне «Ввести ключ» и нажмите «Применить».';
+        agentGenerateStatus.className = 'ms-2 small text-danger';
+        var keyModal = document.getElementById('agentCredentialsModal');
+        if (keyModal && typeof bootstrap !== 'undefined') {
+          bootstrap.Modal.getOrCreateInstance(keyModal).show();
+        }
+        return;
+      }
+      btnGenerateQuery.disabled = true;
+      agentGenerateStatus.textContent = 'Генерация…';
+      agentGenerateStatus.className = 'ms-2 small text-muted';
+      var ddlOverlay = document.getElementById('ddl_loading_overlay');
+      if (ddlOverlay) { ddlOverlay.classList.remove('d-none'); }
+      var reviewBlock = document.getElementById('agent_review_block');
+      if (reviewBlock) { reviewBlock.style.display = 'none'; reviewBlock.innerHTML = ''; }
+      try {
+        var payload = {
+          description: desc,
+          with_review: true,
+          credentials: window.agentCredentialsInMemory || null,
+          use_env_credentials: !!window.agentCredentialsFromKey,
+          scope: window.agentScopeInMemory || 'GIGACHAT_API_PERS'
+        };
+        const r = await fetch('{{ url_for("api_agent_generate") }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          if (r.status === 429 || (data && data.rate_limit_429)) {
+            window.rateLimit429Count = (window.rateLimit429Count || 0) + 1;
+            try { sessionStorage.setItem('gpa_rate_limit_429', String(window.rateLimit429Count)); } catch (e) {}
+            var el429 = document.getElementById('token-rate-limit');
+            if (el429) {
+              el429.textContent = (window.rateLimit429Count || 0).toLocaleString();
+              el429.classList.toggle('warn', window.rateLimit429Count > 0);
+            }
+          }
+          agentGenerateStatus.textContent = data.error || 'Ошибка ' + r.status;
+          agentGenerateStatus.className = 'ms-2 small text-danger';
+          if (data.error && (data.error.indexOf('ключ') >= 0 || data.error.indexOf('токен') >= 0 || r.status === 503)) {
+            var keyModal = document.getElementById('agentCredentialsModal');
+            if (keyModal && typeof bootstrap !== 'undefined') {
+              bootstrap.Modal.getOrCreateInstance(keyModal).show();
+            }
+          }
+          return;
+        }
+        if (data.sql_or_ddl) {
+          ddlTextarea.value = data.sql_or_ddl;
+          agentGenerateStatus.textContent = 'Готово. SQL ниже — на проверку: можно править, уточнить описание или запустить расчёт.';
+          agentGenerateStatus.className = 'ms-2 small text-success';
+        } else {
+          agentGenerateStatus.textContent = 'Пустой ответ от агента.';
+          agentGenerateStatus.className = 'ms-2 small text-warning';
+        }
+        if (reviewBlock) {
+          var parts = [];
+          if (data.warning) {
+            parts.push('<div class="text-warning mb-1">⚠️ ' + (data.warning).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>');
+          }
+          if (data.analysis && data.analysis.intent) {
+            var a = data.analysis;
+            var line = 'Намерение: ' + (a.intent === 'function' ? 'функция' : 'запрос');
+            if (a.signature_params && a.signature_params.length) line += '; параметры: ' + a.signature_params.join(', ');
+            if (a.return_type) line += '; возврат: ' + a.return_type;
+            parts.push('<div class="text-muted">' + line.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>');
+          }
+          reviewBlock.innerHTML = parts.join('');
+          reviewBlock.style.display = parts.length ? 'block' : 'none';
+        }
+      } catch (e) {
+        agentGenerateStatus.textContent = 'Ошибка: ' + (e.message || e);
+        agentGenerateStatus.className = 'ms-2 small text-danger';
+      } finally {
+        btnGenerateQuery.disabled = false;
+        if (ddlOverlay) ddlOverlay.classList.add('d-none');
+      }
+    });
+  }
+
+  // Профили (Client ID + Scope): agent_profiles.json в проекте — можно редактировать вручную
+  function loadAgentMatches() {
+    return fetch('{{ url_for("api_agent_profiles_get") }}')
+      .then(function(r) { return r.json(); })
+      .then(function(arr) { return Array.isArray(arr) ? arr : []; })
+      .catch(function() { return []; });
+  }
+  function saveAgentMatches(matches) {
+    return fetch('{{ url_for("api_agent_profiles_post") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(matches)
+    }).catch(function() {});
+  }
+  function addOrUpdateMatch(name, clientId, scope) {
+    if (!name || !name.trim()) return Promise.resolve();
+    var item = { name: name.trim(), clientId: (clientId || '').trim(), scope: (scope || 'GIGACHAT_API_PERS').trim() };
+    return loadAgentMatches().then(function(matches) {
+      var idx = matches.findIndex(function(m) { return m.name === item.name; });
+      if (idx >= 0) matches[idx] = item;
+      else matches.push(item);
+      return saveAgentMatches(matches);
+    });
+  }
+
+  // Применить ключ из модального окна (Token — только в памяти; метчи — Client ID + Scope по имени)
+  (function() {
+    var modal = document.getElementById('agentCredentialsModal');
+    var matchSelect = document.getElementById('agentMatchSelect');
+    var matchNameInput = document.getElementById('agentMatchNameInput');
+    var input = document.getElementById('agentCredentialsInput');
+    var clientIdInput = document.getElementById('agentClientIdInput');
+    var scopeSelect = document.getElementById('agentScopeSelect');
+    var msg = document.getElementById('agentCredentialsMessage');
+    var btnApply = document.getElementById('agentCredentialsApply');
+    if (!modal || !btnApply) return;
+
+    function refreshMatchSelect() {
+      loadAgentMatches().then(function(matches) {
+        matchSelect.innerHTML = '<option value="">— новый —</option>';
+        matches.forEach(function(m) {
+          var opt = document.createElement('option');
+          opt.value = m.name;
+          var suffix = m.clientId ? ' (' + m.clientId + ')' : '';
+          if (m.tokenFromEnv) suffix += ' [токен из .key]';
+          opt.textContent = m.name + suffix;
+          matchSelect.appendChild(opt);
+        });
+      });
+    }
+
+    function selectMatch(name, matches) {
+      var m = (matches || []).find(function(x) { return x.name === name; });
+      if (m) {
+        if (clientIdInput) clientIdInput.value = m.clientId || '';
+        if (scopeSelect) scopeSelect.value = m.scope || 'GIGACHAT_API_PERS';
+        if (matchNameInput) matchNameInput.value = m.name;
+      }
+    }
+
+    function resetFormToDefault() {
+      if (matchSelect) matchSelect.value = '';
+      if (matchNameInput) matchNameInput.value = '';
+      if (input) input.value = '';
+      if (clientIdInput) clientIdInput.value = '';
+      if (scopeSelect) scopeSelect.value = 'GIGACHAT_API_PERS';
+      if (msg) { msg.innerHTML = ''; msg.style.display = 'none'; }
+    }
+
+    function updateEnvTokenMessage(profileName, matches) {
+      var msgEl = document.getElementById('agentEnvTokenMessage');
+      if (!msgEl) return;
+      var m = (matches || []).find(function(x) { return x.name === profileName; });
+      if (!m || !m.tokenFromEnv) {
+        msgEl.style.display = 'none';
+        msgEl.innerHTML = '';
+        return;
+      }
+      fetch('{{ url_for("api_agent_env_token_status") }}')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var hasToken = !!(data && data.hasToken);
+          msgEl.style.display = 'block';
+          if (hasToken) {
+            msgEl.className = 'mb-2 alert alert-info py-2 small';
+            msgEl.innerHTML = 'Профиль «разработчик»: токен берётся из .key в корне проекта. Нажмите «Применить» для проверки.';
+          } else {
+            msgEl.className = 'mb-2 alert alert-warning py-2 small';
+            msgEl.innerHTML = 'Токен не задан в .key. Создайте файл .key в корне проекта (первая строка — токен). Либо выберите другой профиль и введите токен вручную.';
+          }
+        })
+        .catch(function() {
+          msgEl.style.display = 'block';
+          msgEl.className = 'mb-2 alert alert-warning py-2 small';
+          msgEl.innerHTML = 'Не удалось проверить .key. Выберите другой профиль или введите токен вручную.';
+        });
+    }
+
+    matchSelect.addEventListener('change', function() {
+      var v = matchSelect.value;
+      if (input) input.value = '';
+      if (v) {
+        loadAgentMatches().then(function(matches) {
+          selectMatch(v, matches);
+          updateEnvTokenMessage(v, matches);
+        });
+      } else {
+        if (clientIdInput) clientIdInput.value = '';
+        if (scopeSelect) scopeSelect.value = 'GIGACHAT_API_PERS';
+        if (matchNameInput) matchNameInput.value = '';
+        updateEnvTokenMessage('', []);
+      }
+    });
+
+    function updateCredentialsEmptyState() {
+      [input, matchNameInput, clientIdInput].forEach(function(el) {
+        if (el) {
+          el.classList.toggle('empty', !(el.value || '').trim());
+        }
+      });
+      if (matchSelect) matchSelect.classList.toggle('empty', !(matchSelect.value || '').trim());
+      if (scopeSelect) scopeSelect.classList.toggle('empty', !(scopeSelect.value || '').trim());
+    }
+
+    modal.addEventListener('show.bs.modal', function() {
+      refreshMatchSelect();
+      resetFormToDefault();
+      setTimeout(updateCredentialsEmptyState, 150);
+    });
+
+    [input, matchNameInput, clientIdInput, matchSelect, scopeSelect].forEach(function(el) {
+      if (el) {
+        el.addEventListener('input', updateCredentialsEmptyState);
+        el.addEventListener('change', updateCredentialsEmptyState);
+        el.addEventListener('paste', function() { setTimeout(updateCredentialsEmptyState, 10); });
+      }
+    });
+
+    btnApply.addEventListener('click', async function() {
+      var token = (input && input.value || '').trim();
+      var clientId = (clientIdInput && clientIdInput.value || '').trim();
+      var scope = (scopeSelect && scopeSelect.value) || 'GIGACHAT_API_PERS';
+      var name = (matchNameInput && matchNameInput.value || '').trim();
+      var selectedProfileName = matchSelect.value;
+      var matches = [];
+      try { matches = await loadAgentMatches(); } catch (e) {}
+      var selectedProfile = matches.find(function(m) { return m.name === selectedProfileName; });
+      var useEnvToken = !!(selectedProfile && selectedProfile.tokenFromEnv);
+
+      if (useEnvToken) {
+        var statusRes = await fetch('{{ url_for("api_agent_env_token_status") }}');
+        var statusData = await statusRes.json().catch(function() { return {}; });
+        if (!(statusData && statusData.hasToken)) {
+          if (msg) {
+            msg.innerHTML = '<strong>Токен не задан в .key.</strong> Создайте файл .key в корне проекта (первая строка — токен base64). Либо выберите другой профиль и введите токен вручную.';
+            msg.className = 'mt-3 alert alert-warning py-3 mb-0'; msg.style.display = 'block';
+            msg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+          return;
+        }
+        btnApply.disabled = true;
+        if (msg) {
+          msg.innerHTML = 'Проверка токена из .env…';
+          msg.className = 'mt-3 alert alert-secondary py-3 mb-0'; msg.style.display = 'block';
+        }
+        try {
+          var valRes = await fetch('{{ url_for("api_agent_validate_env") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scope: scope })
+          });
+          var valData = await valRes.json().catch(function() { return {}; });
+          if (!valRes.ok || !(valData && valData.valid)) {
+            if (msg) {
+              var errText = (valData && valData.error) || 'Неверный токен в .key';
+              msg.innerHTML = '<strong>Проверка не пройдена.</strong><br>' + (errText).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '<br><span class="small">Проверьте содержимое .key или .env.</span>';
+              msg.className = 'mt-3 alert alert-danger py-3 mb-0'; msg.style.display = 'block';
+              msg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            btnApply.disabled = false;
+            return;
+          }
+        } catch (e) {
+          if (msg) {
+            msg.innerHTML = '<strong>Ошибка.</strong> ' + ((e && e.message) ? String(e.message) : 'Не удалось проверить токен из .key.');
+            msg.className = 'mt-3 alert alert-danger py-3 mb-0'; msg.style.display = 'block';
+          }
+          btnApply.disabled = false;
+          return;
+        }
+        window.agentCredentialsInMemory = null;
+        window.agentCredentialsFromKey = true;
+        window.agentScopeInMemory = scope;
+          if (msg) {
+          msg.innerHTML = '<strong>Проверка пройдена. Токен из .key.</strong>';
+          msg.className = 'mt-3 alert alert-success py-3 mb-0'; msg.style.display = 'block';
+        }
+        updateAgentAuthStatus();
+        updateTokenStrip();
+        if (agentGenerateStatus) agentGenerateStatus.textContent = '';
+        btnApply.disabled = false;
+        setTimeout(function() {
+          if (msg) { msg.innerHTML = ''; msg.className = 'mt-3'; msg.style.display = 'none'; }
+          if (typeof bootstrap !== 'undefined' && modal) {
+            var m = bootstrap.Modal.getInstance(modal) || new bootstrap.Modal(modal);
+            m.hide();
+          }
+        }, 1500);
+        return;
+      }
+
+      if (!token) {
+        if (msg) {
+          msg.innerHTML = '<strong>Ошибка.</strong> Введите Token. Без токена подключение невозможно.';
+          msg.className = 'mt-3 alert alert-warning py-3 mb-0'; msg.style.display = 'block';
+          msg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        return;
+      }
+      btnApply.disabled = true;
+      if (msg) {
+        msg.innerHTML = 'Проверка подключения к API…';
+        msg.className = 'mt-3 alert alert-secondary py-3 mb-0'; msg.style.display = 'block';
+      }
+      var verifySslEl = document.getElementById('agentVerifySslCheck');
+      var verifySsl = verifySslEl ? verifySslEl.checked : true;
+      try {
+        var r = await fetch('{{ url_for("api_agent_validate") }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credentials: token, scope: scope, verify_ssl: verifySsl })
+        });
+        var data = await r.json().catch(function() { return {}; });
+        if (!r.ok || !(data && data.valid)) {
+          if (msg) {
+            var errText = (data && data.error) || 'Неверные креды подключения по API';
+            msg.innerHTML = '<strong>Проверка не пройдена.</strong><br>' + (errText).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '<br><span class="small">Внесите исправления и нажмите «Применить» снова. Профиль не создаётся.</span>';
+            msg.className = 'mt-3 alert alert-danger py-3 mb-0'; msg.style.display = 'block';
+            msg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+          btnApply.disabled = false;
+          return;
+        }
+      } catch (e) {
+        if (msg) {
+          var errDetail = (e && e.message) ? String(e.message) : 'Ошибка сети или сервера';
+          msg.innerHTML = '<strong>Проверка не пройдена.</strong><br>' + (errDetail).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '<br><span class="small">Внесите исправления и нажмите «Применить» снова. Профиль не создаётся.</span>';
+          msg.className = 'mt-3 alert alert-danger py-3 mb-0'; msg.style.display = 'block';
+          msg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        btnApply.disabled = false;
+        return;
+      }
+      if (msg) {
+        var txt = '<strong>Проверка пройдена. Подключение установлено.</strong>';
+        if (data && data.verify_ssl_used === false) {
+          txt += '<br><span class="small">Использовано подключение без проверки SSL. Добавьте GIGACHAT_VERIFY_SSL_CERTS=false в .env для постоянного применения.</span>';
+        }
+        msg.innerHTML = txt;
+        msg.className = 'mt-3 alert alert-success py-3 mb-0'; msg.style.display = 'block';
+      }
+      window.agentCredentialsInMemory = token;
+      window.agentCredentialsFromKey = false;
+      window.agentScopeInMemory = scope;
+      if (name) await addOrUpdateMatch(name, clientId, scope);
+      updateAgentAuthStatus();
+      updateTokenStrip();
+      if (agentGenerateStatus) agentGenerateStatus.textContent = '';
+      if (input) input.value = '';
+      btnApply.disabled = false;
+      setTimeout(function() {
+        if (msg) { msg.innerHTML = ''; msg.className = 'mt-3'; msg.style.display = 'none'; }
+        if (typeof bootstrap !== 'undefined' && modal) {
+          var m = bootstrap.Modal.getInstance(modal) || new bootstrap.Modal(modal);
+          m.hide();
+        }
+      }, 1500);
+    });
+  })();
+
+  // При загрузке: для генерации нужна проверка ключа в модальном окне
+  (function() {
+    if ((window.agentCredentialsInMemory || window.agentCredentialsFromKey) && agentGenerateStatus) {
+      agentGenerateStatus.textContent = '';
+      return;
+    }
+    if (agentGenerateStatus) {
+      agentGenerateStatus.textContent = 'Нажмите «Ввести ключ», выберите профиль или введите Token и нажмите «Применить».';
+    }
+  })();
 
   // Показ/скрытие полей БД
+  // Host не совпадает ни с одним стендом — переключаем на «Пользовательский»
+  var STAND_HOSTS = {{ stand_hosts | tojson }};
+  var hostInput = document.getElementById('db_host');
+  var standSelect = document.getElementById('stand_type');
+  function syncStandToHost() {
+    if (!hostInput || !standSelect) return;
+    var h = (hostInput.value || '').trim().toLowerCase();
+    if (!h) return;
+    var matched = false;
+    for (var stand in STAND_HOSTS) {
+      var sh = (STAND_HOSTS[stand] || '').trim().toLowerCase();
+      if (sh && h === sh) { matched = true; break; }
+    }
+    if (!matched && standSelect.value !== 'Пользовательский') {
+      standSelect.value = 'Пользовательский';
+    }
+  }
+  if (hostInput) {
+    hostInput.addEventListener('input', syncStandToHost);
+    hostInput.addEventListener('change', syncStandToHost);
+    hostInput.addEventListener('paste', function() { setTimeout(syncStandToHost, 10); });
+  }
+
   useDbCheck.addEventListener('change', function() {
     dbFields.style.display = this.checked ? 'block' : 'none';
     validateForm();
   });
 
-  // Валидация перед отправкой
+  // Валидация перед отправкой (синхронная часть; проверка БД — в submit через модальные окна)
   function validateForm() {
-    if (useDbCheck.checked) {
-      if (!userInput.value.trim() || !passwordInput.value.trim()) {
-        errorMessage.textContent = 'Вы используете опцию подключения к БД. Проверьте введенный логин и пароль.';
-        errorAlert.style.display = 'block';
-        submitBtn.disabled = true;
-        return false;
-      }
-    }
     errorAlert.style.display = 'none';
     submitBtn.disabled = false;
     return true;
@@ -155,41 +1077,167 @@
   userInput.addEventListener('input', validateForm);
   passwordInput.addEventListener('input', validateForm);
 
+  // Подтверждение режима чистого агента: модальное окно перед отправкой
+  (function() {
+    var pureAgentModal = document.getElementById('pureAgentConfirmModal');
+    var pureAgentConfirmBtn = document.getElementById('pureAgentConfirm');
+    var pureAgentCancelBtn = document.getElementById('pureAgentCancel');
+    if (pureAgentConfirmBtn && form) {
+      pureAgentConfirmBtn.addEventListener('click', function() {
+        form.dataset.pureAgentConfirmed = '1';
+        if (typeof bootstrap !== 'undefined' && pureAgentModal) {
+          var modal = bootstrap.Modal.getInstance(pureAgentModal) || new bootstrap.Modal(pureAgentModal);
+          modal.hide();
+        }
+        form.requestSubmit();
+      });
+    }
+  })();
   // Валидация и единая анимация ожидания при отправке
   form.addEventListener('submit', function(e) {
     if (!validateForm()) {
       e.preventDefault();
       return;
     }
+    var fc = document.getElementById('form_agent_credentials');
+    var fs = document.getElementById('form_agent_scope');
+    if (window.agentCredentialsInMemory && fc) fc.value = window.agentCredentialsInMemory;
+    if (window.agentScopeInMemory && fs) fs.value = window.agentScopeInMemory;
+    // Включаем отключённые поля перед отправкой (disabled-элементы не попадают в POST)
+    var formPureAgent = document.getElementById('form_pure_agent_mode');
+    if (pureAgentSwitch && pureAgentSwitch.checked && modeHybrid && useDbCheck) {
+      modeHybrid.disabled = false;
+      useDbCheck.disabled = false;
+      modeHybrid.checked = true;
+      useDbCheck.checked = false;
+      if (formPureAgent) formPureAgent.value = '1';
+    } else if (logicModeSwitch && logicModeSwitch.checked && useDbCheck) {
+      useDbCheck.disabled = false;
+      useDbCheck.checked = true;
+      if (formPureAgent) formPureAgent.value = '';
+    } else if (modeHybrid && modeHybrid.checked && useDbCheck) {
+      useDbCheck.disabled = false;
+      useDbCheck.checked = true;
+      if (formPureAgent) formPureAgent.value = '';
+    } else if (formPureAgent) {
+      formPureAgent.value = '';
+    }
+    var isPureAgent = (pureAgentSwitch && pureAgentSwitch.checked) || (modeHybrid && modeHybrid.checked && useDbCheck && !useDbCheck.checked);
+    var needsAgent = isPureAgent || (modeHybrid && modeHybrid.checked);
+    var hasValidatedKey = window.agentCredentialsInMemory || window.agentCredentialsFromKey;
+    // Проверка: при гибриде/чистом агенте нужен явно проверенный ключ (профиль + Apply или «разработчик» с .key)
+    if (needsAgent && !hasValidatedKey) {
+      e.preventDefault();
+      if (typeof showTokensExhaustedModal === 'function') {
+        showTokensExhaustedModal('Выберите профиль и нажмите «Применить» (или профиль «разработчик» с ключом в .key), либо введите ключ вручную.');
+      }
+      return;
+    }
+    if (isPureAgent && form.dataset.pureAgentConfirmed !== '1') {
+      e.preventDefault();
+      if (pureAgentSwitch && pureAgentSwitch.checked && typeof applyPureAgentState === 'function') applyPureAgentState(true);
+      var pureAgentModal = document.getElementById('pureAgentConfirmModal');
+      if (pureAgentModal && typeof bootstrap !== 'undefined') {
+        var modal = bootstrap.Modal.getOrCreateInstance(pureAgentModal);
+        modal.show();
+      }
+      return;
+    }
+    if (isPureAgent) delete form.dataset.pureAgentConfirmed;
+    // Проверка подключения к БД перед отправкой
+    if (useDbCheck && useDbCheck.checked) {
+      if (!userInput.value.trim() || !passwordInput.value.trim()) {
+        e.preventDefault();
+        var missingModal = document.getElementById('dbCredentialsMissingModal');
+        if (missingModal && typeof bootstrap !== 'undefined') {
+          bootstrap.Modal.getOrCreateInstance(missingModal).show();
+        }
+        return;
+      }
+      if (form.dataset.dbValidated !== '1') {
+        e.preventDefault();
+        submitBtn.disabled = true;
+        var standSelect = form.querySelector('[name="stand_type"]');
+        var hostInput = form.querySelector('[name="host"]');
+        var portInput = form.querySelector('[name="port"]');
+        var dbnameInput = form.querySelector('[name="dbname"]');
+        fetch('{{ url_for("api_db_test") }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            stand_type: standSelect ? standSelect.value : 'PROM',
+            user: userInput.value.trim(),
+            password: passwordInput.value.trim(),
+            host: hostInput ? hostInput.value.trim() || null : null,
+            port: portInput ? (portInput.value ? parseInt(portInput.value, 10) : null) : null,
+            dbname: dbnameInput ? dbnameInput.value.trim() || null : null
+          })
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.ok) {
+              form.dataset.dbValidated = '1';
+              form.requestSubmit();
+            } else {
+              var errModal = document.getElementById('dbConnectionErrorModal');
+              var errDetail = document.getElementById('dbConnectionErrorDetail');
+              if (errDetail) errDetail.textContent = data.error || 'Неизвестная ошибка';
+              if (errModal && typeof bootstrap !== 'undefined') {
+                bootstrap.Modal.getOrCreateInstance(errModal).show();
+              }
+            }
+          })
+          .catch(function(err) {
+            var errModal = document.getElementById('dbConnectionErrorModal');
+            var errDetail = document.getElementById('dbConnectionErrorDetail');
+            if (errDetail) errDetail.textContent = (err && err.message) ? err.message : 'Ошибка сети';
+            if (errModal && typeof bootstrap !== 'undefined') {
+              bootstrap.Modal.getOrCreateInstance(errModal).show();
+            }
+          })
+          .finally(function() { submitBtn.disabled = false; });
+        return;
+      }
+      delete form.dataset.dbValidated;
+    }
     var btnText = submitBtn.querySelector('.btn-text');
     if (btnText) {
       submitBtn.classList.add('loading');
       submitBtn.disabled = true;
       btnText.textContent = 'Сканирование таблиц…';
+      var modeHybrid = document.getElementById('mode_hybrid') && document.getElementById('mode_hybrid').checked;
+      var useDb = document.getElementById('use_db') && document.getElementById('use_db').checked;
+      var mode = (!modeHybrid) ? 'logic' : (useDb ? 'hybrid' : 'agent');
+      submitBtn.classList.add('app-loader', 'app-loader--compact', 'app-loader--' + mode);
       var spinner = document.createElement('span');
       spinner.className = 'app-loader__spinner';
       spinner.style.marginRight = '8px';
       spinner.style.verticalAlign = 'middle';
+      var modeIcon = document.createElement('span');
+      modeIcon.className = 'app-loader__mode-icon';
       submitBtn.insertBefore(spinner, btnText);
+      submitBtn.insertBefore(modeIcon, btnText);
     }
   });
 
   // Сохранение данных формы в localStorage (кроме пароля)
   function saveFormData() {
     const formData = new FormData(form);
+    const skip = ['password', 'agent_credentials', 'agent_scope'];
     for (let [key, value] of formData.entries()) {
-      if (key !== 'password') {
+      if (!skip.includes(key)) {
         localStorage.setItem('detailed_' + key, value);
       }
     }
   }
 
-  // Загрузка данных из localStorage
+  // Загрузка данных из localStorage (ключ agent_credentials не загружаем — не сохраняется)
   function loadFormData() {
     document.querySelectorAll('input, select, textarea').forEach(el => {
+      if (!el.name || ['password', 'agent_credentials', 'agent_scope'].includes(el.name)) return;
       const key = 'detailed_' + el.name;
       const saved = localStorage.getItem(key);
-      if (saved !== null && el.name !== 'password') {
+      if (saved !== null) {
         if (el.type === 'checkbox') {
           el.checked = (saved === 'on');
         } else {
@@ -198,11 +1246,31 @@
       }
     });
     
-    // Обновляем видимость полей БД
+    // Обновляем видимость полей БД и блока агента
     if (useDbCheck) {
       dbFields.style.display = useDbCheck.checked ? 'block' : 'none';
     }
-    
+    // Нормализация режимов: применить нужное состояние по загруженным данным
+    if (pureAgentSwitch && pureAgentSwitch.checked && typeof applyPureAgentState === 'function') {
+      applyPureAgentState();
+    } else if (pureAgentSwitch && modeHybrid && useDbCheck && modeHybrid.checked && !useDbCheck.checked) {
+      var planAgent = document.getElementById('plan_agent');
+      if (planAgent && planAgent.checked) {
+        pureAgentSwitch.checked = true;
+        if (typeof applyPureAgentState === 'function') applyPureAgentState();
+      }
+    } else if (logicModeSwitch && pureAgentSwitch && modeHybrid && useDbCheck && !pureAgentSwitch.checked && !modeHybrid.checked && useDbCheck.checked) {
+      logicModeSwitch.checked = true;
+      if (typeof applyLogicState === 'function') applyLogicState();
+    } else if (pureAgentSwitch && modeHybrid && !pureAgentSwitch.checked && modeHybrid.checked && typeof applyHybridState === 'function') {
+      if (logicModeSwitch) logicModeSwitch.checked = false;
+      applyHybridState();
+    } else if (pureAgentSwitch && modeHybrid && logicModeSwitch && !pureAgentSwitch.checked && !modeHybrid.checked && !logicModeSwitch.checked) {
+      pureAgentSwitch.checked = true;
+      if (typeof applyPureAgentState === 'function') applyPureAgentState();
+    }
+    if (typeof toggleHybridOptions === 'function') toggleHybridOptions();
+    if (typeof updateToggleStates === 'function') updateToggleStates();
     // Проверяем валидацию после загрузки
     setTimeout(validateForm, 100);
   }
@@ -216,13 +1284,22 @@
     });
   });
 
-  // Загружаем при старте
-  window.addEventListener('load', loadFormData);
+  // Загружаем при старте и обновляем подписи состояний ползунков
+  window.addEventListener('load', function() {
+    loadFormData();
+    if (typeof updateToggleStates === 'function') updateToggleStates();
+    if (typeof syncStandToHost === 'function') syncStandToHost();
+  });
 
   // Проверяем наличие ошибки в URL (если вернулись с ошибкой)
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('error') === 'db_required') {
-    errorMessage.textContent = 'Вы используете опцию подключения к БД. Проверьте введенный логин и пароль.';
+    errorMessage.textContent = 'Вы используете опцию подключения к БД. Укажите логин и пароль.';
+    errorAlert.className = 'alert alert-warning alert-dismissible fade show';
+    errorAlert.style.display = 'block';
+  } else if (urlParams.get('error') === 'agent_key_required') {
+    errorMessage.textContent = 'Для гибридного режима или чистого агента нужен ключ GigaChat. Выберите профиль «разработчик» (токен из .key) или нажмите «Ввести ключ».';
+    errorAlert.className = 'alert alert-warning alert-dismissible fade show';
     errorAlert.style.display = 'block';
   }
 </script>

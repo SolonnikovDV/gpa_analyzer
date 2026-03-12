@@ -14,17 +14,31 @@
   </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
   <div class="container-fluid">
     <a class="navbar-brand" href="/">Analyzer</a>
-    <div class="collapse navbar-collapse">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Меню">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarMain">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item"><a class="nav-link active" href="/">Детальный анализ</a></li>
         <li class="nav-item"><a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#aboutModal">О приложении</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#resetCacheModal">Сброс к базовым</a></li>
       </ul>
     </div>
   </div>
 </nav>
+
+<div id="token-strip" class="token-strip" role="status" aria-live="polite">
+  <span>Токены: использовано <span class="token-used" id="token-used">0</span> (ввод <span id="token-prompt">0</span>, вывод <span id="token-completion">0</span>)</span>
+  <span>|</span>
+  <span>сессий: <span id="token-sessions">0</span></span>
+  <span>|</span>
+  <span>доступно: <span class="token-available na" id="token-available">—</span></span>
+  <span>|</span>
+  <span>429: <span id="token-rate-limit" class="token-rate-limit" title="Превышение лимита запросов GigaChat">0</span></span>
+</div>
 
 <div class="container my-4">
   <div class="row g-4">
@@ -33,6 +47,7 @@
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
           <span>Онлайн-лог</span>
           <div class="d-flex align-items-center gap-2">
+            <span id="mode-badge" class="badge bg-info" style="display: none;" title="Режим анализа">—</span>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-copy-log" title="Скопировать весь лог">
               Копировать весь лог
             </button>
@@ -59,6 +74,14 @@
                 Они будут использованы для подстановки в запросы.
               </div>
               
+              <div id="agent-requested-ddl-block" class="mb-4 p-3 border border-warning rounded" style="display: none;">
+                <h6 class="text-warning">Гибридный режим: запрос DDL</h6>
+                <p class="small mb-2">Агент сопоставил найденные объекты с текстом и просит предоставить DDL для следующих объектов (при необходимости вставьте ниже):</p>
+                <ul id="agent-requested-ddl-list" class="small mb-2"></ul>
+                <label class="form-label small">DDL недостающих объектов (CREATE VIEW / TABLE …):</label>
+                <textarea id="agent-ddl-paste" class="form-control font-monospace small" rows="4" placeholder="Вставьте DDL по запрошенным объектам…"></textarea>
+              </div>
+              
               <div class="mb-4 p-3 bg-light rounded">
                 <label class="form-label fw-bold">Параметры функции:</label>
                 <div class="row g-2">
@@ -67,7 +90,7 @@
                            placeholder="'2024-01-01', 'current_date', '5', ''">
                   </div>
                   <div class="col-md-4">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadParamsExample()">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadParamsExample()" title="Вставить пример параметров в поле">
                       Пример
                     </button>
                   </div>
@@ -102,7 +125,7 @@
               </div>
               
               <div class="text-end mt-4">
-                <button type="submit" class="btn btn-primary btn-lg" id="analyze-btn">
+                <button type="submit" class="btn btn-primary btn-lg" id="analyze-btn" title="Запустить расчёт нагрузки по планам запросов с учётом размеров таблиц и параметров">
                   Запустить анализ нагрузки
                 </button>
               </div>
@@ -110,6 +133,7 @@
           </div>
           <div id="loading" class="app-loader app-loader--compact" role="status">
             <span class="app-loader__spinner"></span>
+            <span class="app-loader__mode-icon"></span>
             <span class="app-loader__status-text">Сканирование таблиц…</span>
           </div>
         </div>
@@ -118,12 +142,16 @@
   </div>
 </div>
 
+{% include 'app_footer.html' %}
+
 {% include 'about_modal.html' %}
+{% include 'reset_cache_modal.html' %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 (function(){
   const jobId = {{ job_id | tojson }};
+  const initialLoaderMode = {{ (loader_mode or 'logic') | tojson }};
   const logEl = document.getElementById('log');
   const statusEl = document.getElementById('status');
   const loadingEl = document.getElementById('loading');
@@ -171,18 +199,89 @@
     logEl.scrollTop = logEl.scrollHeight;
   };
 
+  function updateTokenStrip() {
+    fetch('/api/agent/token_usage')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var u = data.used || {};
+        var elTotal = document.getElementById('token-used');
+        var elPrompt = document.getElementById('token-prompt');
+        var elComp = document.getElementById('token-completion');
+        var elSess = document.getElementById('token-sessions');
+        var elAv = document.getElementById('token-available');
+        if (elTotal) elTotal.textContent = (u.total_tokens || 0).toLocaleString();
+        if (elPrompt) elPrompt.textContent = (u.prompt_tokens || 0).toLocaleString();
+        if (elComp) elComp.textContent = (u.completion_tokens || 0).toLocaleString();
+        if (elSess) elSess.textContent = (u.sessions || 0).toLocaleString();
+        if (elAv) {
+          var av = data.available;
+          elAv.textContent = av != null ? av.toLocaleString() : '—';
+          elAv.classList.toggle('na', av == null);
+        }
+        var c429 = 0;
+        try { c429 = parseInt(sessionStorage.getItem('gpa_rate_limit_429') || '0', 10) || 0; } catch (e) {}
+        var el429 = document.getElementById('token-rate-limit');
+        if (el429) {
+          el429.textContent = c429.toLocaleString();
+          el429.classList.toggle('warn', c429 > 0);
+        }
+      })
+      .catch(function() {});
+  }
+  updateTokenStrip();
+  setInterval(updateTokenStrip, 12000);
+
+  function getLoaderMode(js) {
+    var mode = js.analysis_mode || 'logic';
+    var useDb = !!js.use_db_connection;
+    if (mode === 'logic') return 'logic';
+    if (mode === 'hybrid') return useDb ? 'hybrid' : 'agent';
+    return 'logic';
+  }
+  function getModeLabel(mode) {
+    return mode === 'agent' ? 'Чистый агент' : (mode === 'hybrid' ? 'Гибрид' : 'Логика');
+  }
+  function updateModeBadge(mode) {
+    var badge = document.getElementById('mode-badge');
+    if (!badge) return;
+    var effectiveMode = mode || 'logic';
+    badge.textContent = getModeLabel(effectiveMode);
+    badge.style.display = 'inline-block';
+  }
+  function applyLoaderMode(el, js) {
+    if (!el) return;
+    el.classList.remove('app-loader--agent', 'app-loader--logic', 'app-loader--hybrid');
+    el.classList.add('app-loader--' + getLoaderMode(js));
+  }
+  var lastJobStatus = null;
+
+  // Начальная плашка режима
+  updateModeBadge(initialLoaderMode);
+
   // Poll status
   const interval = setInterval(async () => {
     try {
       const r = await fetch(`/status/${jobId}`);
       const js = await r.json();
+      lastJobStatus = js;
       statusEl.textContent = js.status;
       statusEl.className = 'badge bg-' + (js.status === 'tables_discovered' ? 'success' : js.status === 'error' ? 'danger' : 'secondary');
-      
+      applyLoaderMode(loadingEl, js);
+      updateModeBadge(getLoaderMode(js));
+
       if (js.status === 'tables_discovered') {
         clearInterval(interval);
         loadingEl.style.display = 'none';
         tablesContainer.style.display = 'block';
+        
+        // Режим агента: показать запрос DDL по недостающим объектам
+        const requestedDdl = js.discovery.agent_requested_ddl;
+        const ddlBlock = document.getElementById('agent-requested-ddl-block');
+        const ddlList = document.getElementById('agent-requested-ddl-list');
+        if (requestedDdl && requestedDdl.length && ddlBlock && ddlList) {
+          ddlList.innerHTML = requestedDdl.map(function(name) { return '<li>' + name + '</li>'; }).join('');
+          ddlBlock.style.display = 'block';
+        }
         
         // Отображаем таблицы
         const tables = js.discovery.discovered_tables;
@@ -202,6 +301,8 @@
           const formattedRows = currentRows.toLocaleString();
           const sizeGB = (info.size_gb || 0).toFixed(3);
           const avgRowSize = (info.avg_row_size_bytes || 0).toFixed(1);
+          // Безопасный ключ для name (точки могут мешать в некоторых фреймворках)
+          const safeKey = key.replace(/\./g, '___DOT___');
           
           html += `
             <tr>
@@ -212,8 +313,9 @@
               <td>
                 <input type="number" 
                        class="form-control form-control-sm table-input" 
-                       name="size_${key}" 
-                       value="${currentRows}" 
+                       name="size_${safeKey}" 
+                       data-table-key="${key}"
+                       value="${currentRows}"
                        min="0"
                        step="1"
                        onchange="validateInput(this)">
@@ -256,6 +358,7 @@
     }
   };
 
+
   // Сохранение параметров в localStorage
   paramsInput.addEventListener('input', function() {
     localStorage.setItem('last_params', this.value);
@@ -273,7 +376,9 @@
     analyzeBtn.classList.add('loading');
     analyzeBtn.disabled = true;
     var btnText = analyzeBtn.textContent;
-    analyzeBtn.innerHTML = '<span class="app-loader__spinner" style="margin-right:8px;vertical-align:middle"></span> Расчёт нагрузки…';
+    var mode = getLoaderMode(lastJobStatus || {});
+    analyzeBtn.classList.add('app-loader', 'app-loader--compact', 'app-loader--' + mode);
+    analyzeBtn.innerHTML = '<span class="app-loader__spinner" style="margin-right:8px;vertical-align:middle"></span><span class="app-loader__mode-icon"></span> Расчёт нагрузки…';
   });
 
   // Обработка ошибок EventSource

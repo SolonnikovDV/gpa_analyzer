@@ -25,6 +25,7 @@ body {
   font-family: var(--gpa-font-sans);
   min-height: 100vh;
   line-height: 1.5;
+  padding-bottom: 2.5rem; /* отступ под фиксированный футер */
 }
 
 /* Навбар — без изменений к стандартному Bootstrap */
@@ -180,14 +181,35 @@ input[type="number"].form-control {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-/* Футер с авторством */
+/* Футер с авторством (W3C/MDN: nav, address, small) — всегда внизу видимого окна */
 .app-footer {
-  margin-top: 2.5rem;
-  padding-top: 1rem;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.5rem 1rem;
   border-top: 1px solid var(--gpa-border);
+  background: var(--gpa-bg, #fff);
   font-size: 0.8125rem;
   color: var(--gpa-text-muted);
   text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  z-index: 100;
+}
+.app-footer .app-footer__nav,
+.app-footer .app-footer__copyright,
+.app-footer .app-footer__author {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.app-footer .app-footer__sep {
+  margin: 0 0.15em;
 }
 .app-footer a {
   color: var(--gpa-text-muted);
@@ -196,6 +218,18 @@ input[type="number"].form-control {
 .app-footer a:hover {
   text-decoration: underline;
   color: var(--gpa-text);
+}
+.app-footer address {
+  font-style: normal;
+  margin: 0;
+}
+.app-footer .footer-telegram {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+.app-footer .footer-telegram:hover {
+  color: #0088cc;
 }
 
 /* Лог — единый стиль для скана таблиц и анализа */
