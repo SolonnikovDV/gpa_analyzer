@@ -5,7 +5,7 @@
   </nav>
   <span class="app-footer__sep" aria-hidden="true">·</span>
   <small class="app-footer__copyright">
-    © {{ app_year }} {{ app_author }}
+    © {{ app_year }} {{ app_author }} · GPA Analyzer
   </small>
   <span class="app-footer__sep" aria-hidden="true">·</span>
   <address class="app-footer__author">
@@ -15,5 +15,71 @@
       </svg>
       <span class="visually-hidden">Связаться с автором в Telegram: @Dmitry_as_SoloD</span>
     </a>
+    <span>Связь с автором</span>
   </address>
 </footer>
+<script>
+(function() {
+  var storageKey = 'gpa-ui-theme';
+
+  function getStoredTheme() {
+    try {
+      return globalThis.localStorage.getItem(storageKey);
+    } catch (error) {
+      console.debug('Theme storage read unavailable', error);
+      return null;
+    }
+  }
+
+  function setStoredTheme(theme) {
+    try {
+      globalThis.localStorage.setItem(storageKey, theme);
+    } catch (error) {
+      console.debug('Theme storage write unavailable', error);
+    }
+  }
+
+  function getNextTheme(currentTheme) {
+    return currentTheme === 'light' ? 'dark' : 'light';
+  }
+
+  function applyTheme(theme) {
+    var root = document.documentElement;
+    var normalized = theme === 'light' ? 'light' : 'dark';
+    root.dataset.theme = normalized;
+    root.style.colorScheme = normalized;
+
+    document.querySelectorAll('[data-theme-toggle]').forEach(function(btn) {
+      var label = btn.querySelector('.theme-toggle__label');
+      var icon = btn.querySelector('.theme-toggle__icon');
+      var nextTheme = getNextTheme(normalized);
+      if (label) label.textContent = nextTheme === 'light' ? 'Светлая тема' : 'Тёмная тема';
+      if (icon) icon.textContent = normalized === 'light' ? '◑' : '◐';
+      btn.setAttribute('aria-label', 'Включить ' + (nextTheme === 'light' ? 'светлую' : 'тёмную') + ' тему');
+    });
+  }
+
+  var initialTheme = getStoredTheme() || 'dark';
+  applyTheme(initialTheme);
+
+  document.querySelectorAll('[data-theme-toggle]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var currentTheme = document.documentElement.dataset.theme || 'dark';
+      var nextTheme = getNextTheme(currentTheme);
+      applyTheme(nextTheme);
+      setStoredTheme(nextTheme);
+    });
+  });
+
+  document.querySelectorAll('[data-sidebar-section-toggle]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var sectionId = btn.dataset.sidebarSectionToggle;
+      var target = document.querySelector('[data-sidebar-section="' + sectionId + '"]');
+      if (!target) return;
+      var expanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      target.classList.toggle('is-collapsed', expanded);
+    });
+  });
+})();
+</script>

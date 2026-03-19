@@ -3,13 +3,24 @@
 flask
 jinja2
 python-dotenv
+gunicorn
 
 # detailed_analyzer.py, sql_object_extractor.py
 pglast
 psycopg2-binary
 
+# Spark SQL / Databricks SQL parsing (detailed/lint/spark_linter.py)
+sqlglot>=24,<27
+
 # performance_monitor.py
 psutil
+
+# Production queue backend
+redis
+rq
+
+# Automated test baseline
+pytest
 
 # agent/gigachat_agent.py — генерация и анализ через GigaChat
 gigachat

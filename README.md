@@ -16,6 +16,7 @@ GPA Analyzer — веб-приложение для предварительно
 - **Суммирует нагрузку** по всем блокам и выдаёт итоговую оценку: общий объём (GB), уровень риска (низкий / средний / высокий) и оценочное время выполнения.
 - **Детектирует антипаттерны** (LATERAL с ORDER BY + LIMIT 1, CROSS JOIN, коррелированные подзапросы, SELECT DISTINCT и др.) и применяет множители нагрузки на скейле данных.
 - **Поддерживает режим без БД** (чистый агент): агент извлекает блоки и объекты, синтезирует планы. Для больших скриптов — чанкинг и повторные попытки при таймауте.
+- **GigaChat:** одна выбранная чат-модель и одна модель эмбеддингов на вызов (UI / `GIGACHAT_*` / значение по умолчанию); в UI — информационная проверка доступности моделей и отображение имён на шагах подготовки, настройки таблиц и в итоге анализа.
 
 Интерфейс: форма ввода DDL, опциональное подключение к Greenplum, пошаговый лог в реальном времени, таблицы с результатами и топ запросов по нагрузке.
 
@@ -57,6 +58,122 @@ python webapp.py
 ```
 
 По умолчанию приложение слушает `http://0.0.0.0:8000`. Откройте в браузере `http://localhost:8000` или `http://localhost:8000/detailed`.
+
+### Production queue backend
+
+Для production можно переключить выполнение фоновых job'ов с локальных потоков на `Redis + RQ`.
+
+Пример переменных окружения:
+
+```bash
+export JOB_RUNNER_BACKEND=queue
+export REDIS_URL=redis://localhost:6379/0
+export JOB_QUEUE_NAME=gpa-jobs
+```
+
+Запуск web-приложения:
+
+```bash
+cd app_gpa
+python webapp.py
+```
+
+Запуск worker-процесса:
+
+```bash
+cd app_gpa
+python worker.py
+```
+
+Если `JOB_RUNNER_BACKEND` не задан, приложение использует текущий режим `thread`, удобный для локальной разработки.
+
+### DB-backed persistence
+
+Состояние job'ов, логи и runtime presets теперь можно хранить в SQLite вместо файлового каталога.
+
+Пример:
+
+```bash
+export RUNTIME_STORE_DIR=.runtime_store
+export PERSISTENCE_DB_PATH=.runtime_store/app_state.sqlite3
+```
+
+По умолчанию база создается автоматически по пути `RUNTIME_STORE_DIR/app_state.sqlite3`.
+При первом запуске сервис пытается мягко перенести legacy-данные из старых файловых store в SQLite.
+
+### Security baseline
+
+Для non-debug запуска задайте безопасный `APP_SECRET_KEY`. В режиме `FLASK_DEBUG=false` приложение не стартует с дефолтным ключом.
+
+Полезные переменные окружения:
+
+```bash
+export APP_SECRET_KEY='replace-with-long-random-secret'
+export MAX_CONTENT_LENGTH_BYTES=2097152
+export SESSION_COOKIE_SECURE=true
+export SESSION_COOKIE_HTTPONLY=true
+export SESSION_COOKIE_SAMESITE=Lax
+export SESSION_LIFETIME_MINUTES=120
+```
+
+### Minimal auth and rate limiting
+
+Для базовой защиты production-инстанса можно включить HTTP Basic Auth и простое ограничение частоты запросов:
+
+```bash
+export APP_BASIC_AUTH_USERNAME=admin
+export APP_BASIC_AUTH_PASSWORD='replace-with-strong-password'
+export RATE_LIMIT_ENABLED=true
+export RATE_LIMIT_REQUESTS=120
+export RATE_LIMIT_WINDOW_SECONDS=60
+```
+
+Особенности текущего baseline:
+
+- Basic Auth применяется глобально ко всем non-static routes.
+- Rate limiting применяется на web-слое по IP-адресу клиента.
+- Это минимальный baseline, а не полноценная IAM/SSO-схема.
+
+### Automated tests
+
+Минимальный test baseline запускается из каталога `app_gpa`:
+
+```bash
+cd app_gpa
+python -m pytest
+```
+
+Покрытый минимум:
+
+- API contract helpers
+- request validation helpers
+- in-memory rate limiter
+- SQLite job/preset stores
+- Flask integration endpoints для contract-safe API
+- выбор одной чат-/embedding-модели GigaChat (`app_gpa/tests/test_gigachat_model_fallback.py`)
+
+CI:
+
+- GitHub Actions workflow: `.github/workflows/python-tests.yml`
+- Workflow устанавливает зависимости из `app_gpa/requirements.txt` и запускает `python -m pytest`
+
+### Observability baseline
+
+В приложении включён минимальный observability baseline:
+
+- `X-Request-ID` выставляется в ответах и может быть передан извне через заголовок запроса
+- structured logs пишутся для:
+  - начала/завершения HTTP request
+  - rate limiting / unauthorized событий
+  - создания, enqueue и completion/failure job'ов
+- health endpoints:
+  - `/health/live`
+  - `/health/ready`
+  - `/health`
+
+`/health/ready` проверяет как минимум SQLite persistence. Если включён queue backend, дополнительно проверяется доступность Redis.
+
+Приложение пока не упаковывается в контейнеры; запуск — процессы на хосте (см. разделы выше: web, worker, Redis, persistence). Операционные процедуры и диагностика описаны в `OPERATIONS_RUNBOOK.md`.
 
 ### Настройка подключения к БД
 
@@ -102,13 +219,66 @@ python webapp.py
 
    Альтернатива: `GIGACHAT_CLIENT_ID` + `GIGACHAT_CLIENT_SECRET` в .env (приложение соберёт credentials автоматически).
 3. Опционально в .env:
-   - `GIGACHAT_MODEL` — модель (по умолчанию `GigaChat`; для сложных задач: `GigaChat-2-Pro`, `GigaChat-2-Max`).
+   - `GIGACHAT_MODEL` — чат-модель по умолчанию, если в запросе/UI не передано другое имя. Если не задано — используется `GigaChat-2-Max` (см. [модели GigaChat](https://developers.sber.ru/docs/ru/gigachat/models/gigachat-2-max)). Перебора моделей при ошибке API нет.
+   - `GIGACHAT_EMBEDDING_MODEL` — модель эмбеддингов по умолчанию; если не задано — `EmbeddingsGigaR` ([документация](https://developers.sber.ru/docs/ru/gigachat/models/embeddings-giga-r)).
    - `GIGACHAT_SCOPE` — версия API: `GIGACHAT_API_PERS` (физлица), `GIGACHAT_API_B2B`, `GIGACHAT_API_CORP`.
    - `GIGACHAT_VERIFY_SSL_CERTS=false` — отключить проверку SSL (если не установлены сертификаты Минцифры).
-   - `GIGACHAT_TIMEOUT_SEC` — таймаут синтеза плана (по умолчанию 120 с).
+   - `GIGACHAT_HTTP_TIMEOUT_SEC` — таймаут HTTP-клиента Python SDK (сек.) для всех вызовов GigaChat (chat, embeddings, OAuth-запросы через тот же клиент). По умолчанию **180**; если не задано, используется `GIGACHAT_TIMEOUT_SEC`, иначе 180. Без этого у SDK часто **30 с** и обрыв генерации с «The read operation timed out».
+   - `GIGACHAT_TIMEOUT_SEC` — таймаут синтеза плана в отдельном потоке (по умолчанию 120 с); также подставляется как HTTP-таймаут, если не задан `GIGACHAT_HTTP_TIMEOUT_SEC`.
    - `GIGACHAT_BLOCKS_TIMEOUT_SEC` — таймаут извлечения блоков и объектов (по умолчанию 180 с).
 
-Документация: [Python SDK](https://developers.sber.ru/docs/ru/gigachain/tools/python/gigachat), [выбор модели](https://developers.sber.ru/docs/ru/gigachat/guides/selecting-a-model). Для цепочек и RAG можно установить `langchain-gigachat` (см. комментарии в `app_gpa/requirements.txt`).
+Проверка списка моделей из UI (простой `chat` и `embeddings` на каждое имя из `CHAT_MODEL_PRIORITY` / `EMBEDDING_MODEL_PRIORITY`), при валидном ключе:
+
+```bash
+.venv/bin/python app_gpa/validate_gigachat_models.py
+```
+
+(используйте интерпретатор из venv проекта, где установлен пакет `gigachat`).
+
+Учёт токенов в приложении опирается на официальные методы GigaChat:
+- **Остаток:** [GET /balance](https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/get-balance) (доступен при пакетах токенов; при pay-as-you-go часто **403** — тогда в UI показывается оценка по лимиту Lite Freemium).
+- **Подсчёт до запроса:** [POST /tokens/count](https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/post-tokens-count) — обёртка `POST /api/agent/tokens_count` (тело JSON: `input` — массив строк, опционально `model`, `credentials`, `scope`).
+
+#### Справочные списки моделей и один выбор на вызов
+
+В коде заданы упорядоченные списки имён (для UI и для **«Проверить доступность»** — там по очереди опрашивается каждая модель):
+
+| Тип | Порядок имён (справочно) |
+|-----|--------------------------|
+| **Чат** | `GigaChat-2-Max` → `GigaChat-2-Pro` → `GigaChat-2` (значения поля `model`, [гайд](https://developers.sber.ru/docs/ru/gigachat/guides/selecting-a-model); лёгкий тариф — `GigaChat-2`, не `GigaChat-2-Lite`) |
+| **Эмбеддинги** | `EmbeddingsGigaR` → `GigaEmbeddings-3B-2025-09` → `Embeddings-2` → `Embeddings` |
+
+- Рабочие вызовы API используют **ровно одну** чат-модель и **одну** модель эмбеддингов: приоритет — поле из запроса/UI, затем **`GIGACHAT_MODEL`** / **`GIGACHAT_EMBEDDING_MODEL`**, затем первая строка из соответствующего списка.
+- Для job в discovery/analyze передаётся выбранная чат-модель (см. ниже); она имеет приоритет над `GIGACHAT_MODEL`.
+
+#### Выбор моделей в окне профиля GigaChat
+
+В модальном окне **«Ключ GigaChat API»** задаются поля **«Чат-модель»** и **«Модель эмбеддингов»** (список имён совпадает со справочными списками в коде). После **«Применить»**:
+
+- выбор сохраняется в **`localStorage`** браузера (`gpa_agent_chat_model`, `gpa_agent_embedding_model`) и в записи профиля в **`agent_profiles.json`** (поля `chatModel`, `embeddingModel`), если выбран или создан именованный профиль;
+- при следующем открытии окна можно **сменить модели**; последний выбранный профиль подставляется по ключу `gpa_agent_last_profile_name` в `localStorage`;
+- скрытые поля формы `agent_chat_model` / `agent_embedding_model` уходят на сервер с **«Обнаружить таблицы»** / анализом — попадают в **job** и в **`/status/<job_id>`**.
+
+Кнопка **«Проверить доступность»** открывает **информационный модал**: по API проверяется ответ по каждой модели (✓/✗); он **не подменяет** выбранные в окне профиля значения — только подсказка.
+
+**Где видны выбранные модели:** полоска на шаге **1. Подготовка**, бейдж в шапке лога на шаге **2**, бейдж в сводке на странице **результата**; в логе анализа — строка о выбранных моделях.
+
+#### API: списки моделей и проверка доступности
+
+`GET /api/agent/model-options` — в `data`: массивы имён `chat` и `embedding` (как `CHAT_MODEL_PRIORITY` / `EMBEDDING_MODEL_PRIORITY` в `gigachat_agent.py`).
+
+`POST /api/agent/probe-models` — тело JSON (часть полей опциональна):
+
+- `credentials` — base64-токен; либо пара `client_id` + `client_secret` (соберётся в credentials на сервере);
+- если ключа в теле нет — используется `.key` / `.env` на сервере (как у `validate-env`); `use_env_credentials: true` по-прежнему может отправлять UI для явного указания режима;
+- `scope` — например `GIGACHAT_API_PERS`;
+- `verify_ssl` — boolean, переопределяет проверку SSL для этого запроса.
+
+Успешный ответ (формат contract-safe API, данные в `data`): массивы `chat` и `embedding` с элементами `{ "model", "ok", "error" }`, поля `selected_chat`, `selected_embedding`, а также `chat_priority` и `embedding_priority` — полные цепочки, как в коде.
+
+`POST /api/agent/generate` (генерация SQL/DDL по описанию) дополнительно принимает **`chat_model`** или **`agent_chat_model`** — чат-модель для этого вызова (приоритет над `GIGACHAT_MODEL`).
+
+Документация: [Python SDK](https://developers.sber.ru/docs/ru/gigachain/tools/python/gigachat), [выбор модели](https://developers.sber.ru/docs/ru/gigachat/guides/selecting-a-model). Для RAG можно установить `langchain-gigachat` (см. комментарии в `app_gpa/requirements.txt`).
 
 ---
 
@@ -125,11 +295,12 @@ python webapp.py
    - **Только логика** — нужна БД, планы из EXPLAIN.
    - **Гибрид** — с БД или без; при «без БД» автоматически чистый агент.
    - **Чистый агент** — без БД, нужен ключ GigaChat («Ввести ключ» или .key/.env).
-2. **В поле «DDL функции»** вставьте:
+2. **GigaChat (гибрид / агент):** в окне **«Ввести ключ»** выберите **чат-модель** и **embedding-модель**, нажмите **«Применить»** — выбор запоминается в браузере и в профиле (`agent_profiles.json`). При следующем открытии окна модели можно изменить. Опционально: **«Проверить доступность»** — только справка по ответам API.
+3. **В поле «DDL функции»** вставьте:
    - PL/pgSQL функцию (CREATE OR REPLACE FUNCTION … AS $$ … $$ LANGUAGE plpgsql), или
    - один SQL-запрос (SELECT/INSERT/UPDATE/DELETE), или
    - скрипт (несколько DDL/DML). Агент сам определит тип.
-3. При необходимости нажмите **«Подсказки»** — краткая справка по режимам и заполнению.
+4. При необходимости нажмите **«Подсказки»** — краткая справка по режимам и заполнению.
 
 ### Шаг 3. Подключение к БД (опционально)
 
@@ -145,7 +316,7 @@ python webapp.py
 
 1. Нажмите **«Обнаружить таблицы»**.
 2. Произойдёт переход на страницу с **онлайн-логом** и индикатором «Сканирование таблиц…».
-3. В логе отображаются: разбор блоков, извлечённые таблицы, при наличии БД — запросы размеров. Дождитесь статуса **«tables_discovered»** (зелёный бейдж).
+3. В логе отображаются: разбор блоков, извлечённые таблицы, при наличии БД — запросы размеров. Дождитесь статуса **«tables_discovered»** (зелёный бейдж). Если расчёт шёл через агентный контур, в шапке лога может отображаться **бейдж GigaChat** с чат- и embedding-моделью этого job.
 4. Появится форма **«Настройка размеров таблиц и параметров функции»**.
 
 ### Шаг 6. Параметры функции и размеры таблиц
@@ -158,10 +329,11 @@ python webapp.py
 
 1. Откроется страница **«Результат детального анализа»** с логом и блоком **«Краткая статистика»**.
 2. В логе в реальном времени выводятся обработанные блоки и возможные предупреждения. Дождитесь завершения (статус **«done»**).
-3. После завершения появятся:
+3. При использовании GigaChat в сводке может отображаться **бейдж с именами чат- и embedding-модели**, зафиксированными для этого расчёта.
+4. После завершения появятся:
    - **Панель ключевых метрик** — риск, нагрузка (GB), число блоков, оценочное время. При наличии антипаттернов — «+X GB антипаттерны».
    - **Вкладки**: «Таблицы», «Блоки», «Топ-3 запроса», «Статистика выполнения». В блоках с антипаттернами — бейдж с предупреждением.
-4. Кнопка **«Копировать весь лог»** копирует содержимое лога в буфер обмена.
+5. Кнопка **«Копировать весь лог»** копирует содержимое лога в буфер обмена.
 
 ### Шаг 8. Пересчёт с другими размерами таблиц (опционально)
 
@@ -173,6 +345,7 @@ python webapp.py
 | Действие | Страница / элемент |
 |---------|---------------------|
 | Ввод DDL, БД, параметров кластера | Детальный анализ (форма) |
+| Ключ GigaChat и модели (гибрид/агент) | «Ввести ключ» → выбор моделей в окне профиля → «Применить» |
 | Запуск первого этапа | Кнопка «Обнаружить таблицы» |
 | Ввод параметров функции и размеров таблиц | Настройка размеров таблиц |
 | Запуск второго этапа | Кнопка «Запустить анализ нагрузки» |

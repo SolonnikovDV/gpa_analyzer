@@ -224,45 +224,113 @@ class DetailedGreenplumFunctionAnalyzer:
 
         return set()
 
-    def _parse_function_signature(self, ddl: str) -> Tuple[str, List[str]]:
-        """Извлекает имя функции и параметры из сигнатуры"""
-        sig_match = re.search(r'CREATE.*?FUNCTION\s+(?:\w+\.)?(\w+)\s*\((.*?)\)', ddl, re.IGNORECASE | re.DOTALL)
-        if not sig_match:
-            return "unknown", []
+    @staticmethod
+    def _qualified_name_last_segment(qual: str) -> str:
+        """Последний сегмент schema.name или \"Имя\" из квалифицированного идентификатора."""
+        qual = qual.strip()
+        if not qual:
+            return "unknown"
+        parts = re.split(r"\s*\.\s*", qual)
+        last = parts[-1].strip()
+        if len(last) >= 2 and last.startswith('"') and last.endswith('"'):
+            return last[1:-1].replace('""', '"')
+        return last
 
-        func_name = sig_match.group(1)
-        sig = sig_match.group(2).strip()
-
+    def _split_signature_params(self, sig: str) -> List[str]:
+        """Делит список аргументов функции по запятым с учётом скобок в типах (varchar(10) и т.д.)."""
+        sig = sig.strip()
         if not sig:
-            return func_name, []
-
-        params = []
+            return []
+        params: List[str] = []
         bracket_level = 0
-        current = []
-
+        current: List[str] = []
         for char in sig:
-            if char == '(':
+            if char == "(":
                 bracket_level += 1
                 current.append(char)
-            elif char == ')':
+            elif char == ")":
                 bracket_level -= 1
                 current.append(char)
-            elif char == ',' and bracket_level == 0:
-                param = ''.join(current).strip()
+            elif char == "," and bracket_level == 0:
+                param = "".join(current).strip()
                 if param:
-                    param_name = param.split()[0].strip()
-                    params.append(param_name)
+                    params.append(param.split()[0].strip())
                 current = []
             else:
                 current.append(char)
-
         if current:
-            param = ''.join(current).strip()
+            param = "".join(current).strip()
             if param:
-                param_name = param.split()[0].strip()
-                params.append(param_name)
+                params.append(param.split()[0].strip())
+        return params
 
-        return func_name, params
+    def _parse_function_signature_pglast(self, ddl: str) -> Optional[Tuple[str, List[str]]]:
+        """Имя и параметры через pglast (устойчиво к скобкам в типах и кавычкам)."""
+        try:
+            from pglast.ast import CreateFunctionStmt
+        except ImportError:
+            return None
+        try:
+            trees = pglast.parse_sql(ddl)
+        except Exception:
+            return None
+        for tree in trees:
+            stmt = getattr(tree, "stmt", None)
+            if not isinstance(stmt, CreateFunctionStmt):
+                continue
+            parts: List[str] = []
+            for node in stmt.funcname:
+                sv = getattr(node, "sval", None)
+                if sv is not None:
+                    parts.append(str(sv))
+                else:
+                    s = getattr(node, "str", None)
+                    if s:
+                        parts.append(str(s))
+            if not parts:
+                continue
+            func_name = parts[-1]
+            params: List[str] = []
+            for p in stmt.parameters or []:
+                nm = getattr(p, "name", None)
+                if nm:
+                    params.append(str(nm))
+            return func_name, params
+        return None
+
+    def _parse_function_signature_regex(self, ddl: str) -> Tuple[str, List[str]]:
+        """Fallback: имя через regex + баланс скобок для списка аргументов."""
+        m = re.search(
+            r"CREATE\s+(?:OR\s+REPLACE\s+)?(?:FUNCTION|PROCEDURE)\s+"
+            r"((?:\"[^\"]+\"|[a-zA-Z_]\w*)(?:\s*\.\s*(?:\"[^\"]+\"|[a-zA-Z_]\w*))*)\s*\(",
+            ddl,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if not m:
+            return "unknown", []
+
+        func_name = self._qualified_name_last_segment(m.group(1))
+        open_paren = m.end() - 1
+        depth = 0
+        i = open_paren
+        while i < len(ddl):
+            c = ddl[i]
+            if c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 0:
+                    sig_inner = ddl[open_paren + 1 : i]
+                    return func_name, self._split_signature_params(sig_inner)
+            i += 1
+        return func_name, []
+
+    def _parse_function_signature(self, ddl: str) -> Tuple[str, List[str]]:
+        """Извлекает имя функции и параметры из сигнатуры (pglast → regex со скобками)."""
+        parsed = self._parse_function_signature_pglast(ddl)
+        if parsed:
+            return parsed
+        return self._parse_function_signature_regex(ddl)
 
     # -------------------------------------------------------------------------
     # ПАРСИНГ СЕКЦИИ DECLARE
@@ -1389,14 +1457,18 @@ class DetailedGreenplumFunctionAnalyzer:
         plan_source: Optional[str] = None,
         agent_credentials: Optional[str] = None,
         agent_scope: Optional[str] = None,
+        agent_chat_model: Optional[str] = None,
+        agent_embedding_model: Optional[str] = None,
     ) -> Dict:
         """Второй этап: анализ нагрузки с пользовательскими размерами таблиц.
         analysis_mode: 'logic' | 'agent'; plan_source: 'db' | 'agent'; agent_credentials — ключ GigaChat; agent_scope — GIGACHAT_API_PERS и т.д."""
+        del agent_embedding_model  # зарезервировано (эмбеддинги — generate_sql / кэш)
         if self.input_type == 'function':
             return self._analyze_function_with_user_sizes(
                 user_params, user_table_sizes,
                 analysis_mode=analysis_mode, plan_source=plan_source,
                 agent_credentials=agent_credentials, agent_scope=agent_scope,
+                agent_chat_model=agent_chat_model,
             )
         else:
             return self._analyze_query_with_user_sizes(user_params, user_table_sizes)
@@ -1412,6 +1484,7 @@ class DetailedGreenplumFunctionAnalyzer:
         plan_source: Optional[str] = None,
         agent_credentials: Optional[str] = None,
         agent_scope: Optional[str] = None,
+        agent_chat_model: Optional[str] = None,
     ) -> Dict:
         """Анализ нагрузки для функции с пользовательскими размерами.
         При plan_source=='agent' планы синтезируются агентом (GigaChat), подключение к БД не обязательно."""
@@ -1571,6 +1644,7 @@ class DetailedGreenplumFunctionAnalyzer:
                                     scope_override=agent_scope,
                                     user_table_sizes=user_table_sizes,
                                     params_and_vars=current_vars,
+                                    model_override=agent_chat_model,
                                 )
                                 if plan_json:
                                     pass  # логирование в gigachat_agent.synthesize_plan_for_query
@@ -1737,6 +1811,7 @@ class DetailedGreenplumFunctionAnalyzer:
                                     scope_override=agent_scope,
                                     user_table_sizes=user_table_sizes,
                                     params_and_vars=current_vars,
+                                    model_override=agent_chat_model,
                                 )
                                 if plan_json:
                                     pass  # логирование в gigachat_agent.synthesize_plan_for_query
@@ -2000,6 +2075,7 @@ class DetailedGreenplumFunctionAnalyzer:
 
         result = {
             'input_type': 'query',
+            'function': 'SQL-запрос',
             'blocks_count': len(self.blocks),
             'analyzed_blocks': len(self.block_results),
             'total_memory_gb': total_load['total_memory_gb'],

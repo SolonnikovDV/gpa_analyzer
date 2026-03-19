@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Скрипт 1: упаковывает директорию в zip, сохраняя структуру,
-создаёт мапу «файл → расширение» и в архиве все файлы имеют расширение .txt.
-Служебные каталоги (.venv, .git, __pycache__ и др.) не включаются в архив.
+Упаковывает весь проект в zip, сохраняя структуру.
+Создаёт мапу «путь_в_архиве → исходное_расширение»; в архиве все файлы имеют расширение .txt.
+Служебные каталоги (.venv, .git, __pycache__ и др.) не включаются.
 """
 
 import os
@@ -12,7 +12,7 @@ import json
 import zipfile
 from pathlib import Path
 
-# Каталоги, которые не упаковываются (сокращают размер архива и мапы)
+# Каталоги и файлы, которые не упаковываются
 EXCLUDE_DIRS = {
     ".venv",
     ".git",
@@ -26,6 +26,13 @@ EXCLUDE_DIRS = {
     ".eggs",
     "dist",
     "build",
+}
+
+EXCLUDE_FILES = {
+    "packed.zip",
+    "extension_map.json",
+    ".agent_cache.db",
+    ".agent_cache.json",
 }
 
 
@@ -48,17 +55,18 @@ def pack_directory_to_txt(source_dir: str, output_zip: str) -> None:
     if not source_path.is_dir():
         raise FileNotFoundError(f"Директория не найдена: {source_dir}")
 
-    extension_map = {}  # путь в архиве (с .txt) -> исходное расширение без точки
+    extension_map = {}  # путь в архиве (с .txt) -> исходное расширение (без точки, "" если нет)
 
     with zipfile.ZipFile(
         output_zip, "w", zipfile.ZIP_DEFLATED, compresslevel=9
     ) as zf:
         for root, dirs, files in os.walk(source_path):
-            # Не спускаемся в исключённые каталоги
             dirs[:] = [d for d in dirs if not _should_skip_dir(d)]
 
             root_path = Path(root)
             for name in files:
+                if name in EXCLUDE_FILES:
+                    continue
                 file_path = root_path / name
                 try:
                     rel = file_path.relative_to(source_path)
@@ -67,10 +75,8 @@ def pack_directory_to_txt(source_dir: str, output_zip: str) -> None:
                 rel_str = rel.as_posix()
                 _, ext = os.path.splitext(name)
                 original_ext = (ext or "").lstrip(".")
-                if not original_ext:
-                    original_ext = "txt"
+                # Для файлов без расширения сохраняем пустую строку
 
-                # В архиве храним с расширением .txt
                 rel_txt = Path(rel_str).with_suffix(".txt").as_posix()
                 extension_map[rel_txt] = original_ext
 
@@ -86,13 +92,18 @@ def pack_directory_to_txt(source_dir: str, output_zip: str) -> None:
 
 def main():
     if len(sys.argv) < 2:
-        print("Использование: python pack_to_txt.py <исходная_директория> [выходной.zip]")
-        print("  По умолчанию выходной архив: packed.zip в текущей директории.")
-        print("  Служебные каталоги (.venv, .git, __pycache__, node_modules и др.) не включаются.")
+        print("Использование: python pack_to_txt.py [исходная_директория] [выходной.zip]")
+        print("  Один аргумент: упаковать текущую директорию в указанный архив.")
+        print("  Два аргумента: упаковать исходную директорию в архив.")
+        print("  По умолчанию: python pack_to_txt.py . packed.zip")
         sys.exit(1)
 
-    source_dir = sys.argv[1]
-    output_zip = sys.argv[2] if len(sys.argv) > 2 else "packed.zip"
+    if len(sys.argv) == 2:
+        source_dir = "."
+        output_zip = sys.argv[1]
+    else:
+        source_dir = sys.argv[1]
+        output_zip = sys.argv[2]
 
     pack_directory_to_txt(source_dir, output_zip)
 

@@ -1,52 +1,46 @@
 {# Модальное окно «Подсказки» для страницы детального анализа #}
 <div class="modal fade" id="tipsModal" tabindex="-1" aria-labelledby="tipsModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable apple-sheet-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="tipsModalLabel">Подсказки по работе с приложением</h5>
+        <h5 class="modal-title" id="tipsModalLabel">Краткий гид по сценарию анализа</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
       </div>
       <div class="modal-body">
-        <h6 class="mb-2">Режимы анализа</h6>
-        <ul class="list-unstyled small mb-3">
-          <li class="mb-2"><strong>Только логика</strong> — парсер извлекает блоки и объекты из DDL, планы берутся из БД (EXPLAIN). Требуется подключение к Greenplum.</li>
-          <li class="mb-2"><strong>Гибрид</strong> — с БД: парсер + EXPLAIN; без БД: автоматически чистый агент. Нужен ключ GigaChat (в гибриде без БД).</li>
-          <li class="mb-2"><strong>Чистый агент</strong> — без БД: агент сам извлекает блоки и объекты, синтезирует планы. Поддерживает PL/pgSQL функцию, один SQL-запрос или скрипт (DDL/DML). Нужен ключ GigaChat.</li>
-        </ul>
-
-        <h6 class="mb-2">Ключ GigaChat (для гибрида и чистого агента)</h6>
-        <ul class="list-unstyled small mb-3">
-          <li class="mb-2">Нажмите <strong>«Ввести ключ»</strong> и вставьте токен из <a href="https://developers.sber.ru/studio/" target="_blank" rel="noopener">личного кабинета GigaChat</a>. Или задайте в .env: <code>GIGACHAT_CREDENTIALS=...</code></li>
-          <li class="mb-2">Профиль «разработчик» — токен из файла .key в корне проекта.</li>
-        </ul>
-
-        <h6 class="mb-2">Что можно анализировать</h6>
-        <ul class="list-unstyled small mb-3">
-          <li class="mb-2"><strong>PL/pgSQL функция</strong> — полный текст <code>CREATE OR REPLACE FUNCTION ... AS $function$ ... $function$</code>.</li>
-          <li class="mb-2"><strong>Один SQL-запрос</strong> — SELECT, INSERT, UPDATE, DELETE.</li>
-          <li class="mb-2"><strong>Скрипт</strong> — несколько DDL/DML (DROP TABLE, CREATE TABLE, INSERT и т.д.). Агент сам определит тип ввода.</li>
-          <li class="mb-2"><strong>Генерация по описанию</strong> — в гибриде: опишите запрос на естественном языке → «Сгенерировать запрос».</li>
-        </ul>
-
-        <h6 class="mb-2">Подключение к БД</h6>
-        <ul class="list-unstyled small mb-3">
-          <li class="mb-2">Опционально. Если включено — статистика таблиц подтягивается из Greenplum. Без БД — размеры задаются вручную на этапе настройки.</li>
-        </ul>
-
-        <h6 class="mb-2">Настройка размеров и расчёт</h6>
-        <ul class="list-unstyled small mb-3">
-          <li class="mb-2"><strong>Параметры функции</strong> — в том же порядке, что в сигнатуре. Строки в кавычках: <code>'2024-01-01', 'current_date', 5</code>.</li>
-          <li class="mb-2"><strong>Желаемое количество строк</strong> — задайте для оценки нагрузки при росте данных.</li>
-        </ul>
-
-        <h6 class="mb-2">Антипаттерны и риск</h6>
-        <ul class="list-unstyled small mb-3">
-          <li class="mb-2">Приложение детектирует тяжёлые паттерны (LATERAL с ORDER BY + LIMIT 1, CROSS JOIN, коррелированные подзапросы и др.) и добавляет множитель к нагрузке блока.</li>
-          <li class="mb-2">В сводке: <strong>Нагрузка (+X GB антипаттерны)</strong> — дополнительная оценка на скейле данных.</li>
-        </ul>
-
-        <h6 class="mb-2">Сброс к базовым</h6>
-        <p class="small mb-0">Кнопка «Сброс к базовым» — сброс векторной базы, кэша ответов агента и состояний discovery.</p>
+        <div class="row g-3 small">
+          <div class="col-md-6">
+            <div class="form-subpanel h-100">
+              <h6 class="mb-2">1. Выберите режим</h6>
+              <p class="mb-2"><strong>Логика</strong> — планы из БД через EXPLAIN.</p>
+              <p class="mb-2"><strong>Гибрид</strong> — парсер + агент, с БД или без неё.</p>
+              <p class="mb-0"><strong>Чистый агент</strong> — анализ полностью через GigaChat.</p>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-subpanel h-100">
+              <h6 class="mb-2">2. Подготовьте доступ</h6>
+              <p class="mb-2">Для агентских режимов нажмите <strong>«Ввести ключ»</strong> и вставьте токен из <a href="https://developers.sber.ru/studio/" target="_blank" rel="noopener">личного кабинета GigaChat</a>.</p>
+              <p class="mb-0">Профиль «разработчик» использует токен из файла <code>.key</code> в корне проекта.</p>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-subpanel h-100">
+              <h6 class="mb-2">3. Что можно анализировать</h6>
+              <p class="mb-2">PL/pgSQL-функцию целиком, один SQL-запрос или смешанный DDL/DML-скрипт.</p>
+              <p class="mb-0">В гибриде можно описать запрос текстом и сгенерировать DDL автоматически.</p>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-subpanel h-100">
+              <h6 class="mb-2">4. Как интерпретировать результат</h6>
+              <p class="mb-2">Укажите параметры функции в порядке сигнатуры и желаемые размеры таблиц.</p>
+              <p class="mb-0">Система покажет риск, итоговую нагрузку, проблемные блоки и антипаттерны на скейле данных.</p>
+            </div>
+          </div>
+        </div>
+        <div class="form-subpanel mt-3 small">
+          <strong>Сброс к базовым.</strong> Кнопка очищает или восстанавливает векторную базу, кэш ответов агента и состояния discovery из базового снимка.
+        </div>
       </div>
     </div>
   </div>

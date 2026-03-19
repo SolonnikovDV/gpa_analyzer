@@ -1,199 +1,338 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" class="gpa-detailed-ui">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Детальный анализ функции</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/hint/show-hint.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='detailed.css') }}">
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="/">Analyzer</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Меню">
-      <span class="navbar-toggler-icon"></span>
+<div class="apple-shell">
+  {% set shell_active = 'prepare' %}
+  {% set shell_table_href = none %}
+  {% set shell_result_href = none %}
+  {% set shell_status_title = 'Подготовка' %}
+  {% set shell_status_note = 'Режим, SQL и доступы перед переходом к таблицам.' %}
+  {% set show_tips = true %}
+  {% set shell_sidebar_extra_template = 'prepare_sidebar_controls.html' %}
+  {% include 'apple_sidebar.html' %}
+
+  <main class="apple-main">
+    <header class="apple-toolbar page-reveal">
+      <div class="apple-toolbar__titles">
+        <span class="apple-toolbar__eyebrow">Control Center</span>
+        <h1 class="apple-toolbar__title">Подготовка анализа нагрузки</h1>
+        <p class="apple-toolbar__subtitle" id="toolbarStackSubtitle">Выберите источник, при необходимости подключите агент или runtime выбранного стека, затем запустите discovery.</p>
+      </div>
+      <div class="apple-toolbar__actions">
+        <span class="apple-inline-status">Шаг 1 из 3</span>
+        <div class="apple-toolbar__surface">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#tipsModal">Подсказки</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary theme-toggle" data-theme-toggle aria-label="Переключить тему">
+            <span class="theme-toggle__icon" aria-hidden="true">◐</span>
+            <span class="theme-toggle__label">Светлая тема</span>
     </button>
-    <div class="collapse navbar-collapse" id="navbarMain">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item"><a class="nav-link active" href="/">Детальный анализ</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#aboutModal">О приложении</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#resetCacheModal">Сброс к базовым</a></li>
-      </ul>
     </div>
   </div>
-</nav>
+    </header>
 
-<div id="token-strip" class="token-strip" style="display: none;" role="status" aria-live="polite">
-  <span>Токены: использовано <span class="token-used" id="token-used">0</span> (ввод <span id="token-prompt">0</span>, вывод <span id="token-completion">0</span>)</span>
-  <span>|</span>
+    <div class="apple-main__body">
+      <div id="token-strip" class="token-strip page-reveal" style="display: none;" aria-live="polite">
+  <span>Токены: использовано <span class="token-used" id="token-used">0</span> (ввод <span id="token-prompt">0</span>, вывод <span id="token-completion">0</span>, кэш вх. <span id="token-precached" title="precached_prompt_tokens из ответов API">0</span>)</span>
   <span>сессий: <span id="token-sessions">0</span></span>
-  <span>|</span>
   <span>доступно: <span class="token-available na" id="token-available">—</span></span>
-  <span>|</span>
   <span>429: <span id="token-rate-limit" class="token-rate-limit" title="Превышение лимита запросов GigaChat">0</span></span>
 </div>
+      <div id="agent-models-strip" class="token-strip agent-models-strip page-reveal" style="display: none;" aria-live="polite">
+        <span>Модели GigaChat: чат <strong id="agent-model-chat-label">—</strong></span>
+        <span>эмбеддинги <strong id="agent-model-emb-label">—</strong></span>
+      </div>
 
-<div class="container my-4">
-  <div class="row">
-    <div class="col-lg-10 mx-auto">
-      <!-- Блок для отображения предупреждений (не блокирующий) -->
+      <div class="apple-view apple-view__surface app-content">
       <div id="errorAlert" class="alert alert-warning alert-dismissible fade show" role="alert" style="display: none;">
         <strong>Внимание!</strong> <span id="errorMessage"></span>
         <button type="button" class="btn-close" onclick="this.parentElement.style.display='none'"></button>
       </div>
 
-      <div class="card shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <span>Детальный пошаговый анализ функции</span>
-          <div class="d-flex gap-2">
-            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#resetCacheModal" title="Сброс кэшей (векторная база, ответы агента, состояния discovery)">Сброс к базовым</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#tipsModal" title="Краткая справка по режимам, DDL, БД и сбросу кэшей">Подсказки</button>
-          </div>
+        <div class="card shadow-sm page-reveal apple-table-card">
+          <div class="card-header">
+            <span>Шаг 1. Подготовка</span>
         </div>
         <div class="card-body">
+            <p class="section-caption" id="prepareIntroCaption">Подготовка разделена на три спокойные view: SQL, agent и GreenPlum.</p>
           <form id="analysisForm" method="post" action="{{ url_for('detailed_discover') }}" class="form-body">
             <input type="hidden" name="agent_credentials" id="form_agent_credentials" value="">
             <input type="hidden" name="agent_scope" id="form_agent_scope" value="">
+            <input type="hidden" name="agent_chat_model" id="form_agent_chat_model" value="">
+            <input type="hidden" name="agent_embedding_model" id="form_agent_embedding_model" value="">
             <input type="hidden" name="pure_agent_mode" id="form_pure_agent_mode" value="">
+            <input class="form-check-input d-none" type="checkbox" name="plan_from_agent" id="plan_agent" value="on" checked>
+            <input class="form-check-input d-none" type="checkbox" name="use_db_connection" id="use_db" value="on" checked>
+
             <div class="form-section">
-              <div class="form-section-title">Режим анализа</div>
-              <div class="mb-3 p-2 rounded bg-light border">
+              <div class="form-section-title">Стек</div>
+              <p class="section-caption">Сначала выберите стек. От него зависят режим редактора, подсказки, проверка и параметры runtime.</p>
+              <div class="mb-3 mode-panel mode-panel--dense">
+                <div class="d-flex flex-wrap gap-3 align-items-center">
+                  <div class="w-100 w-md-auto" style="max-width: 320px;">
+                    <label class="form-label visually-hidden" for="stack_selector">Стек</label>
+                    <select class="form-select" name="stack" id="stack_selector">
+                      <option value="greenplum">GreenPlum</option>
+                      <option value="spark">Spark</option>
+                      <option value="pyspark">PySpark</option>
+                    </select>
+                  </div>
+                  <span class="toggle-state text-muted small" id="state_stack" title="Текущий стек">GreenPlum</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">Сценарий</div>
+              <p class="section-caption">Сценарий управляет и view, и тем, какие подключения будут запрошены при расчёте.</p>
+              <div class="mb-3 mode-panel mode-panel--dense">
                 <div class="d-flex flex-wrap gap-3 align-items-center">
                   <div class="form-check form-switch mb-0">
-                    <input class="form-check-input" type="checkbox" name="pure_agent" id="pure_agent" value="on" title="Чистый агент: объекты и планы от GigaChat, без БД.">
-                    <label class="form-check-label fw-semibold" for="pure_agent">Чистый агент</label>
+                    <input class="form-check-input" type="checkbox" name="pure_agent" id="pure_agent" value="on" title="Агент генерирует SQL по описанию и работает без БД.">
+                    <label class="form-check-label fw-semibold" for="pure_agent">Агент</label>
                   </div>
                   <div class="form-check form-switch mb-0">
-                    <input class="form-check-input" type="checkbox" name="use_hybrid" id="mode_hybrid" value="on" title="Гибрид: агент + планы, с БД или без.">
+                    <input class="form-check-input" type="checkbox" name="use_hybrid" id="mode_hybrid" value="on" title="Гибрид использует БД, а синтез плана и валидацию спорных блоков включает по умолчанию.">
                     <label class="form-check-label" for="mode_hybrid">Гибрид</label>
                   </div>
                   <div class="form-check form-switch mb-0">
-                    <input class="form-check-input" type="checkbox" id="mode_logic" value="on" title="Логика: парсер + EXPLAIN из БД.">
-                    <label class="form-check-label" for="mode_logic">Логика</label>
+                    <input class="form-check-input" type="checkbox" id="mode_logic" value="on" title="Аналитика использует только GreenPlum и EXPLAIN.">
+                    <label class="form-check-label" for="mode_logic">Аналитика</label>
                   </div>
-                  <span class="toggle-state text-muted small" id="state_mode" title="Текущий режим">—</span>
+                  <span class="toggle-state text-muted small" id="state_mode" title="Текущий сценарий">—</span>
                 </div>
-                <div class="form-text mt-1">Выберите один режим: Чистый агент (без БД), Гибрид (агент + БД/без БД), Логика (парсер + EXPLAIN).</div>
+                <div class="form-text mt-1" id="scenario_help">Агент: API. Гибрид: API + БД. Аналитика: БД.</div>
               </div>
             </div>
 
-            <div id="hybrid_options" class="form-section" style="display: none;">
-              <div class="form-section-title">Гибридный режим</div>
-              <div class="mb-3">
-                <span class="me-2">Авторизация GigaChat:</span>
-                <span id="agent_auth_status" class="small text-muted" title="Статус ключа API: задан — зелёный, не задан — требуется ввод">проверка…</span>
-                <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="agentKeyBtn" data-bs-toggle="modal" data-bs-target="#agentCredentialsModal" title="Открыть окно ввода ключа GigaChat API (ключ не сохраняется)">Ввести ключ</button>
+            <div class="prepare-pane-stack">
+              <section class="prepare-pane is-active" data-prepare-pane="source">
+                <div class="mb-3 position-relative" id="ddl_section">
+                  <label class="form-label" for="ddlTextarea" id="sourceFieldLabel">SQL или DDL</label>
+                  <div id="ddl_loading_overlay" class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center bg-light bg-opacity-90 rounded d-none" style="z-index: 10;">
+                    <div class="text-center">
+                      <div class="spinner-border text-primary mb-2"><span class="visually-hidden">Загрузка</span></div>
+                      <div class="small text-muted">Генерация запроса…</div>
               </div>
-              <div class="mb-3">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                  <div class="form-check form-switch mb-0">
-                    <input class="form-check-input" type="checkbox" name="agent_input_generate" id="agent_generate" value="on" title="Вкл: опишите запрос/функцию на естественном языке, агент сгенерирует DDL. Выкл: вставьте текст вручную.">
-                    <label class="form-check-label" for="agent_generate">Сгенерировать запрос по описанию</label>
                   </div>
-                  <span class="toggle-state text-muted small" id="state_agent_input" title="Вставка — ввод DDL вручную. По описанию — генерация агентом.">Вставка</span>
+                  <div class="sql-editor-shell">
+                    <textarea name="ddl" id="ddlTextarea" class="form-control" rows="12" required placeholder="Вставьте полный текст запроса или функции"></textarea>
                 </div>
-                <div class="form-text mt-1">Переключает: вставка текста ↔ генерация по описанию.</div>
+                  <div class="sql-editor-toolbar">
+                    <div class="sql-editor-status" id="ddlSyntaxStatus">Проверка синтаксиса PostgreSQL</div>
+                    <div class="form-text" id="sourceHelpText">Можно вставить функцию, одиночный запрос или SQL-скрипт.</div>
               </div>
-              <div id="agent_description_block" class="mb-3" style="display: none;">
-                <label class="form-label">Текстовое описание запроса или функции</label>
-                <textarea name="agent_description" id="agent_description" class="form-control" rows="4" placeholder="Опишите, какой запрос или функцию нужно получить (на естественном языке)"></textarea>
-                <button type="button" class="btn btn-outline-primary mt-2" id="btnGenerateQuery" title="Отправить описание агенту GigaChat и получить сгенерированный DDL">Сгенерировать запрос</button>
-                <span id="agent_generate_status" class="ms-2 small text-muted"></span>
+                  <div class="sql-editor-feedback" id="ddlSyntaxFeedback" aria-live="polite"></div>
+                </div>
+              </section>
+
+              <section class="prepare-pane" id="hybrid_options" data-prepare-pane="agent">
+                <div class="form-section">
+                  <div class="form-section-title">Чистый агент</div>
+                  <p class="section-caption">Этот view доступен только для сценария агента: генерация по описанию или работа с вашим SQL.</p>
+                  <input class="form-check-input d-none" type="checkbox" name="agent_input_generate" id="agent_generate" value="on" checked>
+                  <div class="form-subpanel mb-3">
+                    <div class="form-section-title">Режим работы агента</div>
+                    <p class="section-caption">Можно свободно переключаться между генерацией по описанию и своим скриптом до запуска расчёта.</p>
+                    <div class="d-flex flex-wrap gap-2">
+                      <button type="button" class="btn btn-outline-secondary is-active" id="agentDescriptionModeBtn">Генерация по описанию</button>
+                      <button type="button" class="btn btn-outline-secondary" id="agentScriptModeBtn">Мой скрипт</button>
+                    </div>
+                  </div>
+                  <div id="agent_description_block" class="mb-3">
+                    <label class="form-label" for="agent_description">Описание</label>
+                    <textarea name="agent_description" id="agent_description" class="form-control" rows="5" placeholder="Кратко опишите нужный запрос, SQL-скрипт или функцию"></textarea>
+                    <div class="section-actions section-actions--end mt-3">
+                      <span id="agent_generate_status" class="small text-muted">API-профиль будет запрошен по действию.</span>
+                      <button type="button" class="btn btn-outline-primary" id="btnGenerateQuery" title="Отправить описание агенту GigaChat и получить сгенерированный DDL">Сгенерировать</button>
+                    </div>
                 <div id="agent_review_block" class="mt-2 small" style="display: none;"></div>
               </div>
-              <div class="mb-3" id="plan_source_row">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                  <div class="form-check form-switch mb-0">
-                    <input class="form-check-input" type="checkbox" name="plan_from_agent" id="plan_agent" value="on" disabled title="В гибриде всегда вкл: план синтезируется агентом. В режиме логики — план из EXPLAIN в БД.">
-                    <label class="form-check-label" for="plan_agent">Синтез плана агентом (в гибриде — всегда вкл)</label>
+                  <div id="agent_script_hint" class="form-subpanel" style="display: none;">
+                    <div class="form-section-title">Ваш скрипт</div>
+                    <p class="section-caption">Вставьте SQL или DDL здесь. До запуска расчёта можно вернуться к генерации по описанию.</p>
+                    <div class="sql-editor-shell">
+                      <textarea id="agentScriptTextarea" class="form-control" rows="12" placeholder="Вставьте свой SQL, скрипт или DDL функции"></textarea>
                   </div>
-                  <span class="toggle-state text-muted small" id="state_plan" title="Источник плана: агент или БД">—</span>
+                    <div class="sql-editor-toolbar">
+                      <div class="sql-editor-status" id="agentScriptSyntaxStatus">Проверка синтаксиса PostgreSQL</div>
                 </div>
-                <div class="form-text mt-1" id="plan_source_help">В гибридном режиме план только от агента. В режиме логики — только из БД (EXPLAIN).</div>
+                    <div class="sql-editor-feedback" id="agentScriptSyntaxFeedback" aria-live="polite"></div>
               </div>
+                  <div id="generated_sql_window" class="form-subpanel" style="display: none;">
+                    <div class="form-section-title">Черновик SQL</div>
+                    <p class="section-caption">Проверьте текст ниже и при необходимости отредактируйте перед переносом в основное поле.</p>
+                    <div class="sql-editor-shell">
+                      <textarea id="generatedSqlPreview" class="form-control" rows="12"></textarea>
             </div>
-
-            <div class="mb-3 position-relative" id="ddl_section">
-              <label class="form-label">Запрос или DDL функции (CREATE OR REPLACE FUNCTION ...)</label>
-              <div id="ddl_loading_overlay" class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center bg-light bg-opacity-90 rounded d-none" style="z-index: 10;">
-                <div class="text-center">
-                  <div class="spinner-border text-primary mb-2" role="status"><span class="visually-hidden">Загрузка</span></div>
-                  <div class="small text-muted">Генерация запроса…</div>
+                    <div class="sql-editor-toolbar">
+                      <div class="sql-editor-status" id="generatedSqlSyntaxStatus">Проверка синтаксиса PostgreSQL</div>
                 </div>
-              </div>
-              <textarea name="ddl" id="ddlTextarea" class="form-control" rows="12" required placeholder="Вставьте полный текст запроса или функции"></textarea>
-              <div class="form-text">Функция должна быть полной, включая тело. В режиме агента можно сгенерировать по описанию.</div>
-            </div>
-            
-            <div class="form-section">
-              <div class="form-section-title">Настройки кластера</div>
-              <div class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label">Количество сегментов</label>
-                <input type="number" class="form-control" name="segments" value="120">
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">RAM на сегмент (GB)</label>
-                <input type="number" step="0.1" class="form-control" name="ram_per_seg_gb" value="153.6">
-              </div>
+                    <div class="sql-editor-feedback" id="generatedSqlSyntaxFeedback" aria-live="polite"></div>
+                    <div class="section-actions section-actions--end mt-3">
+                      <span class="ghost-note">Основное поле SQL будет синхронизировано с этим окном.</span>
+                      <button type="button" class="btn btn-primary" id="acceptGeneratedSqlBtn">Перенести в SQL</button>
               </div>
             </div>
+                </div>
+              </section>
             
+              <section class="prepare-pane" data-prepare-pane="cluster">
             <div class="form-section">
-              <div class="form-section-title">Подключение к БД (для получения реальной статистики таблиц)</div>
-              <div class="mb-3">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                  <div class="form-check form-switch mb-0">
-                    <input class="form-check-input" type="checkbox" name="use_db_connection" id="use_db" value="on" title="Вкл: статистика таблиц из БД, планы из EXPLAIN. Выкл: в гибриде — чистый агент (объекты и планы от GigaChat).">
-                    <label class="form-check-label" for="use_db">
-                      Использовать реальное подключение для получения статистики таблиц
-                    </label>
+                  <div class="form-section-title" id="clusterSectionTitle">Настройки кластера GreenPlum</div>
+                  <p class="section-caption" id="clusterSectionCaption">В этой view остаются только параметры кластера. Подключение к БД запрашивается по сценарию при расчёте.</p>
+                  <div class="row g-3 mb-3" id="greenplumClusterFields">
+              <div class="col-md-6">
+                      <label class="form-label" for="segmentsInput">Количество сегментов</label>
+                      <input type="number" class="form-control" name="segments" id="segmentsInput" value="120">
+              </div>
+              <div class="col-md-6">
+                      <label class="form-label" for="ramPerSegInput">RAM на сегмент (GB)</label>
+                      <input type="number" step="0.1" class="form-control" name="ram_per_seg_gb" id="ramPerSegInput" value="153.6">
+              </div>
+              </div>
+                  <div class="row g-3 mb-3 d-none" id="sparkClusterFields">
+                    <div class="col-md-4">
+                      <label class="form-label" for="executorInstancesInput">Executor instances</label>
+                      <input type="number" class="form-control" name="executor_instances" id="executorInstancesInput" value="4">
+            </div>
+                    <div class="col-md-4">
+                      <label class="form-label" for="executorCoresInput">Executor cores</label>
+                      <input type="number" class="form-control" name="executor_cores" id="executorCoresInput" value="4">
                   </div>
-                  <span class="toggle-state text-muted small" id="state_db" title="Без БД — чистый агент. С БД — гибрид с реальной статистикой.">Без БД</span>
+                    <div class="col-md-4">
+                      <label class="form-label" for="executorMemoryInput">Executor memory</label>
+                      <input type="text" class="form-control" name="executor_memory" id="executorMemoryInput" value="8g">
                 </div>
-                <div class="form-text mt-1">Переключает: без БД ↔ с подключением к БД.</div>
+                    <div class="col-12">
+                      <label class="form-label" for="sparkMetadataJsonInput">Metadata snapshot JSON</label>
+                      <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
+                        <select class="form-select form-select-sm" style="max-width: 260px;" id="sparkMetadataPresetSelect" data-json-preset-select="spark:metadata">
+                          <option value="">Presets metadata</option>
+                        </select>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-preset-apply="spark:metadata" data-json-preset-target="sparkMetadataJsonInput">Применить preset</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-preset-save="spark:metadata" data-json-preset-target="sparkMetadataJsonInput">Сохранить как preset</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-preset-delete="spark:metadata">Удалить preset</button>
               </div>
-            
-            <div id="db_fields" style="display: none;">
-              <div class="row g-3">
-                <div class="col-md-4">
-                  <label class="form-label">Стенд</label>
-                  <select class="form-select" name="stand_type" id="stand_type" title="Выберите стенд или «Пользовательский» — при вводе своего Host значение переключится автоматически">
-                    {% for key in stands.keys() %}
-                    <option value="{{ key }}">{{ key }}</option>
-                    {% endfor %}
+                      <div class="d-flex flex-wrap gap-2 mb-2">
+                        <input type="file" class="d-none" id="sparkMetadataJsonFile" accept=".json,application/json">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-import-target="sparkMetadataJsonInput" data-json-import-file="sparkMetadataJsonFile">Файл</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-sample-target="sparkMetadataJsonInput" data-json-sample-kind="spark-metadata">Пример</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-clear-target="sparkMetadataJsonInput">Очистить</button>
+                      </div>
+                      <textarea class="form-control font-monospace small" name="spark_metadata_json" id="sparkMetadataJsonInput" rows="5" placeholder='{"tables":[{"name":"mart.daily","rows":12000000,"size_gb":18.4,"columns":42}]}'></textarea>
+                      <div class="form-text">Необязательно. Поддерживаются `tables`, `sources`, `datasets`, `objects`, а также unified contract с `metadata` или `sources`.</div>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label" for="sparkProfileJsonInput">Runtime profile JSON</label>
+                      <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
+                        <select class="form-select form-select-sm" style="max-width: 260px;" id="sparkProfilePresetSelect" data-json-preset-select="spark:profile">
+                          <option value="">Presets profile</option>
                   </select>
-                  <div class="form-text small">Если Host не совпадает — переключится на «Пользовательский»</div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-preset-apply="spark:profile" data-json-preset-target="sparkProfileJsonInput">Применить preset</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-preset-save="spark:profile" data-json-preset-target="sparkProfileJsonInput">Сохранить как preset</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-preset-delete="spark:profile">Удалить preset</button>
                 </div>
-                <div class="col-md-4">
-                  <label class="form-label">Host</label>
-                  <input type="text" class="form-control" name="host" id="db_host" placeholder="по умолчанию">
+                      <div class="d-flex flex-wrap gap-2 mb-2">
+                        <input type="file" class="d-none" id="sparkProfileJsonFile" accept=".json,application/json">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-import-target="sparkProfileJsonInput" data-json-import-file="sparkProfileJsonFile">Файл</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-sample-target="sparkProfileJsonInput" data-json-sample-kind="spark-profile">Пример</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-clear-target="sparkProfileJsonInput">Очистить</button>
                 </div>
-                <div class="col-md-2">
-                  <label class="form-label">Port</label>
-                  <input type="number" class="form-control" name="port" placeholder="5432">
+                      <textarea class="form-control font-monospace small" name="spark_profile_json" id="sparkProfileJsonInput" rows="5" placeholder='{"peak_memory_gb":42,"shuffle_read_gb":160,"shuffle_write_gb":80}'></textarea>
+                      <div class="form-text">Необязательно. Поддерживаются `profile`, `runtime_profile`, `telemetry`, `metrics`, а также unified contract со stage metrics.</div>
                 </div>
-                <div class="col-md-2">
-                  <label class="form-label">DB</label>
-                  <input type="text" class="form-control" name="dbname" placeholder="имя БД">
+                    <div class="col-12">
+                      <details class="small text-muted">
+                        <summary>Unified JSON contract</summary>
+                        <pre class="mt-2 mb-0 small"><code>{
+  "contract": "runtime_snapshot/v1",
+  "sources": [{"name": "mart.daily", "rows": 12000000, "size_gb": 18.4}],
+  "runtime_profile": {"peak_memory_gb": 42, "shuffle_read_gb": 160}
+}</code></pre>
+                      </details>
                 </div>
+                </div>
+                  <div class="row g-3 mb-3 d-none" id="pysparkClusterFields">
                 <div class="col-md-6">
-                  <label class="form-label">Логин</label>
-                  <input type="text" class="form-control" name="user" id="db_user">
+                      <label class="form-label" for="pysparkSessionNameInput">Session name</label>
+                      <input type="text" class="form-control" name="session_name" id="pysparkSessionNameInput" value="gpa-pyspark">
                 </div>
-                <div class="col-md-6">
-                  <label class="form-label">Пароль</label>
-                  <input type="password" class="form-control" name="password" id="db_password">
-                </div>
+                    <div class="col-md-3">
+                      <label class="form-label" for="pysparkExecutorInstancesInput">Executor instances</label>
+                      <input type="number" class="form-control" name="pyspark_executor_instances" id="pysparkExecutorInstancesInput" value="4">
               </div>
+                    <div class="col-md-3">
+                      <label class="form-label" for="pysparkExecutorMemoryInput">Executor memory</label>
+                      <input type="text" class="form-control" name="pyspark_executor_memory" id="pysparkExecutorMemoryInput" value="8g">
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label" for="pysparkMetadataJsonInput">Metadata snapshot JSON</label>
+                      <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
+                        <select class="form-select form-select-sm" style="max-width: 260px;" id="pysparkMetadataPresetSelect" data-json-preset-select="pyspark:metadata">
+                          <option value="">Presets metadata</option>
+                        </select>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-preset-apply="pyspark:metadata" data-json-preset-target="pysparkMetadataJsonInput">Применить preset</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-preset-save="pyspark:metadata" data-json-preset-target="pysparkMetadataJsonInput">Сохранить как preset</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-preset-delete="pyspark:metadata">Удалить preset</button>
+                      </div>
+                      <div class="d-flex flex-wrap gap-2 mb-2">
+                        <input type="file" class="d-none" id="pysparkMetadataJsonFile" accept=".json,application/json">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-import-target="pysparkMetadataJsonInput" data-json-import-file="pysparkMetadataJsonFile">Файл</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-sample-target="pysparkMetadataJsonInput" data-json-sample-kind="pyspark-metadata">Пример</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-clear-target="pysparkMetadataJsonInput">Очистить</button>
+                      </div>
+                      <textarea class="form-control font-monospace small" name="pyspark_metadata_json" id="pysparkMetadataJsonInput" rows="5" placeholder='{"datasets":[{"name":"sales.orders","rows":18000000,"size_gb":12.2}]}'></textarea>
+                      <div class="form-text">Необязательно. Поддерживаются `datasets`, `sources`, `tables`, `objects`, а также unified contract с `metadata` или `sources`.</div>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label" for="pysparkProfileJsonInput">Runtime profile JSON</label>
+                      <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
+                        <select class="form-select form-select-sm" style="max-width: 260px;" id="pysparkProfilePresetSelect" data-json-preset-select="pyspark:profile">
+                          <option value="">Presets profile</option>
+                        </select>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-preset-apply="pyspark:profile" data-json-preset-target="pysparkProfileJsonInput">Применить preset</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-preset-save="pyspark:profile" data-json-preset-target="pysparkProfileJsonInput">Сохранить как preset</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-preset-delete="pyspark:profile">Удалить preset</button>
+                      </div>
+                      <div class="d-flex flex-wrap gap-2 mb-2">
+                        <input type="file" class="d-none" id="pysparkProfileJsonFile" accept=".json,application/json">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-import-target="pysparkProfileJsonInput" data-json-import-file="pysparkProfileJsonFile">Файл</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-sample-target="pysparkProfileJsonInput" data-json-sample-kind="pyspark-profile">Пример</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-json-clear-target="pysparkProfileJsonInput">Очистить</button>
+                      </div>
+                      <textarea class="form-control font-monospace small" name="pyspark_profile_json" id="pysparkProfileJsonInput" rows="5" placeholder='{"peak_memory_gb":24,"shuffle_read_gb":90,"stages":[{"peak_memory_gb":12}]}'></textarea>
+                      <div class="form-text">Необязательно. Поддерживаются `profile`, `runtime_profile`, `telemetry`, `metrics`, а также unified contract со stage metrics.</div>
+                    </div>
+                    <div class="col-12">
+                      <details class="small text-muted">
+                        <summary>Unified JSON contract</summary>
+                        <pre class="mt-2 mb-0 small"><code>{
+  "contract": "runtime_snapshot/v1",
+  "sources": [{"name": "sales.orders", "rows": 18000000, "size_gb": 12.2}],
+  "runtime_profile": {"peak_memory_gb": 24, "stages": [{"peak_memory_gb": 12}]}
+}</code></pre>
+                      </details>
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
             
             <div class="form-section">
-            <div class="text-end mt-2">
+            <div class="section-actions section-actions--end mt-2">
+              <span class="ghost-note">Дальше: таблицы</span>
               <button class="btn btn-primary" type="submit" id="submitBtn" title="Запустить первый этап: извлечение таблиц из DDL (парсер или агент) и подготовка к расчёту нагрузки">
-                <span class="btn-text">Обнаружить таблицы</span>
+                <span class="btn-text">Найти таблицы и продолжить</span>
               </button>
             </div>
             </div>
@@ -203,34 +342,18 @@
     </div>
   </div>
   {% include 'app_footer.html' %}
+    </div>
+  </main>
 </div>
+
+<div id="sqlQuickFixPopover" class="sql-quick-fix-popover" style="display: none;" aria-live="polite"></div>
 
 {% include 'about_modal.html' %}
 {% include 'tips_modal.html' %}
 
-{# Модальное окно: подтверждение режима чистого агента #}
-<div class="modal fade" id="pureAgentConfirmModal" tabindex="-1" aria-labelledby="pureAgentConfirmLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="pureAgentConfirmLabel">Режим чистого агента</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-      </div>
-      <div class="modal-body">
-        <p class="mb-0">Включён режим чистого агента (гибрид без подключения к БД). Блоки и объекты будет искать агент, планы — синтезировать агентом.</p>
-        <p class="mb-0 mt-2">Продолжить выполнение?</p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="pureAgentCancel">Отмена</button>
-        <button type="button" class="btn btn-primary" id="pureAgentConfirm">Продолжить</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 {# Модальное окно: токены закончились / гибрид включить нельзя #}
 <div class="modal fade" id="tokensExhaustedModal" tabindex="-1" aria-labelledby="tokensExhaustedLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered apple-popover-dialog">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="tokensExhaustedLabel">Гибридный режим недоступен</h5>
@@ -246,9 +369,102 @@
   </div>
 </div>
 
+{# Модальное окно: настройки подключения к GreenPlum #}
+<div class="modal fade" id="dbSettingsModal" tabindex="-1" aria-labelledby="dbSettingsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered apple-sheet-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="dbSettingsModalLabel">Подключение к GreenPlum</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted mb-3" id="dbSettingsModalCaption">Этот modal доступен только в режимах, где приложение может работать через БД. Логин и пароль нужны для проверки подключения перед переходом к следующему шагу.</p>
+        <div id="dbSettingsMessage" class="alert alert-warning py-2 small" style="display: none;"></div>
+        <div id="db_fields">
+          <div class="row g-3" id="greenplumConnectionFields">
+            <div class="col-md-4">
+              <label class="form-label" for="stand_type">Стенд</label>
+              <select class="form-select" name="stand_type" id="stand_type" form="analysisForm" title="Выберите стенд или «Пользовательский» — при вводе своего Host значение переключится автоматически">
+                {% for key in stands.keys() %}
+                <option value="{{ key }}">{{ key }}</option>
+                {% endfor %}
+              </select>
+              <div class="form-text small">Если Host не совпадает, значение переключится на «Пользовательский».</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="db_host">Host</label>
+              <input type="text" class="form-control" name="host" id="db_host" form="analysisForm" placeholder="по умолчанию">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label" for="db_port">Port</label>
+              <input type="number" class="form-control" name="port" id="db_port" form="analysisForm" placeholder="5432">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label" for="db_name">DB</label>
+              <input type="text" class="form-control" name="dbname" id="db_name" form="analysisForm" placeholder="имя БД">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="db_user">Логин</label>
+              <input type="text" class="form-control" name="user" id="db_user" form="analysisForm">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="db_password">Пароль</label>
+              <input type="password" class="form-control" name="password" id="db_password" form="analysisForm">
+            </div>
+          </div>
+          <div class="row g-3 d-none" id="sparkConnectionFields">
+            <div class="col-md-6">
+              <label class="form-label" for="spark_master_url">Master URL</label>
+              <input type="text" class="form-control" name="master_url" id="spark_master_url" form="analysisForm" placeholder="spark://host:7077">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="spark_catalog">Catalog</label>
+              <input type="text" class="form-control" name="catalog" id="spark_catalog" form="analysisForm" placeholder="hive_metastore">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="spark_namespace">Namespace</label>
+              <input type="text" class="form-control" name="namespace" id="spark_namespace" form="analysisForm" placeholder="default">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="spark_user">Логин</label>
+              <input type="text" class="form-control" name="spark_user" id="spark_user" form="analysisForm">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="spark_password">Пароль</label>
+              <input type="password" class="form-control" name="spark_password" id="spark_password" form="analysisForm">
+            </div>
+          </div>
+          <div class="row g-3 d-none" id="pysparkConnectionFields">
+            <div class="col-md-6">
+              <label class="form-label" for="pyspark_master_url">Master URL</label>
+              <input type="text" class="form-control" name="pyspark_master_url" id="pyspark_master_url" form="analysisForm" placeholder="spark://host:7077">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="pyspark_session_name">Session name</label>
+              <input type="text" class="form-control" name="pyspark_session_name" id="pyspark_session_name" form="analysisForm" placeholder="gpa-pyspark">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="pyspark_user">Логин</label>
+              <input type="text" class="form-control" name="pyspark_user" id="pyspark_user" form="analysisForm">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="pyspark_password">Пароль</label>
+              <input type="password" class="form-control" name="pyspark_password" id="pyspark_password" form="analysisForm">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+        <button type="button" class="btn btn-primary" id="dbSettingsApply">Проверить и применить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {# Модальное окно: данные подключения к БД не указаны #}
 <div class="modal fade" id="dbCredentialsMissingModal" tabindex="-1" aria-labelledby="dbCredentialsMissingLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered apple-popover-dialog">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="dbCredentialsMissingLabel">Данные подключения к БД не указаны</h5>
@@ -266,7 +482,7 @@
 
 {# Модальное окно: ошибка подключения к БД #}
 <div class="modal fade" id="dbConnectionErrorModal" tabindex="-1" aria-labelledby="dbConnectionErrorLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered apple-sheet-dialog">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="dbConnectionErrorLabel">Ошибка подключения к БД</h5>
@@ -283,11 +499,81 @@
   </div>
 </div>
 
+{# Модальное окно: в SQL-окне не найден код #}
+<div class="modal fade" id="sqlValidationModal" tabindex="-1" aria-labelledby="sqlValidationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered apple-popover-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="sqlValidationModalLabel">В тексте не найден код</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0" id="sqlValidationMessage">В окне должен быть код. Обычный текст и комментарии не участвуют в расчёте.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Модальное окно: недостаточно информации для генерации по описанию #}
+<div class="modal fade" id="agentDescriptionWarningModal" tabindex="-1" aria-labelledby="agentDescriptionWarningModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered apple-sheet-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="agentDescriptionWarningModalLabel">Недостаточно информации для генерации</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2" id="agentDescriptionWarningMessage">Описание слишком общее. Уточните, какой именно код должен быть сгенерирован.</p>
+        <div class="form-subpanel">
+          <div class="form-section-title">Что ожидает приложение</div>
+          <ul class="small mb-0">
+            <li>какие таблицы, представления или источники участвуют;</li>
+            <li>что нужно получить на выходе;</li>
+            <li>какие есть фильтры, условия, join, агрегации;</li>
+            <li>если это функция: сигнатура, параметры и возвращаемое значение;</li>
+            <li>любые бизнес-правила или ограничения, которые должны войти в код.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понял, уточню</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% include 'reset_cache_modal.html' %}
 
 {# Модальное окно: ввод ключа GigaChat (не сохраняется нигде — только в памяти до перезагрузки) #}
+{# Информационный модал: перебор моделей и авто-выбор доступных #}
+<div class="modal fade" id="agentModelProbeModal" tabindex="-1" aria-labelledby="agentModelProbeModalLabel" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable apple-sheet-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="agentModelProbeModalLabel">Доступность моделей GigaChat</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted mb-3">Только справка: какие модели отвечают на проверку. Выбор моделей для работы — в окне «Ключ GigaChat API» (поля «Чат-модель» / «Embedding»). Окно можно закрыть вручную.</p>
+        <div class="mb-3">
+          <div class="fw-semibold small mb-1">Чат</div>
+          <ul class="list-group list-group-flush small border rounded" id="agentModelProbeChatList"></ul>
+        </div>
+        <div class="mb-2">
+          <div class="fw-semibold small mb-1">Эмбеддинги</div>
+          <ul class="list-group list-group-flush small border rounded" id="agentModelProbeEmbList"></ul>
+        </div>
+        <div class="alert alert-light border mb-0 small" id="agentModelProbeSummary" role="status">Ожидание…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="agentCredentialsModal" tabindex="-1" aria-labelledby="agentCredentialsModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered apple-sheet-dialog">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="agentCredentialsModalLabel">Ключ GigaChat API</h5>
@@ -296,31 +582,40 @@
       <div class="modal-body">
         <p class="small text-muted mb-2">Token не сохраняется. Профили — в <code>agent_profiles.json</code>. Профиль «разработчик» берёт токен из .key в корне проекта (первая строка или строка base64).</p>
         <div class="mb-2">
-          <label class="form-label">Профиль</label>
+          <label class="form-label" for="agentMatchSelect">Профиль</label>
           <select class="form-select" id="agentMatchSelect">
             <option value="">— новый —</option>
           </select>
         </div>
         <div id="agentEnvTokenMessage" class="mb-2 alert py-2 small" style="display: none;" role="alert"></div>
         <div class="mb-2">
-          <label class="form-label">Имя (для сохранения)</label>
+          <label class="form-label" for="agentMatchNameInput">Имя (для сохранения)</label>
           <input type="text" class="form-control" id="agentMatchNameInput" placeholder="Имя пользователя или профиля" autocomplete="off">
         </div>
         <div class="mb-2">
-          <label class="form-label">Token</label>
+          <label class="form-label" for="agentCredentialsInput">Token</label>
           <input type="password" class="form-control" id="agentCredentialsInput" placeholder="Токен из личного кабинета GigaChat" autocomplete="off">
         </div>
         <div class="mb-2">
-          <label class="form-label">Client ID</label>
+          <label class="form-label" for="agentClientIdInput">Client ID</label>
           <input type="text" class="form-control" id="agentClientIdInput" placeholder="Client ID" autocomplete="off">
         </div>
         <div class="mb-2">
-          <label class="form-label">Scope</label>
+          <label class="form-label" for="agentScopeSelect">Scope</label>
           <select class="form-select" id="agentScopeSelect">
             <option value="GIGACHAT_API_PERS">GIGACHAT_API_PERS (физлица)</option>
             <option value="GIGACHAT_API_B2B">GIGACHAT_API_B2B (B2B prepaid)</option>
             <option value="GIGACHAT_API_CORP">GIGACHAT_API_CORP (корпоративный)</option>
           </select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label" for="agentProfileChatModel">Чат-модель</label>
+          <select class="form-select" id="agentProfileChatModel"></select>
+          <div class="form-text">Сохраняется в профиле (файл <code>agent_profiles.json</code>) и в браузере; при следующем открытии окна можно изменить.</div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label" for="agentProfileEmbeddingModel">Модель эмбеддингов</label>
+          <select class="form-select" id="agentProfileEmbeddingModel"></select>
         </div>
         <div class="mb-2 form-check">
           <input type="checkbox" class="form-check-input" id="agentVerifySslCheck" checked>
@@ -329,15 +624,22 @@
         </div>
         <div id="agentCredentialsMessage" class="mt-3" role="alert" aria-live="polite" style="display: none;"></div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn btn-primary" id="agentCredentialsApply" title="Проверить ключ и сохранить в память (до перезагрузки страницы)">Применить</button>
+      <div class="modal-footer flex-wrap gap-2">
+        <button type="button" class="btn btn-outline-secondary" id="agentProbeModelsBtn" title="Проверить ответ API по каждой модели (не меняет выбор)">Проверить доступность</button>
+        <div class="ms-auto d-flex gap-2">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="button" class="btn btn-primary" id="agentCredentialsApply" title="Проверить ключ, сохранить модели и профиль">Применить</button>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/sql/sql.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/hint/show-hint.min.js"></script>
 <script>
   const useDbCheck = document.getElementById('use_db');
   const dbFields = document.getElementById('db_fields');
@@ -347,6 +649,7 @@
   const errorAlert = document.getElementById('errorAlert');
   const errorMessage = document.getElementById('errorMessage');
   const form = document.getElementById('analysisForm');
+  const stackSelector = document.getElementById('stack_selector');
   const modeHybrid = document.getElementById('mode_hybrid');
   const hybridOptions = document.getElementById('hybrid_options');
   const agentGenerate = document.getElementById('agent_generate');
@@ -358,14 +661,287 @@
   const agentAuthStatus = document.getElementById('agent_auth_status');
   const pureAgentSwitch = document.getElementById('pure_agent');
   const logicModeSwitch = document.getElementById('mode_logic');
+  const dbSettingsSummary = document.getElementById('db_settings_summary');
+  const dbSettingsMessage = document.getElementById('dbSettingsMessage');
+  const dbSettingsApplyBtn = document.getElementById('dbSettingsApply');
+  const generatedSqlWindow = document.getElementById('generated_sql_window');
+  const generatedSqlPreview = document.getElementById('generatedSqlPreview');
+  const acceptGeneratedSqlBtn = document.getElementById('acceptGeneratedSqlBtn');
+  const preparePaneButtons = Array.from(document.querySelectorAll('[data-prepare-view-target]'));
+  const preparePanes = Array.from(document.querySelectorAll('[data-prepare-pane]'));
+  const prepareAgentNav = document.getElementById('prepare-agent-nav');
+  const prepareClusterNav = document.getElementById('prepare-cluster-nav');
+  const scenarioHelp = document.getElementById('scenario_help');
+  const agentDescriptionModeBtn = document.getElementById('agentDescriptionModeBtn');
+  const agentScriptModeBtn = document.getElementById('agentScriptModeBtn');
+  const agentScriptHint = document.getElementById('agent_script_hint');
+  const agentScriptTextarea = document.getElementById('agentScriptTextarea');
+  const agentDescriptionWarningMessage = document.getElementById('agentDescriptionWarningMessage');
+  const ddlSyntaxStatus = document.getElementById('ddlSyntaxStatus');
+  const agentScriptSyntaxStatus = document.getElementById('agentScriptSyntaxStatus');
+  const generatedSqlSyntaxStatus = document.getElementById('generatedSqlSyntaxStatus');
+  const ddlSyntaxFeedback = document.getElementById('ddlSyntaxFeedback');
+  const agentScriptSyntaxFeedback = document.getElementById('agentScriptSyntaxFeedback');
+  const generatedSqlSyntaxFeedback = document.getElementById('generatedSqlSyntaxFeedback');
+  const sourceFieldLabel = document.getElementById('sourceFieldLabel');
+  const sourceHelpText = document.getElementById('sourceHelpText');
+  const clusterSectionTitle = document.getElementById('clusterSectionTitle');
+  const clusterSectionCaption = document.getElementById('clusterSectionCaption');
+  const prepareSidebarSubtitle = document.getElementById('prepareSidebarSubtitle');
+  const prepareIntroCaption = document.getElementById('prepareIntroCaption');
+  const toolbarStackSubtitle = document.getElementById('toolbarStackSubtitle');
+  const dbSettingsModalLabel = document.getElementById('dbSettingsModalLabel');
+  const dbSettingsModalCaption = document.getElementById('dbSettingsModalCaption');
+  const greenplumClusterFields = document.getElementById('greenplumClusterFields');
+  const sparkClusterFields = document.getElementById('sparkClusterFields');
+  const pysparkClusterFields = document.getElementById('pysparkClusterFields');
+  const greenplumConnectionFields = document.getElementById('greenplumConnectionFields');
+  const sparkConnectionFields = document.getElementById('sparkConnectionFields');
+  const pysparkConnectionFields = document.getElementById('pysparkConnectionFields');
+  const stateStack = document.getElementById('state_stack');
+  const sqlQuickFixPopover = document.getElementById('sqlQuickFixPopover');
+  const jsonImportButtons = Array.from(document.querySelectorAll('[data-json-import-target]'));
+  const jsonSampleButtons = Array.from(document.querySelectorAll('[data-json-sample-target]'));
+  const jsonClearButtons = Array.from(document.querySelectorAll('[data-json-clear-target]'));
+  const jsonPresetSelects = Array.from(document.querySelectorAll('[data-json-preset-select]'));
+  const jsonPresetApplyButtons = Array.from(document.querySelectorAll('[data-json-preset-apply]'));
+  const jsonPresetSaveButtons = Array.from(document.querySelectorAll('[data-json-preset-save]'));
+  const jsonPresetDeleteButtons = Array.from(document.querySelectorAll('[data-json-preset-delete]'));
+  const sqlEditors = {};
+  const sqlValidationState = {};
+  const sqlValidationTimers = {};
+  const sqlValidationSeq = {};
+  const sqlEditorDecorations = {};
+  var currentRuntimeDescriptor = null;
 
   try { window.rateLimit429Count = parseInt(sessionStorage.getItem('gpa_rate_limit_429') || '0', 10) || 0; } catch (e) { window.rateLimit429Count = 0; }
+
+  document.addEventListener('click', function(event) {
+    var feedbackFix = event.target.closest('[data-sql-fix-trigger]');
+    if (feedbackFix) {
+      var textareaId = feedbackFix.dataset.textareaId;
+      var issueIndex = parseInt(feedbackFix.dataset.issueIndex || '-1', 10);
+      var fixIndex = parseInt(feedbackFix.dataset.fixIndex || '-1', 10);
+      var state = sqlValidationState[textareaId];
+      var issue = state && state.issues && state.issues[issueIndex];
+      var fix = issue && issue.fixes && issue.fixes[fixIndex];
+      if (fix) applySqlFix(textareaId, fix);
+      return;
+    }
+    if (sqlQuickFixPopover && sqlQuickFixPopover.style.display === 'block' && !event.target.closest('.sql-quick-fix-popover') && !event.target.closest('.sql-lint-marker') && !event.target.closest('.sql-inline-lint-widget')) {
+      hideSqlQuickFixPopover();
+    }
+  });
 
   // Ключ в памяти (не сохраняется нигде)
   window.agentCredentialsInMemory = null;
   window.agentScopeInMemory = 'GIGACHAT_API_PERS';
   // Флаг: пользователь выбрал профиль «разработчик» и прошёл проверку (токен из .key)
   window.agentCredentialsFromKey = false;
+  window.pendingAgentAction = null;
+  window.agentSelectedChatModel = null;
+  window.agentSelectedEmbeddingModel = null;
+  try {
+    var _sChat = localStorage.getItem('gpa_agent_chat_model');
+    var _sEmb = localStorage.getItem('gpa_agent_embedding_model');
+    if (_sChat) window.agentSelectedChatModel = _sChat;
+    if (_sEmb) window.agentSelectedEmbeddingModel = _sEmb;
+  } catch (e) {}
+
+  function persistAgentModelSelection() {
+    var sc = document.getElementById('agentProfileChatModel');
+    var se = document.getElementById('agentProfileEmbeddingModel');
+    var chatM = (sc && sc.value || '').trim();
+    var embM = (se && se.value || '').trim();
+    window.agentSelectedChatModel = chatM || null;
+    window.agentSelectedEmbeddingModel = embM || null;
+    try {
+      localStorage.setItem('gpa_agent_chat_model', chatM);
+      localStorage.setItem('gpa_agent_embedding_model', embM);
+    } catch (e) {}
+    syncFormAgentModels();
+    updateAgentModelsStrip();
+  }
+
+  function ensureAgentModelOptionsLoaded(done) {
+    if (window._gpaAgentModelOptions && window._gpaAgentModelOptions.chat && window._gpaAgentModelOptions.chat.length) {
+      if (typeof done === 'function') done();
+      return;
+    }
+    fetch('{{ url_for("api_agent_model_options") }}')
+      .then(function(r) { return r.json(); })
+      .then(function(body) {
+        var d = (body && body.data !== undefined) ? body.data : body;
+        window._gpaAgentModelOptions = {
+          chat: (d && d.chat) ? d.chat : [],
+          embedding: (d && d.embedding) ? d.embedding : []
+        };
+        if (typeof done === 'function') done();
+      })
+      .catch(function() {
+        window._gpaAgentModelOptions = { chat: [], embedding: [] };
+        if (typeof done === 'function') done();
+      });
+  }
+
+  function fillModelSelect(selectEl, values, preferred) {
+    if (!selectEl) return;
+    var vals = Array.isArray(values) ? values : [];
+    selectEl.innerHTML = '';
+    var pref = (preferred || '').trim();
+    if (pref && vals.indexOf(pref) < 0) {
+      var o0 = document.createElement('option');
+      o0.value = pref;
+      o0.textContent = pref + ' (вне списка)';
+      selectEl.appendChild(o0);
+    }
+    vals.forEach(function(v) {
+      var o = document.createElement('option');
+      o.value = v;
+      o.textContent = v;
+      selectEl.appendChild(o);
+    });
+    if (pref) {
+      selectEl.value = pref;
+      if (selectEl.value !== pref && vals.length) selectEl.value = vals[0];
+    } else if (vals.length) {
+      selectEl.value = vals[0];
+    }
+  }
+
+  function applyModelsToSelectsFromProfile(prof) {
+    var sc = document.getElementById('agentProfileChatModel');
+    var se = document.getElementById('agentProfileEmbeddingModel');
+    var oc = window._gpaAgentModelOptions || { chat: [], embedding: [] };
+    var chatPref = (prof && prof.chatModel) ? String(prof.chatModel).trim() : '';
+    var embPref = (prof && prof.embeddingModel) ? String(prof.embeddingModel).trim() : '';
+    if (!chatPref) {
+      try { chatPref = (localStorage.getItem('gpa_agent_chat_model') || '').trim(); } catch (e) {}
+    }
+    if (!embPref) {
+      try { embPref = (localStorage.getItem('gpa_agent_embedding_model') || '').trim(); } catch (e) {}
+    }
+    fillModelSelect(sc, oc.chat, chatPref);
+    fillModelSelect(se, oc.embedding, embPref);
+  }
+
+  function syncFormAgentModels() {
+    var fc = document.getElementById('form_agent_chat_model');
+    var fe = document.getElementById('form_agent_embedding_model');
+    if (fc) fc.value = window.agentSelectedChatModel || '';
+    if (fe) fe.value = window.agentSelectedEmbeddingModel || '';
+  }
+
+  function updateAgentModelsStrip() {
+    var strip = document.getElementById('agent-models-strip');
+    var sc = getSelectedScenario();
+    var hasCreds = !!(window.agentCredentialsInMemory || window.agentCredentialsFromKey);
+    var show = (sc === 'agent' || sc === 'hybrid') && hasCreds && (window.agentSelectedChatModel || window.agentSelectedEmbeddingModel);
+    if (strip) strip.style.display = show ? 'flex' : 'none';
+    var lc = document.getElementById('agent-model-chat-label');
+    var le = document.getElementById('agent-model-emb-label');
+    if (lc) lc.textContent = window.agentSelectedChatModel || '—';
+    if (le) le.textContent = window.agentSelectedEmbeddingModel || '—';
+    syncFormAgentModels();
+  }
+
+  function runAgentModelProbeModal() {
+    return new Promise(function(resolve) {
+      var modalEl = document.getElementById('agentModelProbeModal');
+      var chatList = document.getElementById('agentModelProbeChatList');
+      var embList = document.getElementById('agentModelProbeEmbList');
+      var summaryEl = document.getElementById('agentModelProbeSummary');
+      if (!modalEl || !chatList || !embList || typeof bootstrap === 'undefined') {
+        resolve();
+        return;
+      }
+      var scope = window.agentScopeInMemory || 'GIGACHAT_API_PERS';
+      var body = { scope: scope, use_env_credentials: !!window.agentCredentialsFromKey };
+      if (window.agentCredentialsInMemory) body.credentials = window.agentCredentialsInMemory;
+      var verifySslEl = document.getElementById('agentVerifySslCheck');
+      if (verifySslEl) body.verify_ssl = verifySslEl.checked;
+      chatList.innerHTML = '';
+      embList.innerHTML = '';
+      if (summaryEl) { summaryEl.textContent = 'Запрос к API…'; summaryEl.className = 'alert alert-light border mb-0 small'; }
+      var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+
+      function sleep(ms) { return new Promise(function(ok) { setTimeout(ok, ms); }); }
+      function appendRow(ul, model, ok, err) {
+        var li = document.createElement('li');
+        li.className = 'list-group-item d-flex justify-content-between align-items-center ' + (ok ? 'list-group-item-success' : 'list-group-item-light');
+        if (err && !ok) li.title = err;
+        var left = document.createElement('span');
+        left.textContent = (ok ? '✓ ' : '✗ ') + model;
+        var right = document.createElement('span');
+        right.className = 'badge rounded-pill ' + (ok ? 'bg-success' : 'bg-secondary');
+        right.textContent = ok ? 'доступна' : 'нет';
+        li.appendChild(left);
+        li.appendChild(right);
+        ul.appendChild(li);
+      }
+
+      fetch('{{ url_for("api_agent_probe_models") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+        .then(function(r) {
+          return r.json().catch(function() { return {}; }).then(function(j) { return { r: r, j: j }; });
+        })
+        .then(async function(pair) {
+          var r = pair.r;
+          var res = pair.j || {};
+          var data = res.data || res;
+          if (!r.ok || !data || !data.chat) {
+            if (summaryEl) {
+              var errMsg = (res.error || res.message || (res.error_code ? String(res.error_code) : '') || ('HTTP ' + r.status)).trim();
+              summaryEl.textContent = 'Не удалось проверить модели: ' + (errMsg || 'неизвестная ошибка');
+              summaryEl.className = 'alert alert-warning border mb-0 small';
+            }
+            resolve();
+            return;
+          }
+          for (var i = 0; i < data.chat.length; i++) {
+            await sleep(140);
+            var row = data.chat[i];
+            appendRow(chatList, row.model, row.ok, row.error || '');
+          }
+          for (var j = 0; j < data.embedding.length; j++) {
+            await sleep(140);
+            var er = data.embedding[j];
+            appendRow(embList, er.model, er.ok, er.error || '');
+          }
+          var sChat = data.selected_chat || 'нет доступной';
+          var sEmb = data.selected_embedding || 'нет доступной';
+          if (summaryEl) {
+            summaryEl.className = 'alert alert-info border mb-0 small';
+            summaryEl.innerHTML = '';
+            var strong = document.createElement('strong');
+            strong.textContent = 'Справочно (рабочий выбор — в окне профиля): ';
+            summaryEl.appendChild(strong);
+            summaryEl.appendChild(document.createTextNode('первая доступная чат — '));
+            var c = document.createElement('code');
+            c.textContent = sChat;
+            summaryEl.appendChild(c);
+            summaryEl.appendChild(document.createTextNode('; эмбеддинги — '));
+            var e = document.createElement('code');
+            e.textContent = sEmb;
+            summaryEl.appendChild(e);
+          }
+          updateAgentAuthStatus();
+          updateAgentModelsStrip();
+          resolve();
+        })
+        .catch(function(err) {
+          if (summaryEl) {
+            summaryEl.textContent = 'Ошибка: ' + (err && err.message ? err.message : String(err));
+            summaryEl.className = 'alert alert-danger border mb-0 small';
+          }
+          resolve();
+        });
+    });
+  }
 
   function updateAgentAuthStatus() {
     if (!agentAuthStatus) return;
@@ -380,25 +956,35 @@
         keyBtn.classList.toggle('needs-input', !ok);
       }
     }
+    var modelSuffix = '';
+    if (window.agentSelectedChatModel) {
+      modelSuffix = ' · чат: ' + window.agentSelectedChatModel;
+      if (window.agentSelectedEmbeddingModel) modelSuffix += ' · emb: ' + window.agentSelectedEmbeddingModel;
+    }
     if (creds) {
-      agentAuthStatus.textContent = 'ключ введён (не сохраняется)';
+      agentAuthStatus.textContent = 'ключ введён (не сохраняется)' + modelSuffix;
       agentAuthStatus.className = 'small text-success';
       setValidated(true);
       var fc = document.getElementById('form_agent_credentials');
       var fs = document.getElementById('form_agent_scope');
       if (fc) fc.value = creds;
       if (fs) fs.value = window.agentScopeInMemory || 'GIGACHAT_API_PERS';
+      syncFormAgentModels();
+      updateAgentModelsStrip();
       return;
     }
     if (fromKey) {
-      agentAuthStatus.textContent = 'ключ из .key (профиль «разработчик»)';
+      agentAuthStatus.textContent = 'ключ из .key (профиль «разработчик»)' + modelSuffix;
       agentAuthStatus.className = 'small text-success';
       setValidated(true);
+      syncFormAgentModels();
+      updateAgentModelsStrip();
       return;
     }
     agentAuthStatus.textContent = 'ключ не задан — нажмите «Ввести ключ»';
     agentAuthStatus.className = 'small text-muted';
     setValidated(false);
+    updateAgentModelsStrip();
   }
 
   function getAgentCredentialsForRequest() {
@@ -409,49 +995,1073 @@
     return window.agentScopeInMemory || 'GIGACHAT_API_PERS';
   }
 
+  function setPreparePane(target) {
+    var pane = target || 'source';
+    preparePaneButtons.forEach(function(button) {
+      button.classList.toggle('is-active', button.dataset.prepareViewTarget === pane);
+    });
+    preparePanes.forEach(function(section) {
+      section.classList.toggle('is-active', section.dataset.preparePane === pane);
+    });
+    var strip = document.getElementById('token-strip');
+    var showAgentStrip = pane === 'agent' && !!(pureAgentSwitch && pureAgentSwitch.checked);
+    if (strip) strip.style.display = showAgentStrip ? 'flex' : 'none';
+    setTimeout(refreshSqlEditors, 0);
+    try { localStorage.setItem('detailed_prepare_pane', pane); } catch (e) {}
+  }
+
+  function getSelectedScenario() {
+    if (pureAgentSwitch && pureAgentSwitch.checked) return 'agent';
+    if (modeHybrid && modeHybrid.checked) return 'hybrid';
+    return 'analytics';
+  }
+
+  function getSelectedStack() {
+    return stackSelector && stackSelector.value ? stackSelector.value : 'greenplum';
+  }
+
+  function getRuntimeUi() {
+    return currentRuntimeDescriptor && currentRuntimeDescriptor.ui ? currentRuntimeDescriptor.ui : {};
+  }
+
+  const JSON_SAMPLES = {
+    'spark-metadata': {
+      contract: 'runtime_snapshot/v1',
+      sources: [
+        { name: 'mart.daily', rows: 12000000, size_gb: 18.4, columns: 42, avg_row_size_bytes: 160 },
+        { name: 'dim.users', rows: 3000000, size_gb: 2.1, columns: 15 }
+      ]
+    },
+    'spark-profile': {
+      contract: 'runtime_snapshot/v1',
+      runtime_profile: {
+        peak_memory_gb: 42,
+        shuffle_read_gb: 160,
+        shuffle_write_gb: 80,
+        stages: [
+          { name: 'stage-1', peak_memory_gb: 18, shuffle_read_gb: 60 },
+          { name: 'stage-2', peak_memory_gb: 24, shuffle_write_gb: 80 }
+        ]
+      }
+    },
+    'pyspark-metadata': {
+      contract: 'runtime_snapshot/v1',
+      sources: [
+        { name: 'sales.orders', rows: 18000000, size_gb: 12.2, columns: 28 },
+        { name: 'mart.daily', rows: 8000000, size_gb: 9.5 }
+      ]
+    },
+    'pyspark-profile': {
+      contract: 'runtime_snapshot/v1',
+      runtime_profile: {
+        peak_memory_gb: 24,
+        shuffle_read_gb: 90,
+        stages: [
+          { name: 'read', peak_memory_gb: 12, shuffle_read_gb: 24 },
+          { name: 'aggregate', peak_memory_gb: 18, shuffle_write_gb: 20 }
+        ]
+      }
+    }
+  };
+  const JSON_PRESET_STORAGE_KEY = 'detailed_json_presets_v1';
+  let jsonPresetServerAvailable = true;
+
+  function loadJsonPresets() {
+    try {
+      var raw = localStorage.getItem(JSON_PRESET_STORAGE_KEY);
+      if (!raw) return {};
+      var parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveJsonPresets(store) {
+    try {
+      localStorage.setItem(JSON_PRESET_STORAGE_KEY, JSON.stringify(store || {}));
+    } catch (e) {}
+  }
+
+  function getPresetScopeParts(scope) {
+    var parts = String(scope || '').split(':');
+    return {
+      stack: parts[0] || 'spark',
+      kind: parts[1] || 'metadata'
+    };
+  }
+
+  function getJsonPresetsForScope(scope) {
+    var store = loadJsonPresets();
+    var parts = getPresetScopeParts(scope);
+    var stack = parts.stack;
+    var kind = parts.kind;
+    var stackBucket = store[stack];
+    if (!stackBucket || typeof stackBucket !== 'object') return {};
+    var kindBucket = stackBucket[kind];
+    return kindBucket && typeof kindBucket === 'object' ? kindBucket : {};
+  }
+
+  function setJsonPreset(scope, presetName, value) {
+    var parts = getPresetScopeParts(scope);
+    var stack = parts.stack;
+    var kind = parts.kind;
+    var store = loadJsonPresets();
+    if (!store[stack] || typeof store[stack] !== 'object') store[stack] = {};
+    if (!store[stack][kind] || typeof store[stack][kind] !== 'object') store[stack][kind] = {};
+    store[stack][kind][presetName] = value;
+    saveJsonPresets(store);
+  }
+
+  function deleteJsonPreset(scope, presetName) {
+    var parts = getPresetScopeParts(scope);
+    var stack = parts.stack;
+    var kind = parts.kind;
+    var store = loadJsonPresets();
+    if (store[stack] && store[stack][kind]) {
+      delete store[stack][kind][presetName];
+      saveJsonPresets(store);
+    }
+  }
+
+  function renderJsonPresetSelect(scope) {
+    var select = document.querySelector('[data-json-preset-select="' + scope + '"]');
+    if (!select) return;
+    var currentValue = select.value;
+    var presets = getJsonPresetsForScope(scope);
+    var label = scope.indexOf('profile') >= 0 ? 'Presets profile' : 'Presets metadata';
+    var options = ['<option value="">' + label + '</option>'];
+    Object.keys(presets).sort().forEach(function(name) {
+      options.push('<option value="' + name.replace(/"/g, '&quot;') + '">' + name.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</option>');
+    });
+    select.innerHTML = options.join('');
+    if (currentValue && presets[currentValue]) {
+      select.value = currentValue;
+    }
+  }
+
+  function renderAllJsonPresetSelects() {
+    jsonPresetSelects.forEach(function(select) {
+      renderJsonPresetSelect(select.dataset.jsonPresetSelect);
+    });
+  }
+
+  async function syncJsonPresetsFromServer() {
+    if (!jsonPresetServerAvailable) return false;
+    try {
+      var response = await fetch('{{ url_for("api_runtime_presets") }}');
+      if (!response.ok) throw new Error('Preset API unavailable');
+      var data = await response.json();
+      if (!data || !data.ok || !data.grouped || typeof data.grouped !== 'object') throw new Error('Invalid preset payload');
+      saveJsonPresets(data.grouped);
+      renderAllJsonPresetSelects();
+      return true;
+    } catch (e) {
+      jsonPresetServerAvailable = false;
+      return false;
+    }
+  }
+
+  async function persistJsonPresetToServer(scope, presetName, value) {
+    if (!jsonPresetServerAvailable) return false;
+    try {
+      var parts = getPresetScopeParts(scope);
+      var response = await fetch('{{ url_for("api_runtime_presets") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stack: parts.stack,
+          kind: parts.kind,
+          name: presetName,
+          value: value
+        })
+      });
+      if (!response.ok) throw new Error('Preset save failed');
+      await syncJsonPresetsFromServer();
+      return true;
+    } catch (e) {
+      jsonPresetServerAvailable = false;
+      return false;
+    }
+  }
+
+  async function deleteJsonPresetFromServer(scope, presetName) {
+    if (!jsonPresetServerAvailable) return false;
+    try {
+      var parts = getPresetScopeParts(scope);
+      var response = await fetch('{{ url_for("api_runtime_presets") }}', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stack: parts.stack,
+          kind: parts.kind,
+          name: presetName
+        })
+      });
+      if (!response.ok) throw new Error('Preset delete failed');
+      await syncJsonPresetsFromServer();
+      return true;
+    } catch (e) {
+      jsonPresetServerAvailable = false;
+      return false;
+    }
+  }
+
+  function prettifyJsonIntoTarget(targetId, value) {
+    var target = document.getElementById(targetId);
+    if (!target) return;
+    target.value = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+    invalidateDbValidation();
+    saveFormData();
+  }
+
+  function readJsonFileIntoTarget(file, targetId) {
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function() {
+      var text = String(reader.result || '').trim();
+      if (!text) return;
+      try {
+        var parsed = JSON.parse(text);
+        prettifyJsonIntoTarget(targetId, parsed);
+      } catch (e) {
+        prettifyJsonIntoTarget(targetId, text);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function getScenarioHelpText(scenario) {
+    var ui = getRuntimeUi();
+    if (scenario === 'agent') return ui.scenario_help_agent || 'Агент: сценарий использует агентный контур.';
+    if (scenario === 'hybrid') return ui.scenario_help_hybrid || 'Гибрид: сценарий использует рантайм и агент вместе.';
+    return ui.scenario_help_logic || 'Логика: сценарий использует runtime без генерации через агента.';
+  }
+
+  function updateRuntimeCopy() {
+    var ui = getRuntimeUi();
+    var stack = getSelectedStack();
+    if (stateStack) stateStack.textContent = ui.stack_label || stack;
+    if (sourceFieldLabel) sourceFieldLabel.textContent = ui.source_field_label || 'Source';
+    if (ddlTextarea && ui.source_placeholder) ddlTextarea.placeholder = ui.source_placeholder;
+    if (agentScriptTextarea && ui.source_placeholder) agentScriptTextarea.placeholder = ui.source_placeholder;
+    if (sourceHelpText) sourceHelpText.textContent = ui.source_help || '';
+    if (clusterSectionTitle) clusterSectionTitle.textContent = ui.cluster_title || 'Runtime settings';
+    if (clusterSectionCaption) clusterSectionCaption.textContent = ui.cluster_caption || '';
+    if (prepareSidebarSubtitle) prepareSidebarSubtitle.textContent = ui.sidebar_subtitle || '';
+    if (prepareIntroCaption) prepareIntroCaption.textContent = 'Подготовка разделена на три спокойные view: source, agent и ' + (ui.stack_label || stack) + '.';
+    if (toolbarStackSubtitle) toolbarStackSubtitle.textContent = 'Выберите источник, при необходимости подключите агент или ' + (ui.stack_label || stack) + ' runtime, затем запустите discovery.';
+    if (dbSettingsModalLabel) dbSettingsModalLabel.textContent = ui.connection_title || 'Подключение';
+    if (dbSettingsModalCaption) dbSettingsModalCaption.textContent = ui.connection_caption || '';
+    if (prepareClusterNav) prepareClusterNav.textContent = ui.cluster_nav_label || 'Настройки runtime';
+    if (greenplumClusterFields) greenplumClusterFields.classList.toggle('d-none', stack !== 'greenplum');
+    if (sparkClusterFields) sparkClusterFields.classList.toggle('d-none', stack !== 'spark');
+    if (pysparkClusterFields) pysparkClusterFields.classList.toggle('d-none', stack !== 'pyspark');
+    if (greenplumConnectionFields) greenplumConnectionFields.classList.toggle('d-none', stack !== 'greenplum');
+    if (sparkConnectionFields) sparkConnectionFields.classList.toggle('d-none', stack !== 'spark');
+    if (pysparkConnectionFields) pysparkConnectionFields.classList.toggle('d-none', stack !== 'pyspark');
+  }
+
+  function applyEditorModes() {
+    var mode = currentRuntimeDescriptor && currentRuntimeDescriptor.editor_mode ? currentRuntimeDescriptor.editor_mode : 'text/x-pgsql';
+    Object.keys(sqlEditors).forEach(function(key) {
+      var editor = sqlEditors[key];
+      if (editor && typeof editor.setOption === 'function') {
+        editor.setOption('mode', mode);
+      }
+    });
+    setTimeout(refreshSqlEditors, 0);
+  }
+
+  function refreshRuntimeDescriptor() {
+    return fetch('{{ url_for("api_runtime_descriptor") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        stack: getSelectedStack(),
+        scenario: getSelectedScenario()
+      })
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        currentRuntimeDescriptor = data && data.descriptor ? data.descriptor : null;
+        updateRuntimeCopy();
+        applyEditorModes();
+        updateToggleStates();
+        return currentRuntimeDescriptor;
+      })
+      .catch(function() {
+        currentRuntimeDescriptor = null;
+        updateRuntimeCopy();
+        applyEditorModes();
+        updateToggleStates();
+        return null;
+      });
+  }
+
+  function invalidateSqlValidationCache() {
+    delete form.dataset.sqlValidatedSource;
+    delete form.dataset.sqlValidatedValue;
+    delete form.dataset.sqlValidatedOk;
+  }
+
+  function setSqlStatus(statusEl, state, message) {
+    if (!statusEl) return;
+    statusEl.dataset.state = state || 'idle';
+    statusEl.textContent = message || getRuntimeUi().status_default || 'Проверка синтаксиса PostgreSQL';
+  }
+
+  function saveSqlEditors() {
+    Object.keys(sqlEditors).forEach(function(key) {
+      if (sqlEditors[key] && typeof sqlEditors[key].save === 'function') {
+        sqlEditors[key].save();
+      }
+    });
+  }
+
+  function getEditorValue(textarea) {
+    if (!textarea) return '';
+    var editor = sqlEditors[textarea.id];
+    return editor ? editor.getValue() : (textarea.value || '');
+  }
+
+  function setEditorValue(textarea, value) {
+    if (!textarea) return;
+    var normalized = value || '';
+    var editor = sqlEditors[textarea.id];
+    if (editor) editor.setValue(normalized);
+    textarea.value = normalized;
+  }
+
+  function focusSqlEditor(textarea) {
+    if (!textarea) return;
+    var editor = sqlEditors[textarea.id];
+    if (editor && typeof editor.focus === 'function') {
+      editor.focus();
+      return;
+    }
+    textarea.focus();
+  }
+
+  function refreshSqlEditors() {
+    Object.keys(sqlEditors).forEach(function(key) {
+      var editor = sqlEditors[key];
+      if (editor && typeof editor.refresh === 'function') {
+        editor.refresh();
+      }
+    });
+  }
+
+  function getSqlStatusElement(textarea) {
+    if (!textarea) return null;
+    if (textarea.id === 'ddlTextarea') return ddlSyntaxStatus;
+    if (textarea.id === 'agentScriptTextarea') return agentScriptSyntaxStatus;
+    if (textarea.id === 'generatedSqlPreview') return generatedSqlSyntaxStatus;
+    return null;
+  }
+
+  function getSqlFeedbackElement(textarea) {
+    if (!textarea) return null;
+    if (textarea.id === 'ddlTextarea') return ddlSyntaxFeedback;
+    if (textarea.id === 'agentScriptTextarea') return agentScriptSyntaxFeedback;
+    if (textarea.id === 'generatedSqlPreview') return generatedSqlSyntaxFeedback;
+    return null;
+  }
+
+  function clearSqlDecorations(textarea) {
+    if (!textarea) return;
+    var editor = sqlEditors[textarea.id];
+    if (!editor) return;
+    var decorations = sqlEditorDecorations[textarea.id] || {};
+    (decorations.marks || []).forEach(function(mark) {
+      if (mark && typeof mark.clear === 'function') mark.clear();
+    });
+    (decorations.lines || []).forEach(function(lineNo) {
+      editor.removeLineClass(lineNo, 'background', 'sql-editor-line-warning');
+      editor.setGutterMarker(lineNo, 'sql-lint-gutter', null);
+    });
+    (decorations.widgets || []).forEach(function(w) {
+      if (w && typeof w.clear === 'function') w.clear();
+    });
+    sqlEditorDecorations[textarea.id] = { marks: [], lines: [], widgets: [] };
+  }
+
+  function escapeSqlHintHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function buildSqlInlineHintWidget(textarea, lineIssueEntries) {
+    var wrap = document.createElement('div');
+    wrap.className = 'sql-inline-lint-widget';
+    lineIssueEntries.forEach(function(entry) {
+      var issue = entry.issue;
+      var issueIndex = entry.issueIndex;
+      if (!issue) return;
+      var card = document.createElement('div');
+      var sev = (issue.severity || 'warning').replace(/[^a-z-]/gi, '');
+      card.className = 'sql-inline-lint-card sql-inline-lint-card--' + (sev || 'warning');
+      var title = document.createElement('div');
+      title.className = 'sql-inline-lint-card__title';
+      title.textContent = issue.title || 'Предупреждение';
+      card.appendChild(title);
+      if (issue.message) {
+        var msg = document.createElement('div');
+        msg.className = 'sql-inline-lint-card__message';
+        msg.textContent = issue.message;
+        card.appendChild(msg);
+      }
+      if (issue.hint) {
+        var hint = document.createElement('div');
+        hint.className = 'sql-inline-lint-card__hint';
+        hint.innerHTML = '<span class="sql-inline-lint-card__hint-label">Как исправить:</span> ' + escapeSqlHintHtml(issue.hint);
+        card.appendChild(hint);
+      }
+      var fixes = Array.isArray(issue.fixes) ? issue.fixes : [];
+      if (fixes.length) {
+        var actions = document.createElement('div');
+        actions.className = 'sql-inline-lint-card__actions';
+        fixes.forEach(function(fix, fixIndex) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'sql-inline-lint-card__fix-btn';
+          btn.textContent = fix.label || 'Автоисправление';
+          btn.setAttribute('data-sql-fix-trigger', '');
+          btn.setAttribute('data-textarea-id', textarea.id);
+          btn.setAttribute('data-issue-index', String(issueIndex));
+          btn.setAttribute('data-fix-index', String(fixIndex));
+          actions.appendChild(btn);
+        });
+        card.appendChild(actions);
+      }
+      wrap.appendChild(card);
+    });
+    return wrap;
+  }
+
+  function renderSqlFeedback(textarea, issues) {
+    var feedbackEl = getSqlFeedbackElement(textarea);
+    if (!feedbackEl) return;
+    if (!issues || !issues.length) {
+      feedbackEl.innerHTML = '';
+      return;
+    }
+    feedbackEl.innerHTML = issues.map(function(issue) {
+      var title = (issue.title || 'Предупреждение').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      var message = (issue.message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      var hint = (issue.hint || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      var itemClass = issue.severity === 'info' ? ' sql-editor-feedback__item--info' : '';
+      var fixes = Array.isArray(issue.fixes) ? issue.fixes : [];
+      var fixesHtml = fixes.length ? (
+        '<div class="sql-editor-feedback__fixes">' +
+          fixes.map(function(fix, fixIndex) {
+            return '<button type="button" class="sql-editor-feedback__fix-btn" data-sql-fix-trigger data-textarea-id="' + textarea.id + '" data-issue-index="' + issues.indexOf(issue) + '" data-fix-index="' + fixIndex + '">' +
+              (String(fix.label || 'Автозамена').replace(/</g, '&lt;').replace(/>/g, '&gt;')) +
+            '</button>';
+          }).join('') +
+        '</div>'
+      ) : '';
+      return (
+        '<div class="sql-editor-feedback__item' + itemClass + '">' +
+          '<div class="sql-editor-feedback__title">' + title + '</div>' +
+          '<div class="sql-editor-feedback__message">' + message + '</div>' +
+          (hint ? '<div class="sql-editor-feedback__hint">Как исправить: ' + hint + '</div>' : '') +
+          fixesHtml +
+        '</div>'
+      );
+    }).join('');
+  }
+
+  function applySqlIssues(textarea, issues) {
+    if (!textarea) return;
+    var editor = sqlEditors[textarea.id];
+    clearSqlDecorations(textarea);
+    renderSqlFeedback(textarea, []);
+    if (!editor || !issues || !issues.length) return;
+    var decorations = { marks: [], lines: [], widgets: [] };
+    var lineCount = editor.lineCount();
+    var seenLines = {};
+    var byLine = {};
+    issues.forEach(function(issue, issueIndex) {
+      if (!issue) return;
+      var rawLine = typeof issue.line === 'number' && !isNaN(issue.line) ? issue.line : 1;
+      var line = Math.max(0, Math.min(rawLine - 1, Math.max(0, lineCount - 1)));
+      if (!byLine[line]) byLine[line] = [];
+      byLine[line].push({ issue: issue, issueIndex: issueIndex });
+    });
+    Object.keys(byLine).map(function(k) { return parseInt(k, 10); }).sort(function(a, b) { return a - b; }).forEach(function(line) {
+      var entries = byLine[line];
+      if (!entries || !entries.length) return;
+      var dom = buildSqlInlineHintWidget(textarea, entries);
+      var widget = editor.addLineWidget(line, dom, { above: false, className: 'sql-inline-lint-slot' });
+      decorations.widgets.push(widget);
+    });
+    issues.forEach(function(issue) {
+      if (!issue) return;
+      var rawLine = typeof issue.line === 'number' && !isNaN(issue.line) ? issue.line : 1;
+      var line = Math.max(0, Math.min(rawLine - 1, Math.max(0, lineCount - 1)));
+      var col = Math.max(0, (issue.column || 1) - 1);
+      var length = Math.max(1, issue.length || 1);
+      var lineContent = editor.getLine(line) || '';
+      var endCol = Math.min(lineContent.length, col + length);
+      if (endCol <= col) endCol = Math.min(lineContent.length, col + 1);
+      if (endCol > col) {
+        decorations.marks.push(editor.markText(
+          { line: line, ch: col },
+          { line: line, ch: endCol },
+          {
+            className: issue.severity === 'error' ? 'sql-editor-token-warning sql-editor-token-warning--error' : 'sql-editor-token-warning',
+            title: (issue.title || '') + (issue.hint ? ' — ' + issue.hint : '')
+          }
+        ));
+      }
+      if (!seenLines[line]) {
+        seenLines[line] = true;
+        decorations.lines.push(line);
+        editor.addLineClass(line, 'background', 'sql-editor-line-warning');
+        var marker = document.createElement('span');
+        marker.className = 'sql-lint-marker';
+        marker.textContent = '!';
+        marker.title = (issue.title || 'Предупреждение') + '. ' + (issue.hint || issue.message || '');
+        marker.addEventListener('click', function(event) {
+          event.preventDefault();
+          event.stopPropagation();
+          showSqlQuickFixPopover(textarea, issue, line, col);
+        });
+        editor.setGutterMarker(line, 'sql-lint-gutter', marker);
+      }
+    });
+    sqlEditorDecorations[textarea.id] = decorations;
+  }
+
+  function hideSqlQuickFixPopover() {
+    if (!sqlQuickFixPopover) return;
+    sqlQuickFixPopover.style.display = 'none';
+    sqlQuickFixPopover.innerHTML = '';
+    delete sqlQuickFixPopover.dataset.textareaId;
+  }
+
+  function applySqlFix(textareaId, fix) {
+    if (!fix || fix.kind !== 'replace_range') return;
+    var textarea = document.getElementById(textareaId);
+    var editor = textarea ? sqlEditors[textareaId] : null;
+    if (!textarea || !editor) return;
+    editor.replaceRange(
+      String(fix.text || ''),
+      editor.posFromIndex(Math.max(0, fix.start || 0)),
+      editor.posFromIndex(Math.max(0, fix.end || 0))
+    );
+    hideSqlQuickFixPopover();
+    scheduleSqlValidation(textarea);
+    editor.focus();
+  }
+
+  function showSqlQuickFixPopover(textarea, issue, line, ch) {
+    if (!sqlQuickFixPopover || !textarea) return;
+    var editor = sqlEditors[textarea.id];
+    if (!editor || !issue) return;
+    var coords = editor.charCoords({ line: line, ch: ch || 0 }, 'page');
+    var fixes = Array.isArray(issue.fixes) ? issue.fixes : [];
+    sqlQuickFixPopover.dataset.textareaId = textarea.id;
+    sqlQuickFixPopover.innerHTML =
+      '<div class="sql-quick-fix-popover__title">' + String(issue.title || 'Проблема SQL').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>' +
+      '<div class="sql-quick-fix-popover__message">' + String(issue.message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>' +
+      (issue.hint ? '<div class="sql-quick-fix-popover__hint">Как исправить: ' + String(issue.hint).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>' : '') +
+      (fixes.length ? '<div class="sql-quick-fix-popover__actions">' + fixes.map(function(fix, idx) {
+        return '<button type="button" class="sql-quick-fix-popover__btn" data-sql-fix-popup data-fix-index="' + idx + '">' +
+          String(fix.label || 'Применить').replace(/</g, '&lt;').replace(/>/g, '&gt;') +
+        '</button>';
+      }).join('') + '</div>' : '');
+    sqlQuickFixPopover.style.display = 'block';
+    sqlQuickFixPopover.style.top = Math.min(window.innerHeight - sqlQuickFixPopover.offsetHeight - 12, coords.bottom + 8) + 'px';
+    sqlQuickFixPopover.style.left = Math.min(window.innerWidth - sqlQuickFixPopover.offsetWidth - 12, coords.left + 12) + 'px';
+    sqlQuickFixPopover.onclick = function(event) {
+      var trigger = event.target.closest('[data-sql-fix-popup]');
+      if (!trigger) return;
+      var fixIndex = parseInt(trigger.dataset.fixIndex || '-1', 10);
+      if (fixIndex >= 0 && fixes[fixIndex]) applySqlFix(textarea.id, fixes[fixIndex]);
+    };
+  }
+
+  function setSqlEditorGate(textarea, locked, message) {
+    if (!textarea) return;
+    var editor = sqlEditors[textarea.id];
+    var ui = getRuntimeUi();
+    if (editor && typeof editor.setOption === 'function') {
+      editor.setOption('readOnly', locked ? 'nocursor' : false);
+    }
+    if (locked) {
+      clearSqlDecorations(textarea);
+      renderSqlFeedback(textarea, [{
+        severity: 'info',
+        title: ui.gate_title || 'Сначала подтвердите runtime',
+        message: message || ui.connection_required || 'Для сценариев с рантаймом сначала нужно подтвердить подключение.',
+        hint: ui.gate_hint || 'Откройте окно подключения и подтвердите параметры рантайма.'
+      }]);
+    } else {
+      renderSqlFeedback(textarea, []);
+      var currentState = sqlValidationState[textarea.id];
+      applySqlIssues(textarea, currentState && currentState.issues ? currentState.issues : []);
+      scheduleSqlValidation(textarea);
+    }
+  }
+
+  function setDbGateLocked(locked, message) {
+    [ddlTextarea, agentScriptTextarea, generatedSqlPreview].forEach(function(textarea) {
+      setSqlEditorGate(textarea, locked, message);
+    });
+  }
+
+  function currentScenarioNeedsDbGate() {
+    var scenario = getSelectedScenario();
+    return scenario === 'hybrid' || scenario === 'analytics';
+  }
+
+  function hasDbCredentials() {
+    var stack = getSelectedStack();
+    if (stack === 'spark') {
+      var sparkMasterInput = document.getElementById('spark_master_url');
+      return !!(sparkMasterInput && sparkMasterInput.value.trim());
+    }
+    if (stack === 'pyspark') {
+      var pysparkMasterInput = document.getElementById('pyspark_master_url');
+      return !!(pysparkMasterInput && pysparkMasterInput.value.trim());
+    }
+    return !!(userInput && passwordInput && userInput.value.trim() && passwordInput.value.trim());
+  }
+
+  function getDbConnectionPayload() {
+    var portInput = document.getElementById('db_port');
+    var dbnameInput = document.getElementById('db_name');
+    var payload = {
+      stack: getSelectedStack(),
+      scenario: getSelectedScenario(),
+      stand_type: standSelect ? standSelect.value : 'PROM',
+      user: userInput ? userInput.value.trim() : '',
+      password: passwordInput ? passwordInput.value.trim() : '',
+      host: hostInput ? hostInput.value.trim() || null : null,
+      port: portInput ? (portInput.value ? parseInt(portInput.value, 10) : null) : null,
+      dbname: dbnameInput ? dbnameInput.value.trim() || null : null
+    };
+    var sparkMasterInput = document.getElementById('spark_master_url');
+    var sparkCatalogInput = document.getElementById('spark_catalog');
+    var sparkNamespaceInput = document.getElementById('spark_namespace');
+    var sparkUserInput = document.getElementById('spark_user');
+    var sparkPasswordInput = document.getElementById('spark_password');
+    var pysparkMasterInput = document.getElementById('pyspark_master_url');
+    var pysparkSessionInput = document.getElementById('pyspark_session_name');
+    var pysparkUserInput = document.getElementById('pyspark_user');
+    var pysparkPasswordInput = document.getElementById('pyspark_password');
+    if (sparkMasterInput && sparkMasterInput.value.trim()) payload.master_url = sparkMasterInput.value.trim();
+    if (sparkCatalogInput && sparkCatalogInput.value.trim()) payload.catalog = sparkCatalogInput.value.trim();
+    if (sparkNamespaceInput && sparkNamespaceInput.value.trim()) payload.namespace = sparkNamespaceInput.value.trim();
+    if (sparkUserInput && sparkUserInput.value.trim()) payload.spark_user = sparkUserInput.value.trim();
+    if (sparkPasswordInput && sparkPasswordInput.value.trim()) payload.spark_password = sparkPasswordInput.value.trim();
+    if (pysparkMasterInput && pysparkMasterInput.value.trim()) payload.master_url = pysparkMasterInput.value.trim();
+    if (pysparkSessionInput && pysparkSessionInput.value.trim()) payload.session_name = pysparkSessionInput.value.trim();
+    if (pysparkUserInput && pysparkUserInput.value.trim()) payload.pyspark_user = pysparkUserInput.value.trim();
+    if (pysparkPasswordInput && pysparkPasswordInput.value.trim()) payload.pyspark_password = pysparkPasswordInput.value.trim();
+    return payload;
+  }
+
+  function testDbConnection() {
+    return fetch('{{ url_for("api_runtime_test") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getDbConnectionPayload())
+    }).then(function(r) { return r.json(); });
+  }
+
+  function applyDbValidationSuccess() {
+    form.dataset.dbValidated = '1';
+    var ui = getRuntimeUi();
+    if (dbSettingsMessage) {
+      dbSettingsMessage.textContent = ui.connection_success || 'Подключение подтверждено. SQL-окна разблокированы.';
+      dbSettingsMessage.className = 'alert alert-success py-2 small';
+      dbSettingsMessage.style.display = 'block';
+    }
+    setDbGateLocked(false);
+  }
+
+  function invalidateDbValidation() {
+    delete form.dataset.dbValidated;
+    if (currentScenarioNeedsDbGate()) {
+      setDbGateLocked(true, getRuntimeUi().connection_required || 'Для этого сценария сначала нужно проверить runtime.');
+    } else {
+      setDbGateLocked(false);
+    }
+  }
+
+  function enforceDbGateForScenario(options) {
+    var opts = options || {};
+    if (!currentScenarioNeedsDbGate()) {
+      setDbGateLocked(false);
+      return;
+    }
+    if (form.dataset.dbValidated === '1') {
+      setDbGateLocked(false);
+      return;
+    }
+    setDbGateLocked(true, getRuntimeUi().connection_required || 'Для сценариев с runtime сначала подтвердите подключение, затем вводите код.');
+    if (!opts.silent) {
+      openDbSettingsModal(hasDbCredentials()
+        ? (getRuntimeUi().connection_required || 'Проверьте подключение, чтобы разблокировать редактор.')
+        : (getRuntimeUi().connection_missing || 'Для сценария с runtime сначала заполните и проверьте подключение.'));
+    }
+  }
+
+  function getActiveSqlTextarea() {
+    if (pureAgentSwitch && pureAgentSwitch.checked && agentGenerate && !agentGenerate.checked && agentScriptTextarea) {
+      return agentScriptTextarea;
+    }
+    return ddlTextarea;
+  }
+
+  function getSqlValidationRequestPayload(text) {
+    var payload = {
+      sql: text || '',
+      source_text: text || '',
+      validation_mode: getSelectedScenario(),
+      scenario: getSelectedScenario(),
+      stack: getSelectedStack()
+    };
+    if (standSelect) payload.stand_type = standSelect.value || 'PROM';
+    if (hostInput && hostInput.value.trim()) payload.host = hostInput.value.trim();
+    if (userInput && userInput.value.trim()) payload.user = userInput.value.trim();
+    if (passwordInput && passwordInput.value.trim()) payload.password = passwordInput.value.trim();
+    var sparkMasterInput = document.getElementById('spark_master_url');
+    var pysparkMasterInput = document.getElementById('pyspark_master_url');
+    if (sparkMasterInput && sparkMasterInput.value.trim()) payload.master_url = sparkMasterInput.value.trim();
+    if (pysparkMasterInput && pysparkMasterInput.value.trim()) payload.master_url = pysparkMasterInput.value.trim();
+    var portInput = document.getElementById('db_port');
+    if (portInput && portInput.value) payload.port = parseInt(portInput.value, 10);
+    var dbnameInput = document.getElementById('db_name');
+    if (dbnameInput && dbnameInput.value.trim()) payload.dbname = dbnameInput.value.trim();
+    return payload;
+  }
+
+  function requestSqlCompletions(editor, callback) {
+    if (!editor) {
+      callback({ list: [], from: CodeMirror.Pos(0, 0), to: CodeMirror.Pos(0, 0) });
+      return;
+    }
+    var cursor = editor.getCursor();
+    var text = editor.getValue();
+    fetch('{{ url_for("api_sql_complete") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign(getSqlValidationRequestPayload(text), {
+        cursor_index: editor.indexFromPos(cursor)
+      }))
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var items = Array.isArray(data && data.items) ? data.items : [];
+        callback({
+          list: items.map(function(item) {
+            return {
+              text: item.text,
+              displayText: item.displayText || item.text,
+              className: 'cm-hint-' + (item.kind || 'sql'),
+              hint: function(cm, self, picked) {
+                cm.replaceRange(
+                  picked.text,
+                  cm.posFromIndex(item.replace_from || 0),
+                  cm.posFromIndex(item.replace_to || 0)
+                );
+              },
+              render: function(el, self, picked) {
+                el.textContent = picked.displayText || picked.text;
+                if (item.detail) {
+                  var meta = document.createElement('span');
+                  meta.className = 'cm-hint-kind';
+                  meta.textContent = item.detail;
+                  el.appendChild(meta);
+                }
+              }
+            };
+          }),
+          from: cursor,
+          to: cursor
+        });
+      })
+      .catch(function() {
+        callback({ list: [], from: cursor, to: cursor });
+      });
+  }
+
+  function maybeTriggerSqlCompletions(editor, event) {
+    if (!editor || !event) return;
+    if (editor.getOption('readOnly')) return;
+    var key = event.key || '';
+    var isWord = /^[A-Za-z_]$/.test(key);
+    var isTrigger = key === '.' || key === '"' || key === "'" || (event.ctrlKey && key === ' ');
+    if (!isWord && !isTrigger) return;
+    CodeMirror.showHint(editor, sqlHintProvider, {
+      completeSingle: false,
+      alignWithWord: true
+    });
+  }
+
+  function sqlHintProvider(editor, callback) {
+    requestSqlCompletions(editor, callback);
+  }
+  sqlHintProvider.async = true;
+
+  function validateSqlSyntax(textarea, force) {
+    if (!textarea) {
+      return Promise.resolve({ ok: true, contains_code: false, issues: [] });
+    }
+    var text = getEditorValue(textarea);
+    var statusEl = getSqlStatusElement(textarea);
+    invalidateSqlValidationCache();
+    if (!force) {
+      var cached = sqlValidationState[textarea.id];
+      if (cached && cached.text === text) {
+        return Promise.resolve(cached);
+      }
+    }
+    setSqlStatus(statusEl, 'checking', getRuntimeUi().status_checking || 'Проверяем синтаксис PostgreSQL...');
+    sqlValidationSeq[textarea.id] = (sqlValidationSeq[textarea.id] || 0) + 1;
+    var seq = sqlValidationSeq[textarea.id];
+    return fetch('{{ url_for("api_sql_validate") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getSqlValidationRequestPayload(text))
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (sqlValidationSeq[textarea.id] !== seq) {
+          return sqlValidationState[textarea.id] || { ok: false, contains_code: false, error: 'Проверка устарела.' };
+        }
+        var result = {
+          ok: !!(data && data.ok),
+          contains_code: !!(data && data.contains_code),
+          error: data && data.error ? String(data.error) : '',
+          issues: Array.isArray(data && data.issues) ? data.issues : [],
+          text: text
+        };
+        sqlValidationState[textarea.id] = result;
+        applySqlIssues(textarea, result.issues);
+        if (result.issues && result.issues.length) {
+          setSqlStatus(statusEl, 'warning', getRuntimeUi().status_warning || 'Есть предупреждения SQL');
+        } else if (result.ok) {
+          setSqlStatus(statusEl, 'valid', getRuntimeUi().status_valid || 'PostgreSQL: синтаксис корректен');
+        } else {
+          setSqlStatus(statusEl, 'invalid', getRuntimeUi().status_invalid || 'Ошибка синтаксиса PostgreSQL');
+        }
+        return result;
+      })
+      .catch(function(err) {
+        var failed = {
+          ok: false,
+          contains_code: true,
+          error: (err && err.message) ? err.message : 'Ошибка сети',
+          issues: [{
+            title: 'Не удалось проверить код',
+            message: (err && err.message) ? err.message : 'Ошибка сети при проверке кода.',
+            hint: 'Проверьте соединение с приложением и повторите ввод.',
+            severity: 'warning'
+          }],
+          text: text
+        };
+        sqlValidationState[textarea.id] = failed;
+        applySqlIssues(textarea, failed.issues);
+        setSqlStatus(statusEl, 'invalid', 'Не удалось проверить код');
+        return failed;
+      });
+  }
+
+  function scheduleSqlValidation(textarea) {
+    if (!textarea) return;
+    var statusEl = getSqlStatusElement(textarea);
+    clearTimeout(sqlValidationTimers[textarea.id]);
+    setSqlStatus(statusEl, 'checking', getRuntimeUi().status_checking || 'Проверяем синтаксис PostgreSQL...');
+    sqlValidationTimers[textarea.id] = setTimeout(function() {
+      validateSqlSyntax(textarea, true);
+    }, 450);
+  }
+
+  function initSqlEditor(textarea) {
+    if (!textarea || typeof CodeMirror === 'undefined') return null;
+    var editor = CodeMirror.fromTextArea(textarea, {
+      mode: currentRuntimeDescriptor && currentRuntimeDescriptor.editor_mode ? currentRuntimeDescriptor.editor_mode : 'text/x-pgsql',
+      theme: 'gpa-sql',
+      lineNumbers: true,
+      gutters: ['CodeMirror-linenumbers', 'sql-lint-gutter'],
+      lineWrapping: true,
+      viewportMargin: Infinity,
+      indentUnit: 2,
+      tabSize: 2,
+      extraKeys: {
+        'Ctrl-Space': function(cm) {
+          CodeMirror.showHint(cm, sqlHintProvider, { completeSingle: false, alignWithWord: true });
+        },
+        'Alt-Enter': function(cm) {
+          var textareaId = textarea.id;
+          var state = sqlValidationState[textareaId];
+          var firstIssue = state && state.issues && state.issues[0];
+          if (!firstIssue) return;
+          var line = Math.max(0, (firstIssue.line || 1) - 1);
+          var ch = Math.max(0, (firstIssue.column || 1) - 1);
+          showSqlQuickFixPopover(textarea, firstIssue, line, ch);
+        }
+      }
+    });
+    sqlEditors[textarea.id] = editor;
+    editor.on('change', function(cm) {
+      textarea.value = cm.getValue();
+      invalidateSqlValidationCache();
+      saveFormData();
+      scheduleSqlValidation(textarea);
+    });
+    editor.on('keyup', function(cm, event) {
+      maybeTriggerSqlCompletions(cm, event);
+    });
+    editor.on('focus', function() {
+      hideSqlQuickFixPopover();
+    });
+    textarea.value = editor.getValue();
+    scheduleSqlValidation(textarea);
+    return editor;
+  }
+
+  function stripSqlComments(text) {
+    return String(text || '')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/--.*$/gm, ' ')
+      .trim();
+  }
+
+  function hasSqlCode(text) {
+    var cleaned = stripSqlComments(text);
+    if (!cleaned) return false;
+    var codePattern = /\b(create|replace|function|select|insert|update|delete|merge|with|from|join|where|group\s+by|order\s+by|into|truncate|analyze|explain|declare|begin|returns|language|execute|call|alter|drop|grant|revoke|values)\b/i;
+    return codePattern.test(cleaned);
+  }
+
+  function showAgentDescriptionWarningModal(message) {
+    if (agentDescriptionWarningMessage) {
+      agentDescriptionWarningMessage.textContent = message || 'Описание слишком общее. Уточните, какой именно код должен быть сгенерирован.';
+    }
+    var modalEl = document.getElementById('agentDescriptionWarningModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+  }
+
+  function setAgentInputMode(mode) {
+    var descriptionMode = mode !== 'script';
+    if (agentGenerate) agentGenerate.checked = descriptionMode;
+    if (agentDescriptionModeBtn) agentDescriptionModeBtn.classList.toggle('is-active', descriptionMode);
+    if (agentScriptModeBtn) agentScriptModeBtn.classList.toggle('is-active', !descriptionMode);
+    if (agentDescriptionBlock) agentDescriptionBlock.style.display = descriptionMode ? 'block' : 'none';
+    if (agentScriptHint) agentScriptHint.style.display = descriptionMode ? 'none' : 'block';
+    if (!descriptionMode && agentScriptTextarea && ddlTextarea) {
+      setEditorValue(agentScriptTextarea, getEditorValue(ddlTextarea) || getEditorValue(agentScriptTextarea) || '');
+      scheduleSqlValidation(agentScriptTextarea);
+    }
+  }
+
+  function openAgentSettingsModal(actionName) {
+    if (actionName) window.pendingAgentAction = actionName;
+    var modalEl = document.getElementById('agentCredentialsModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+  }
+
+  function resumePendingAgentAction() {
+    var pending = window.pendingAgentAction;
+    window.pendingAgentAction = null;
+    if (!pending) return;
+    if (pending === 'generate') {
+      if (btnGenerateQuery) btnGenerateQuery.click();
+      return;
+    }
+    if (pending === 'submit') {
+      form.requestSubmit();
+    }
+  }
+
+  preparePaneButtons.forEach(function(button) {
+    button.addEventListener('click', function() {
+      if (button.classList.contains('is-disabled')) return;
+      setPreparePane(button.dataset.prepareViewTarget);
+    });
+  });
+
+  if (agentDescriptionModeBtn) {
+    agentDescriptionModeBtn.addEventListener('click', function() {
+      setAgentInputMode('description');
+      setPreparePane('agent');
+    });
+  }
+
+  if (agentScriptModeBtn) {
+    agentScriptModeBtn.addEventListener('click', function() {
+      setAgentInputMode('script');
+      setPreparePane('agent');
+    });
+  }
+
   function updateToggleStates() {
     var stateMode = document.getElementById('state_mode');
-    var stateAgentInput = document.getElementById('state_agent_input');
-    var statePlan = document.getElementById('state_plan');
     var stateDb = document.getElementById('state_db');
     var planAgent = document.getElementById('plan_agent');
-    var planSourceHelp = document.getElementById('plan_source_help');
-    var pureAgentOn = pureAgentSwitch && pureAgentSwitch.checked;
-    var hybridOn = modeHybrid && modeHybrid.checked;
-    var logicOn = logicModeSwitch && logicModeSwitch.checked;
-    var modeLabel = pureAgentOn ? 'Чистый агент' : (hybridOn ? 'Гибрид' : (logicOn ? 'Логика' : '—'));
+    var scenario = getSelectedScenario();
+    var stackLabel = getRuntimeUi().stack_label || getSelectedStack();
+    var pureAgentOn = scenario === 'agent';
+    var hybridOn = scenario === 'hybrid';
+    var modeLabel = pureAgentOn ? 'Агент' : (hybridOn ? 'Гибрид' : 'Аналитика');
     if (stateMode) stateMode.textContent = modeLabel;
-    if (stateAgentInput) stateAgentInput.textContent = (agentGenerate && agentGenerate.checked) ? 'По описанию' : 'Вставка';
-    if (stateDb) stateDb.textContent = (useDbCheck && useDbCheck.checked) ? 'С БД' : 'Без БД';
+    if (stateDb) stateDb.textContent = pureAgentOn ? 'Без runtime' : ('С ' + stackLabel);
+    if (prepareAgentNav) {
+      prepareAgentNav.classList.toggle('is-disabled', !pureAgentOn);
+    }
+    if (scenarioHelp) {
+      scenarioHelp.textContent = getScenarioHelpText(scenario);
+    }
+    if (dbSettingsSummary) {
+      dbSettingsSummary.textContent = pureAgentOn
+        ? 'Сценарий агент может работать без подключения к runtime.'
+        : (hybridOn
+          ? 'Гибрид использует и runtime, и агентный контур для анализа выбранного стека.'
+          : ('Логика полностью работает через ' + stackLabel + '.'));
+    }
+    if (pureAgentOn) {
+      setPreparePane('agent');
+    } else if (prepareAgentNav && prepareAgentNav.classList.contains('is-active')) {
+      setPreparePane('source');
+    }
     if (planAgent) {
       if (pureAgentOn) {
         planAgent.checked = true;
         planAgent.disabled = true;
-        if (statePlan) statePlan.textContent = 'Всегда вкл';
-        if (planSourceHelp) planSourceHelp.textContent = 'В чистом агенте план всегда от GigaChat.';
       } else if (hybridOn) {
-        planAgent.disabled = false;
-        if (statePlan) statePlan.textContent = planAgent.checked ? 'План от агента' : 'План из БД';
-        if (planSourceHelp) planSourceHelp.textContent = 'В гибриде можно выбрать: план от агента или EXPLAIN из БД.';
+        planAgent.checked = true;
+        planAgent.disabled = true;
       } else {
         planAgent.checked = false;
         planAgent.disabled = true;
-        if (statePlan) statePlan.textContent = 'План из БД';
-        if (planSourceHelp) planSourceHelp.textContent = 'В режиме логики план только из EXPLAIN в БД.';
       }
     }
   }
   function toggleHybridOptions() {
-    const showHybrid = (pureAgentSwitch && pureAgentSwitch.checked) || (modeHybrid && modeHybrid.checked);
-    hybridOptions.style.display = showHybrid ? 'block' : 'none';
-    agentDescriptionBlock.style.display = (agentGenerate && agentGenerate.checked) ? 'block' : 'none';
+    const showHybrid = pureAgentSwitch && pureAgentSwitch.checked;
+    hybridOptions.style.display = showHybrid ? '' : 'none';
+    if (!showHybrid) setAgentInputMode('description');
     updateToggleStates();
-    var strip = document.getElementById('token-strip');
-    if (strip) strip.style.display = showHybrid ? 'flex' : 'none';
-    if (showHybrid) {
+    var scenario = getSelectedScenario();
+    var needsGiga = scenario === 'agent' || scenario === 'hybrid';
+    if (needsGiga) {
       updateAgentAuthStatus();
       updateTokenStrip();
     }
+    var activePane = 'source';
+    preparePanes.forEach(function(section) {
+      if (section.classList.contains('is-active')) activePane = section.dataset.preparePane || 'source';
+    });
+    setPreparePane(activePane);
   }
   function updateTokenStrip() {
     var strip = document.getElementById('token-strip');
@@ -485,10 +2095,25 @@
         if (elTotal) elTotal.textContent = total.toLocaleString();
         if (elPrompt) elPrompt.textContent = prompt.toLocaleString();
         if (elComp) elComp.textContent = comp.toLocaleString();
+        var elPrec = document.getElementById('token-precached');
+        if (elPrec) elPrec.textContent = (u.precached_prompt_tokens || 0).toLocaleString();
         if (elSess) elSess.textContent = (u.sessions || 0).toLocaleString();
         if (elAv) {
           elAv.textContent = av != null ? av.toLocaleString() : '—';
           elAv.classList.toggle('na', av == null);
+          var src = data.balance_source || '';
+          var be = data.balance_error || '';
+          if (src === 'freemium_estimate') {
+            elAv.title = 'Оценка: лимит GigaChat Lite минус учтённые total_tokens. GET /balance при pay-as-you-go недоступен (403).';
+          } else if (src === 'get_balance' && data.balance_by_model && data.balance_by_model.length) {
+            elAv.title = 'Остаток из GET /balance по моделям: ' + data.balance_by_model.map(function(x) {
+              return (x.model || '?') + '=' + (x.tokens != null ? x.tokens : '—');
+            }).join(', ');
+          } else if (be) {
+            elAv.title = be;
+          } else {
+            elAv.removeAttribute('title');
+          }
         }
         var el429 = document.getElementById('token-rate-limit');
         if (el429) {
@@ -543,24 +2168,29 @@
     if (logicModeSwitch) logicModeSwitch.checked = false;
     if (document.getElementById('plan_agent')) { document.getElementById('plan_agent').checked = true; document.getElementById('plan_agent').disabled = true; }
     if (useDbCheck) { useDbCheck.checked = false; useDbCheck.disabled = true; }
-    if (agentGenerate) agentGenerate.disabled = false;
+    if (agentGenerate) { agentGenerate.checked = true; agentGenerate.disabled = false; }
     if (dbFields) dbFields.style.display = 'none';
     if (formPureAgent) formPureAgent.value = '1';
+    delete form.dataset.dbValidated;
     toggleHybridOptions();
     updateToggleStates();
+    enforceDbGateForScenario({ silent: true });
+    refreshRuntimeDescriptor();
   }
   function applyHybridState() {
     var formPureAgent = document.getElementById('form_pure_agent_mode');
     if (pureAgentSwitch) pureAgentSwitch.checked = false;
     if (modeHybrid) modeHybrid.checked = true;
     if (logicModeSwitch) logicModeSwitch.checked = false;
-    if (document.getElementById('plan_agent')) { document.getElementById('plan_agent').disabled = false; }
+    if (document.getElementById('plan_agent')) { document.getElementById('plan_agent').checked = true; document.getElementById('plan_agent').disabled = true; }
     if (useDbCheck) { useDbCheck.checked = true; useDbCheck.disabled = true; }
-    if (agentGenerate) agentGenerate.disabled = false;
+    if (agentGenerate) { agentGenerate.checked = true; agentGenerate.disabled = false; }
     if (formPureAgent) formPureAgent.value = '';
     if (dbFields) dbFields.style.display = useDbCheck.checked ? 'block' : 'none';
     toggleHybridOptions();
     updateToggleStates();
+    enforceDbGateForScenario();
+    refreshRuntimeDescriptor();
   }
   function applyLogicState() {
     var formPureAgent = document.getElementById('form_pure_agent_mode');
@@ -574,16 +2204,8 @@
     if (dbFields) dbFields.style.display = 'block';
     toggleHybridOptions();
     updateToggleStates();
-  }
-  function syncToPureAgentIfConfigMatches() {
-    if (!pureAgentSwitch || !modeHybrid || !useDbCheck || modeUpdating) return;
-    var planAgent = document.getElementById('plan_agent');
-    if (modeHybrid.checked && !pureAgentSwitch.checked && !logicModeSwitch.checked && !useDbCheck.checked && planAgent && planAgent.checked) {
-      modeUpdating = true;
-      pureAgentSwitch.checked = true;
-      applyPureAgentState();
-      modeUpdating = false;
-    }
+    enforceDbGateForScenario();
+    refreshRuntimeDescriptor();
   }
 
   if (pureAgentSwitch) {
@@ -611,21 +2233,9 @@
       modeUpdating = false;
     });
   }
-  function syncToLogicIfPlanOff() {
-    if (!modeHybrid || !logicModeSwitch || !pureAgentSwitch || modeUpdating) return;
-    var planAgent = document.getElementById('plan_agent');
-    if (modeHybrid.checked && !pureAgentSwitch.checked && !logicModeSwitch.checked && planAgent && !planAgent.checked) {
-      modeUpdating = true;
-      logicModeSwitch.checked = true;
-      applyLogicState();
-      modeUpdating = false;
-    }
-  }
   var planAgentEl = document.getElementById('plan_agent');
   if (planAgentEl) {
     planAgentEl.addEventListener('change', function() {
-      syncToPureAgentIfConfigMatches();
-      syncToLogicIfPlanOff();
       updateToggleStates();
     });
   }
@@ -642,11 +2252,22 @@
       modeUpdating = false;
     });
   }
+  if (stackSelector) {
+    stackSelector.addEventListener('change', function() {
+      invalidateDbValidation();
+      saveFormData();
+      refreshRuntimeDescriptor().then(function() {
+        validateForm();
+        scheduleSqlValidation(ddlTextarea);
+        if (agentScriptTextarea) scheduleSqlValidation(agentScriptTextarea);
+        if (generatedSqlPreview) scheduleSqlValidation(generatedSqlPreview);
+      });
+    });
+  }
   if (agentGenerate) agentGenerate.addEventListener('change', toggleHybridOptions);
   if (useDbCheck) useDbCheck.addEventListener('change', function() {
     if (!pureAgentSwitch || !pureAgentSwitch.checked) {
       if (dbFields) dbFields.style.display = useDbCheck.checked ? 'block' : 'none';
-      syncToPureAgentIfConfigMatches();
       toggleHybridOptions();
       updateToggleStates();
     }
@@ -664,12 +2285,9 @@
         return;
       }
       if (!window.agentCredentialsInMemory && !window.agentCredentialsFromKey) {
-        agentGenerateStatus.textContent = 'Введите ключ в модальном окне «Ввести ключ» и нажмите «Применить».';
+        agentGenerateStatus.textContent = 'Сначала выберите API-профиль в модальном окне.';
         agentGenerateStatus.className = 'ms-2 small text-danger';
-        var keyModal = document.getElementById('agentCredentialsModal');
-        if (keyModal && typeof bootstrap !== 'undefined') {
-          bootstrap.Modal.getOrCreateInstance(keyModal).show();
-        }
+        openAgentSettingsModal('generate');
         return;
       }
       btnGenerateQuery.disabled = true;
@@ -685,7 +2303,8 @@
           with_review: true,
           credentials: window.agentCredentialsInMemory || null,
           use_env_credentials: !!window.agentCredentialsFromKey,
-          scope: window.agentScopeInMemory || 'GIGACHAT_API_PERS'
+          scope: window.agentScopeInMemory || 'GIGACHAT_API_PERS',
+          chat_model: window.agentSelectedChatModel || null
         };
         const r = await fetch('{{ url_for("api_agent_generate") }}', {
           method: 'POST',
@@ -693,6 +2312,12 @@
           body: JSON.stringify(payload)
         });
         const data = await r.json().catch(() => ({}));
+        var validationFailed = !!(
+          data && (
+            (data.warning && /недостаточно информации/i.test(String(data.warning))) ||
+            (data.analysis && data.analysis.context_sufficient === false)
+          )
+        );
         if (!r.ok) {
           if (r.status === 429 || (data && data.rate_limit_429)) {
             window.rateLimit429Count = (window.rateLimit429Count || 0) + 1;
@@ -713,9 +2338,21 @@
           }
           return;
         }
-        if (data.sql_or_ddl) {
-          ddlTextarea.value = data.sql_or_ddl;
-          agentGenerateStatus.textContent = 'Готово. SQL ниже — на проверку: можно править, уточнить описание или запустить расчёт.';
+        if (validationFailed) {
+          if (generatedSqlWindow) generatedSqlWindow.style.display = 'none';
+          if (generatedSqlPreview) setEditorValue(generatedSqlPreview, '');
+          agentGenerateStatus.textContent = 'Недостаточно информации для генерации. Уточните описание.';
+          agentGenerateStatus.className = 'ms-2 small text-warning';
+        } else if (data.sql_or_ddl) {
+          setEditorValue(ddlTextarea, data.sql_or_ddl);
+          if (agentScriptTextarea) setEditorValue(agentScriptTextarea, data.sql_or_ddl);
+          if (generatedSqlPreview) setEditorValue(generatedSqlPreview, data.sql_or_ddl);
+          scheduleSqlValidation(ddlTextarea);
+          scheduleSqlValidation(agentScriptTextarea);
+          scheduleSqlValidation(generatedSqlPreview);
+          if (generatedSqlWindow) generatedSqlWindow.style.display = 'block';
+          setTimeout(refreshSqlEditors, 0);
+          agentGenerateStatus.textContent = 'Готово. Результат открыт в отдельном окне ниже.';
           agentGenerateStatus.className = 'ms-2 small text-success';
         } else {
           agentGenerateStatus.textContent = 'Пустой ответ от агента.';
@@ -725,6 +2362,9 @@
           var parts = [];
           if (data.warning) {
             parts.push('<div class="text-warning mb-1">⚠️ ' + (data.warning).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>');
+            if (validationFailed) {
+              showAgentDescriptionWarningModal(String(data.warning));
+            }
           }
           if (data.analysis && data.analysis.intent) {
             var a = data.analysis;
@@ -732,6 +2372,13 @@
             if (a.signature_params && a.signature_params.length) line += '; параметры: ' + a.signature_params.join(', ');
             if (a.return_type) line += '; возврат: ' + a.return_type;
             parts.push('<div class="text-muted">' + line.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>');
+          }
+          if (data.code_revision_ran) {
+            if (data.revision_applied) {
+              parts.push('<div class="text-muted small">Вторая проходка (ревизия): код скорректирован по правилам цепочки данных и согласованности.</div>');
+            } else {
+              parts.push('<div class="text-muted small">Ревизия выполнена; явных правок не потребовалось.</div>');
+            }
           }
           reviewBlock.innerHTML = parts.join('');
           reviewBlock.style.display = parts.length ? 'block' : 'none';
@@ -746,11 +2393,31 @@
     });
   }
 
+  if (acceptGeneratedSqlBtn && generatedSqlPreview && ddlTextarea) {
+    acceptGeneratedSqlBtn.addEventListener('click', function() {
+      var previewValue = getEditorValue(generatedSqlPreview);
+      setEditorValue(ddlTextarea, previewValue);
+      if (agentScriptTextarea) setEditorValue(agentScriptTextarea, previewValue);
+      scheduleSqlValidation(ddlTextarea);
+      scheduleSqlValidation(agentScriptTextarea);
+      setPreparePane('source');
+      saveFormData();
+    });
+  }
+
   // Профили (Client ID + Scope): agent_profiles.json в проекте — можно редактировать вручную
   function loadAgentMatches() {
     return fetch('{{ url_for("api_agent_profiles_get") }}')
       .then(function(r) { return r.json(); })
-      .then(function(arr) { return Array.isArray(arr) ? arr : []; })
+      .then(function(body) {
+        // Contract-safe API: { ok, data: [...], items: [...] }; раньше мог приходить сырой массив
+        if (Array.isArray(body)) return body;
+        var d = body && body.data;
+        if (Array.isArray(d)) return d;
+        var it = body && body.items;
+        if (Array.isArray(it)) return it;
+        return [];
+      })
       .catch(function() { return []; });
   }
   function saveAgentMatches(matches) {
@@ -760,13 +2427,38 @@
       body: JSON.stringify(matches)
     }).catch(function() {});
   }
-  function addOrUpdateMatch(name, clientId, scope) {
+  function addOrUpdateMatch(name, clientId, scope, chatModel, embeddingModel) {
     if (!name || !name.trim()) return Promise.resolve();
-    var item = { name: name.trim(), clientId: (clientId || '').trim(), scope: (scope || 'GIGACHAT_API_PERS').trim() };
+    var nm = name.trim();
+    var cm = (chatModel || '').trim();
+    var em = (embeddingModel || '').trim();
     return loadAgentMatches().then(function(matches) {
-      var idx = matches.findIndex(function(m) { return m.name === item.name; });
+      var idx = matches.findIndex(function(m) { return m.name === nm; });
+      var prev = idx >= 0 ? Object.assign({}, matches[idx]) : {};
+      var item = Object.assign({}, prev, {
+        name: nm,
+        clientId: (clientId || '').trim() || (prev.clientId || ''),
+        scope: (scope || 'GIGACHAT_API_PERS').trim()
+      });
+      if (cm) item.chatModel = cm; else item.chatModel = '';
+      if (em) item.embeddingModel = em; else item.embeddingModel = '';
       if (idx >= 0) matches[idx] = item;
       else matches.push(item);
+      return saveAgentMatches(matches);
+    });
+  }
+
+  function saveProfileModelsOnly(profileName, chatModel, embeddingModel) {
+    var pname = (profileName || '').trim();
+    if (!pname) return Promise.resolve();
+    var cm = (chatModel || '').trim();
+    var em = (embeddingModel || '').trim();
+    return loadAgentMatches().then(function(matches) {
+      var idx = matches.findIndex(function(m) { return m.name === pname; });
+      if (idx < 0) return;
+      matches[idx] = Object.assign({}, matches[idx]);
+      if (cm) matches[idx].chatModel = cm; else matches[idx].chatModel = '';
+      if (em) matches[idx].embeddingModel = em; else matches[idx].embeddingModel = '';
       return saveAgentMatches(matches);
     });
   }
@@ -783,7 +2475,7 @@
     var btnApply = document.getElementById('agentCredentialsApply');
     if (!modal || !btnApply) return;
 
-    function refreshMatchSelect() {
+    function refreshMatchSelect(done) {
       loadAgentMatches().then(function(matches) {
         matchSelect.innerHTML = '<option value="">— новый —</option>';
         matches.forEach(function(m) {
@@ -794,6 +2486,7 @@
           opt.textContent = m.name + suffix;
           matchSelect.appendChild(opt);
         });
+        if (typeof done === 'function') done(matches);
       });
     }
 
@@ -804,15 +2497,6 @@
         if (scopeSelect) scopeSelect.value = m.scope || 'GIGACHAT_API_PERS';
         if (matchNameInput) matchNameInput.value = m.name;
       }
-    }
-
-    function resetFormToDefault() {
-      if (matchSelect) matchSelect.value = '';
-      if (matchNameInput) matchNameInput.value = '';
-      if (input) input.value = '';
-      if (clientIdInput) clientIdInput.value = '';
-      if (scopeSelect) scopeSelect.value = 'GIGACHAT_API_PERS';
-      if (msg) { msg.innerHTML = ''; msg.style.display = 'none'; }
     }
 
     function updateEnvTokenMessage(profileName, matches) {
@@ -847,17 +2531,22 @@
     matchSelect.addEventListener('change', function() {
       var v = matchSelect.value;
       if (input) input.value = '';
-      if (v) {
-        loadAgentMatches().then(function(matches) {
-          selectMatch(v, matches);
-          updateEnvTokenMessage(v, matches);
-        });
-      } else {
-        if (clientIdInput) clientIdInput.value = '';
-        if (scopeSelect) scopeSelect.value = 'GIGACHAT_API_PERS';
-        if (matchNameInput) matchNameInput.value = '';
-        updateEnvTokenMessage('', []);
-      }
+      ensureAgentModelOptionsLoaded(function() {
+        if (v) {
+          loadAgentMatches().then(function(matches) {
+            selectMatch(v, matches);
+            var prof = matches.find(function(x) { return x.name === v; });
+            applyModelsToSelectsFromProfile(prof);
+            updateEnvTokenMessage(v, matches);
+          });
+        } else {
+          if (clientIdInput) clientIdInput.value = '';
+          if (scopeSelect) scopeSelect.value = 'GIGACHAT_API_PERS';
+          if (matchNameInput) matchNameInput.value = '';
+          applyModelsToSelectsFromProfile(null);
+          updateEnvTokenMessage('', []);
+        }
+      });
     });
 
     function updateCredentialsEmptyState() {
@@ -871,9 +2560,36 @@
     }
 
     modal.addEventListener('show.bs.modal', function() {
-      refreshMatchSelect();
-      resetFormToDefault();
+      if (msg) { msg.innerHTML = ''; msg.style.display = 'none'; }
+      refreshMatchSelect(function(matches) {
+        ensureAgentModelOptionsLoaded(function() {
+          var last = '';
+          try { last = (localStorage.getItem('gpa_agent_last_profile_name') || '').trim(); } catch (e) {}
+          var optExists = false;
+          if (last && matchSelect) {
+            for (var i = 0; i < matchSelect.options.length; i++) {
+              if (matchSelect.options[i].value === last) { optExists = true; break; }
+            }
+          }
+          if (last && optExists) {
+            matchSelect.value = last;
+            var prof = (matches || []).find(function(x) { return x.name === last; });
+            selectMatch(last, matches || []);
+            applyModelsToSelectsFromProfile(prof || null);
+            updateEnvTokenMessage(last, matches || []);
+          } else {
+            applyModelsToSelectsFromProfile(null);
+            updateEnvTokenMessage('', []);
+          }
+          updateCredentialsEmptyState();
+        });
+      });
       setTimeout(updateCredentialsEmptyState, 150);
+    });
+    modal.addEventListener('hidden.bs.modal', function() {
+      if (!(window.agentCredentialsInMemory || window.agentCredentialsFromKey)) {
+        window.pendingAgentAction = null;
+      }
     });
 
     [input, matchNameInput, clientIdInput, matchSelect, scopeSelect].forEach(function(el) {
@@ -883,6 +2599,21 @@
         el.addEventListener('paste', function() { setTimeout(updateCredentialsEmptyState, 10); });
       }
     });
+    var agentProfileChatModelEl = document.getElementById('agentProfileChatModel');
+    var agentProfileEmbeddingModelEl = document.getElementById('agentProfileEmbeddingModel');
+    [agentProfileChatModelEl, agentProfileEmbeddingModelEl].forEach(function(el) {
+      if (el) {
+        el.addEventListener('change', updateCredentialsEmptyState);
+      }
+    });
+
+    var btnProbe = document.getElementById('agentProbeModelsBtn');
+    if (btnProbe) {
+      btnProbe.addEventListener('click', function(ev) {
+        ev.preventDefault();
+        runAgentModelProbeModal();
+      });
+    }
 
     btnApply.addEventListener('click', async function() {
       var token = (input && input.value || '').trim();
@@ -946,14 +2677,22 @@
         updateAgentAuthStatus();
         updateTokenStrip();
         if (agentGenerateStatus) agentGenerateStatus.textContent = '';
+        var chatMEnv = (document.getElementById('agentProfileChatModel') && document.getElementById('agentProfileChatModel').value || '').trim();
+        var embMEnv = (document.getElementById('agentProfileEmbeddingModel') && document.getElementById('agentProfileEmbeddingModel').value || '').trim();
+        persistAgentModelSelection();
+        var pnameEnv = (matchSelect && matchSelect.value || '').trim();
+        try { if (pnameEnv) localStorage.setItem('gpa_agent_last_profile_name', pnameEnv); } catch (e) {}
         btnApply.disabled = false;
-        setTimeout(function() {
-          if (msg) { msg.innerHTML = ''; msg.className = 'mt-3'; msg.style.display = 'none'; }
-          if (typeof bootstrap !== 'undefined' && modal) {
-            var m = bootstrap.Modal.getInstance(modal) || new bootstrap.Modal(modal);
-            m.hide();
-          }
-        }, 1500);
+        saveProfileModelsOnly(pnameEnv, chatMEnv, embMEnv).catch(function() {}).then(function() {
+          setTimeout(function() {
+            if (msg) { msg.innerHTML = ''; msg.className = 'mt-3'; msg.style.display = 'none'; }
+            if (typeof bootstrap !== 'undefined' && modal) {
+              var m = bootstrap.Modal.getInstance(modal) || new bootstrap.Modal(modal);
+              m.hide();
+            }
+            resumePendingAgentAction();
+          }, 600);
+        });
         return;
       }
 
@@ -1010,7 +2749,18 @@
       window.agentCredentialsInMemory = token;
       window.agentCredentialsFromKey = false;
       window.agentScopeInMemory = scope;
-      if (name) await addOrUpdateMatch(name, clientId, scope);
+      var chatMTok = (document.getElementById('agentProfileChatModel') && document.getElementById('agentProfileChatModel').value || '').trim();
+      var embMTok = (document.getElementById('agentProfileEmbeddingModel') && document.getElementById('agentProfileEmbeddingModel').value || '').trim();
+      persistAgentModelSelection();
+      try {
+        var lpTok = (matchSelect && matchSelect.value) || name || '';
+        if (lpTok) localStorage.setItem('gpa_agent_last_profile_name', lpTok.trim());
+      } catch (e) {}
+      if (name) {
+        await addOrUpdateMatch(name, clientId, scope, chatMTok, embMTok);
+      } else if (selectedProfileName) {
+        await saveProfileModelsOnly(selectedProfileName, chatMTok, embMTok);
+      }
       updateAgentAuthStatus();
       updateTokenStrip();
       if (agentGenerateStatus) agentGenerateStatus.textContent = '';
@@ -1022,7 +2772,8 @@
           var m = bootstrap.Modal.getInstance(modal) || new bootstrap.Modal(modal);
           m.hide();
         }
-      }, 1500);
+        resumePendingAgentAction();
+      }, 600);
     });
   })();
 
@@ -1061,13 +2812,111 @@
     hostInput.addEventListener('paste', function() { setTimeout(syncStandToHost, 10); });
   }
 
+  function openDbSettingsModal(message) {
+    if (dbSettingsMessage) {
+      if (message) {
+        dbSettingsMessage.textContent = message;
+        dbSettingsMessage.className = 'alert alert-warning py-2 small';
+        dbSettingsMessage.style.display = 'block';
+      } else {
+        dbSettingsMessage.textContent = '';
+        dbSettingsMessage.style.display = 'none';
+      }
+    }
+    var modalEl = document.getElementById('dbSettingsModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+  }
+
+  jsonImportButtons.forEach(function(button) {
+    var targetId = button.dataset.jsonImportTarget;
+    var fileInputId = button.dataset.jsonImportFile;
+    var fileInput = document.getElementById(fileInputId);
+    if (!targetId || !fileInput) return;
+    button.addEventListener('click', function() {
+      fileInput.click();
+    });
+    fileInput.addEventListener('change', function() {
+      if (fileInput.files && fileInput.files[0]) {
+        readJsonFileIntoTarget(fileInput.files[0], targetId);
+      }
+      fileInput.value = '';
+    });
+  });
+
+  jsonSampleButtons.forEach(function(button) {
+    var targetId = button.dataset.jsonSampleTarget;
+    var kind = button.dataset.jsonSampleKind;
+    button.addEventListener('click', function() {
+      if (!targetId || !kind || !JSON_SAMPLES[kind]) return;
+      prettifyJsonIntoTarget(targetId, JSON_SAMPLES[kind]);
+    });
+  });
+
+  jsonClearButtons.forEach(function(button) {
+    var targetId = button.dataset.jsonClearTarget;
+    button.addEventListener('click', function() {
+      if (!targetId) return;
+      prettifyJsonIntoTarget(targetId, '');
+    });
+  });
+
+  jsonPresetSaveButtons.forEach(function(button) {
+    var scope = button.dataset.jsonPresetSave;
+    var targetId = button.dataset.jsonPresetTarget;
+    button.addEventListener('click', async function() {
+      if (!scope || !targetId) return;
+      var target = document.getElementById(targetId);
+      var raw = target ? String(target.value || '').trim() : '';
+      if (!raw) return;
+      var presetName = window.prompt('Имя preset', '');
+      if (!presetName) return;
+      var normalizedName = presetName.trim();
+      if (!normalizedName) return;
+      setJsonPreset(scope, normalizedName, raw);
+      await persistJsonPresetToServer(scope, normalizedName, raw);
+      renderJsonPresetSelect(scope);
+      var select = document.querySelector('[data-json-preset-select="' + scope + '"]');
+      if (select) select.value = normalizedName;
+    });
+  });
+
+  jsonPresetApplyButtons.forEach(function(button) {
+    var scope = button.dataset.jsonPresetApply;
+    var targetId = button.dataset.jsonPresetTarget;
+    button.addEventListener('click', function() {
+      if (!scope || !targetId) return;
+      var select = document.querySelector('[data-json-preset-select="' + scope + '"]');
+      if (!select || !select.value) return;
+      var presets = getJsonPresetsForScope(scope);
+      if (!presets[select.value]) return;
+      prettifyJsonIntoTarget(targetId, presets[select.value]);
+    });
+  });
+
+  jsonPresetDeleteButtons.forEach(function(button) {
+    var scope = button.dataset.jsonPresetDelete;
+    button.addEventListener('click', async function() {
+      if (!scope) return;
+      var select = document.querySelector('[data-json-preset-select="' + scope + '"]');
+      if (!select || !select.value) return;
+      var presetName = select.value;
+      deleteJsonPreset(scope, presetName);
+      await deleteJsonPresetFromServer(scope, presetName);
+      renderJsonPresetSelect(scope);
+    });
+  });
+
   useDbCheck.addEventListener('change', function() {
     dbFields.style.display = this.checked ? 'block' : 'none';
+    invalidateDbValidation();
     validateForm();
   });
 
   // Валидация перед отправкой (синхронная часть; проверка БД — в submit через модальные окна)
   function validateForm() {
+    saveSqlEditors();
     errorAlert.style.display = 'none';
     submitBtn.disabled = false;
     return true;
@@ -1076,25 +2925,58 @@
   // Валидация при изменении полей
   userInput.addEventListener('input', validateForm);
   passwordInput.addEventListener('input', validateForm);
+  [userInput, passwordInput, hostInput, standSelect, document.getElementById('db_port'), document.getElementById('db_name'), document.getElementById('spark_master_url'), document.getElementById('spark_catalog'), document.getElementById('spark_namespace'), document.getElementById('spark_user'), document.getElementById('spark_password'), document.getElementById('pyspark_master_url'), document.getElementById('pyspark_session_name'), document.getElementById('pyspark_user'), document.getElementById('pyspark_password'), document.getElementById('sparkMetadataJsonInput'), document.getElementById('sparkProfileJsonInput'), document.getElementById('pysparkMetadataJsonInput'), document.getElementById('pysparkProfileJsonInput')].forEach(function(el) {
+    if (!el) return;
+    el.addEventListener('input', invalidateDbValidation);
+    el.addEventListener('change', invalidateDbValidation);
+  });
 
-  // Подтверждение режима чистого агента: модальное окно перед отправкой
-  (function() {
-    var pureAgentModal = document.getElementById('pureAgentConfirmModal');
-    var pureAgentConfirmBtn = document.getElementById('pureAgentConfirm');
-    var pureAgentCancelBtn = document.getElementById('pureAgentCancel');
-    if (pureAgentConfirmBtn && form) {
-      pureAgentConfirmBtn.addEventListener('click', function() {
-        form.dataset.pureAgentConfirmed = '1';
-        if (typeof bootstrap !== 'undefined' && pureAgentModal) {
-          var modal = bootstrap.Modal.getInstance(pureAgentModal) || new bootstrap.Modal(pureAgentModal);
-          modal.hide();
-        }
-        form.requestSubmit();
-      });
-    }
-  })();
+  if (dbSettingsApplyBtn) {
+    dbSettingsApplyBtn.addEventListener('click', function() {
+      if (!hasDbCredentials()) {
+        openDbSettingsModal(getRuntimeUi().connection_missing || 'Для проверки подключения заполните параметры runtime.');
+        return;
+      }
+      dbSettingsApplyBtn.disabled = true;
+      openDbSettingsModal(getRuntimeUi().connection_checking || 'Проверяем подключение...');
+      testDbConnection()
+        .then(function(data) {
+          if (data && data.ok) {
+            applyDbValidationSuccess();
+            var modalEl = document.getElementById('dbSettingsModal');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+              bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+            }
+            return;
+          }
+          invalidateDbValidation();
+          var errModal = document.getElementById('dbConnectionErrorModal');
+          var errDetail = document.getElementById('dbConnectionErrorDetail');
+          if (errDetail) errDetail.textContent = (data && data.error) || 'Неизвестная ошибка';
+          if (errModal && typeof bootstrap !== 'undefined') {
+            bootstrap.Modal.getOrCreateInstance(errModal).show();
+          }
+          openDbSettingsModal('Подключение не подтверждено. Исправьте параметры и попробуйте снова.');
+        })
+        .catch(function(err) {
+          invalidateDbValidation();
+          var errModal = document.getElementById('dbConnectionErrorModal');
+          var errDetail = document.getElementById('dbConnectionErrorDetail');
+          if (errDetail) errDetail.textContent = (err && err.message) ? err.message : 'Ошибка сети';
+          if (errModal && typeof bootstrap !== 'undefined') {
+            bootstrap.Modal.getOrCreateInstance(errModal).show();
+          }
+          openDbSettingsModal('Не удалось проверить подключение. Повторите попытку.');
+        })
+        .finally(function() {
+          dbSettingsApplyBtn.disabled = false;
+        });
+    });
+  }
+
   // Валидация и единая анимация ожидания при отправке
   form.addEventListener('submit', function(e) {
+    saveSqlEditors();
     if (!validateForm()) {
       e.preventDefault();
       return;
@@ -1103,111 +2985,63 @@
     var fs = document.getElementById('form_agent_scope');
     if (window.agentCredentialsInMemory && fc) fc.value = window.agentCredentialsInMemory;
     if (window.agentScopeInMemory && fs) fs.value = window.agentScopeInMemory;
+    syncFormAgentModels();
+    if (pureAgentSwitch && pureAgentSwitch.checked && agentGenerate && !agentGenerate.checked && agentScriptTextarea && ddlTextarea) {
+      setEditorValue(ddlTextarea, getEditorValue(agentScriptTextarea));
+      scheduleSqlValidation(ddlTextarea);
+    }
+    var activeSqlTextarea = getActiveSqlTextarea();
+    if (activeSqlTextarea) {
+      scheduleSqlValidation(activeSqlTextarea);
+    }
+    var scenario = getSelectedScenario();
+    var needsAgent = scenario === 'agent' || scenario === 'hybrid';
+    var needsDb = scenario === 'hybrid' || scenario === 'analytics';
     // Включаем отключённые поля перед отправкой (disabled-элементы не попадают в POST)
     var formPureAgent = document.getElementById('form_pure_agent_mode');
-    if (pureAgentSwitch && pureAgentSwitch.checked && modeHybrid && useDbCheck) {
+    if (scenario === 'agent' && modeHybrid && useDbCheck) {
       modeHybrid.disabled = false;
       useDbCheck.disabled = false;
       modeHybrid.checked = true;
       useDbCheck.checked = false;
       if (formPureAgent) formPureAgent.value = '1';
-    } else if (logicModeSwitch && logicModeSwitch.checked && useDbCheck) {
+    } else if (scenario === 'analytics' && useDbCheck) {
       useDbCheck.disabled = false;
       useDbCheck.checked = true;
       if (formPureAgent) formPureAgent.value = '';
-    } else if (modeHybrid && modeHybrid.checked && useDbCheck) {
+    } else if (scenario === 'hybrid' && useDbCheck) {
       useDbCheck.disabled = false;
       useDbCheck.checked = true;
       if (formPureAgent) formPureAgent.value = '';
     } else if (formPureAgent) {
       formPureAgent.value = '';
     }
-    var isPureAgent = (pureAgentSwitch && pureAgentSwitch.checked) || (modeHybrid && modeHybrid.checked && useDbCheck && !useDbCheck.checked);
-    var needsAgent = isPureAgent || (modeHybrid && modeHybrid.checked);
     var hasValidatedKey = window.agentCredentialsInMemory || window.agentCredentialsFromKey;
-    // Проверка: при гибриде/чистом агенте нужен явно проверенный ключ (профиль + Apply или «разработчик» с .key)
     if (needsAgent && !hasValidatedKey) {
       e.preventDefault();
-      if (typeof showTokensExhaustedModal === 'function') {
-        showTokensExhaustedModal('Выберите профиль и нажмите «Применить» (или профиль «разработчик» с ключом в .key), либо введите ключ вручную.');
-      }
+      openAgentSettingsModal('submit');
       return;
     }
-    if (isPureAgent && form.dataset.pureAgentConfirmed !== '1') {
+    if (needsDb && useDbCheck && useDbCheck.checked) {
+      if (!hasDbCredentials()) {
       e.preventDefault();
-      if (pureAgentSwitch && pureAgentSwitch.checked && typeof applyPureAgentState === 'function') applyPureAgentState(true);
-      var pureAgentModal = document.getElementById('pureAgentConfirmModal');
-      if (pureAgentModal && typeof bootstrap !== 'undefined') {
-        var modal = bootstrap.Modal.getOrCreateInstance(pureAgentModal);
-        modal.show();
-      }
-      return;
-    }
-    if (isPureAgent) delete form.dataset.pureAgentConfirmed;
-    // Проверка подключения к БД перед отправкой
-    if (useDbCheck && useDbCheck.checked) {
-      if (!userInput.value.trim() || !passwordInput.value.trim()) {
-        e.preventDefault();
-        var missingModal = document.getElementById('dbCredentialsMissingModal');
-        if (missingModal && typeof bootstrap !== 'undefined') {
-          bootstrap.Modal.getOrCreateInstance(missingModal).show();
-        }
+        openDbSettingsModal(getRuntimeUi().connection_missing || 'Для режима с runtime заполните обязательные поля.');
+        invalidateDbValidation();
         return;
       }
       if (form.dataset.dbValidated !== '1') {
         e.preventDefault();
-        submitBtn.disabled = true;
-        var standSelect = form.querySelector('[name="stand_type"]');
-        var hostInput = form.querySelector('[name="host"]');
-        var portInput = form.querySelector('[name="port"]');
-        var dbnameInput = form.querySelector('[name="dbname"]');
-        fetch('{{ url_for("api_db_test") }}', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            stand_type: standSelect ? standSelect.value : 'PROM',
-            user: userInput.value.trim(),
-            password: passwordInput.value.trim(),
-            host: hostInput ? hostInput.value.trim() || null : null,
-            port: portInput ? (portInput.value ? parseInt(portInput.value, 10) : null) : null,
-            dbname: dbnameInput ? dbnameInput.value.trim() || null : null
-          })
-        })
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            if (data.ok) {
-              form.dataset.dbValidated = '1';
-              form.requestSubmit();
-            } else {
-              var errModal = document.getElementById('dbConnectionErrorModal');
-              var errDetail = document.getElementById('dbConnectionErrorDetail');
-              if (errDetail) errDetail.textContent = data.error || 'Неизвестная ошибка';
-              if (errModal && typeof bootstrap !== 'undefined') {
-                bootstrap.Modal.getOrCreateInstance(errModal).show();
-              }
-            }
-          })
-          .catch(function(err) {
-            var errModal = document.getElementById('dbConnectionErrorModal');
-            var errDetail = document.getElementById('dbConnectionErrorDetail');
-            if (errDetail) errDetail.textContent = (err && err.message) ? err.message : 'Ошибка сети';
-            if (errModal && typeof bootstrap !== 'undefined') {
-              bootstrap.Modal.getOrCreateInstance(errModal).show();
-            }
-          })
-          .finally(function() { submitBtn.disabled = false; });
+        openDbSettingsModal(getRuntimeUi().connection_required || 'Сначала подтвердите подключение к runtime. После этого можно продолжить анализ.');
         return;
       }
-      delete form.dataset.dbValidated;
     }
     var btnText = submitBtn.querySelector('.btn-text');
     if (btnText) {
       submitBtn.classList.add('loading');
       submitBtn.disabled = true;
       btnText.textContent = 'Сканирование таблиц…';
-      var modeHybrid = document.getElementById('mode_hybrid') && document.getElementById('mode_hybrid').checked;
       var useDb = document.getElementById('use_db') && document.getElementById('use_db').checked;
-      var mode = (!modeHybrid) ? 'logic' : (useDb ? 'hybrid' : 'agent');
+      var mode = scenario === 'agent' ? 'agent' : (useDb ? 'hybrid' : 'logic');
       submitBtn.classList.add('app-loader', 'app-loader--compact', 'app-loader--' + mode);
       var spinner = document.createElement('span');
       spinner.className = 'app-loader__spinner';
@@ -1222,8 +3056,9 @@
 
   // Сохранение данных формы в localStorage (кроме пароля)
   function saveFormData() {
+    saveSqlEditors();
     const formData = new FormData(form);
-    const skip = ['password', 'agent_credentials', 'agent_scope'];
+    const skip = ['password', 'agent_credentials', 'agent_scope', 'spark_password', 'pyspark_password'];
     for (let [key, value] of formData.entries()) {
       if (!skip.includes(key)) {
         localStorage.setItem('detailed_' + key, value);
@@ -1233,8 +3068,9 @@
 
   // Загрузка данных из localStorage (ключ agent_credentials не загружаем — не сохраняется)
   function loadFormData() {
+    renderAllJsonPresetSelects();
     document.querySelectorAll('input, select, textarea').forEach(el => {
-      if (!el.name || ['password', 'agent_credentials', 'agent_scope'].includes(el.name)) return;
+      if (!el.name || ['password', 'agent_credentials', 'agent_scope', 'spark_password', 'pyspark_password'].includes(el.name)) return;
       const key = 'detailed_' + el.name;
       const saved = localStorage.getItem(key);
       if (saved !== null) {
@@ -1271,6 +3107,18 @@
     }
     if (typeof toggleHybridOptions === 'function') toggleHybridOptions();
     if (typeof updateToggleStates === 'function') updateToggleStates();
+    updateAgentAuthStatus();
+    updateAgentModelsStrip();
+    setAgentInputMode(agentGenerate && agentGenerate.checked ? 'description' : 'script');
+    try {
+      var savedPane = localStorage.getItem('detailed_prepare_pane') || 'source';
+      if (savedPane === 'agent' && prepareAgentNav && prepareAgentNav.classList.contains('is-disabled')) {
+        savedPane = 'source';
+      }
+      setPreparePane(savedPane);
+    } catch (e) {
+      setPreparePane('source');
+    }
     // Проверяем валидацию после загрузки
     setTimeout(validateForm, 100);
   }
@@ -1287,9 +3135,30 @@
   // Загружаем при старте и обновляем подписи состояний ползунков
   window.addEventListener('load', function() {
     loadFormData();
+    syncJsonPresetsFromServer();
+    refreshRuntimeDescriptor().then(function() {
+      initSqlEditor(ddlTextarea);
+      initSqlEditor(agentScriptTextarea);
+      initSqlEditor(generatedSqlPreview);
+      if (ddlTextarea) scheduleSqlValidation(ddlTextarea);
+      if (agentScriptTextarea) scheduleSqlValidation(agentScriptTextarea);
+      if (generatedSqlPreview) scheduleSqlValidation(generatedSqlPreview);
     if (typeof updateToggleStates === 'function') updateToggleStates();
     if (typeof syncStandToHost === 'function') syncStandToHost();
+      enforceDbGateForScenario({ silent: true });
+    });
   });
+
+  if (typeof MutationObserver !== 'undefined') {
+    var themeObserver = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+          setTimeout(refreshSqlEditors, 0);
+        }
+      });
+    });
+    themeObserver.observe(document.documentElement, { attributes: true });
+  }
 
   // Проверяем наличие ошибки в URL (если вернулись с ошибкой)
   const urlParams = new URLSearchParams(window.location.search);
@@ -1299,6 +3168,10 @@
     errorAlert.style.display = 'block';
   } else if (urlParams.get('error') === 'agent_key_required') {
     errorMessage.textContent = 'Для гибридного режима или чистого агента нужен ключ GigaChat. Выберите профиль «разработчик» (токен из .key) или нажмите «Ввести ключ».';
+    errorAlert.className = 'alert alert-warning alert-dismissible fade show';
+    errorAlert.style.display = 'block';
+  } else if (urlParams.get('error') === 'job_restore_requires_restart') {
+    errorMessage.textContent = 'После перезапуска приложения восстановлен только сохранённый результат шага discovery. Чтобы заново выполнить анализ, повторите шаг подготовки и discovery.';
     errorAlert.className = 'alert alert-warning alert-dismissible fade show';
     errorAlert.style.display = 'block';
   }

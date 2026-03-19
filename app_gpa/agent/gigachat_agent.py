@@ -4,13 +4,19 @@
 
 Используется в соответствии с документацией:
 - Ключ авторизации: https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/post-token
+- Подсчёт токенов: https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/post-tokens-count
+- Остаток токенов: https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/get-balance
 - Python SDK: https://developers.sber.ru/docs/ru/gigachain/tools/python/gigachat
 - Выбор модели: https://developers.sber.ru/docs/ru/gigachat/guides/selecting-a-model
 - LangChain: https://developers.sber.ru/docs/ru/gigachain/tools/python/langchain-gigachat
 
 Поддерживается:
 - Генерация SQL/функции по описанию (с кэшем по хешу ввода).
-- Параметры из .env: GIGACHAT_CREDENTIALS, GIGACHAT_MODEL, GIGACHAT_SCOPE, GIGACHAT_VERIFY_SSL_CERTS.
+- Второй проход модели — ревизия кода (``revise_sql_code``; в связке ``generate_sql_with_review`` по умолчанию ``code_revision_pass=True``).
+- Параметры из .env: GIGACHAT_CREDENTIALS, GIGACHAT_MODEL, GIGACHAT_EMBEDDING_MODEL, GIGACHAT_SCOPE, GIGACHAT_VERIFY_SSL_CERTS,
+  GIGACHAT_HTTP_TIMEOUT_SEC / GIGACHAT_TIMEOUT_SEC (таймаут HTTP-клиента SDK для chat/embeddings; иначе у SDK по умолчанию ~30 с и часто «read timed out»).
+- Чат: одна модель — ``model_override`` из UI / job, иначе ``GIGACHAT_MODEL``, иначе ``GigaChat-2-Max`` (см. ``CHAT_MODEL_PRIORITY`` только как справочный список для UI).
+- Эмбеддинги: одна модель — override, иначе ``GIGACHAT_EMBEDDING_MODEL``, иначе первая из ``EMBEDDING_MODEL_PRIORITY``.
 - Эмбеддинги для будущего RAG.
 - Точки расширения для LangChain/LangGraph и RAG (векторное хранилище + retrieval).
 """
@@ -36,21 +42,42 @@ _gigachat_available: Optional[bool] = None
 
 # Учёт использованных токенов (для плашки в UI)
 _token_usage_lock = threading.Lock()
-_token_usage: Dict[str, int] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "sessions": 0}
+_token_usage: Dict[str, int] = {
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0,
+    "sessions": 0,
+    "precached_prompt_tokens": 0,
+}
+
+
+def _usage_get(usage: Any, key: str, default: int = 0) -> int:
+    if usage is None:
+        return default
+    if isinstance(usage, dict):
+        v = usage.get(key, default)
+    else:
+        v = getattr(usage, key, default)
+    try:
+        return int(v or 0)
+    except (TypeError, ValueError):
+        return default
 
 
 def _add_usage(usage: Any) -> None:
-    """Учитывает токены и сессии из ответа GigaChat (usage.prompt_tokens, completion_tokens, total_tokens)."""
+    """Учитывает токены и сессии из ответа GigaChat (usage по документации REST)."""
     if usage is None:
         return
-    pt = getattr(usage, "prompt_tokens", 0) or 0
-    ct = getattr(usage, "completion_tokens", 0) or 0
-    tt = getattr(usage, "total_tokens", 0) or 0
+    pt = _usage_get(usage, "prompt_tokens", 0)
+    ct = _usage_get(usage, "completion_tokens", 0)
+    tt = _usage_get(usage, "total_tokens", 0)
+    pc = _usage_get(usage, "precached_prompt_tokens", 0)
     sessions_delta = 1 if (pt or ct or tt) else 0
     with _token_usage_lock:
         _token_usage["prompt_tokens"] += pt
         _token_usage["completion_tokens"] += ct
         _token_usage["total_tokens"] += tt
+        _token_usage["precached_prompt_tokens"] += pc
         _token_usage["sessions"] += sessions_delta
     try:
         from .agent_cache_db import add_token_usage
@@ -64,7 +91,16 @@ def validate_credentials(
     scope_override: Optional[str] = None,
     verify_ssl_override: Optional[bool] = None,
 ) -> None:
-    """Проверяет валидность кредов: при неверных — выбрасывает исключение. При таймауте — повтор до 2 раз."""
+    """
+    Проверяет креды так же «жёстко», как реальные вызовы API.
+
+    Раньше использовался только ``get_balance()``: для части тарифов он даёт 403 (pay-as-you-go)
+    или не отражает отзыв/замену ключа в ЛК, из-за чего в UI мог показываться «успех» при уже
+    невалидном Authorization key.
+
+    Сейчас: явный OAuth (``get_token`` при наличии в SDK) + один вызов ``POST /tokens/count`` для модели
+    из настроек (env/UI). Неверный или отозванный ключ падает на OAuth или на 401.
+    """
     kw = _gigachat_client_kwargs(
         credentials_override=credentials_override,
         scope_override=scope_override,
@@ -77,9 +113,22 @@ def validate_credentials(
     for attempt in range(3):
         try:
             from gigachat import GigaChat
+
             with GigaChat(**kw) as giga:
-                giga.get_balance()
-            return
+                # Принудительно обменять Authorization key на access token (ошибки OAuth — здесь)
+                if hasattr(giga, "get_token"):
+                    tok = giga.get_token()
+                    access = ""
+                    if tok is not None:
+                        access = str(getattr(tok, "access_token", "") or "").strip()
+                    if not access:
+                        raise RuntimeError(
+                            "GigaChat: пустой access token после OAuth. Проверьте ключ в личном кабинете "
+                            "(Base64(ClientID:ClientSecret)) или сгенерируйте новый."
+                        )
+                m = str(kw.get("model") or DEFAULT_MODEL).strip()
+                _call_tokens_count_api(giga, ["."], m)
+                return
         except Exception as e:
             last_err = e
             err_str = str(e).lower()
@@ -90,11 +139,306 @@ def validate_credentials(
             raise
 
 
+def _gigachat_object_to_dict(obj: Any) -> Dict[str, Any]:
+    """Снимок ответа SDK/модели в dict для разбора balance / tokens_count."""
+    if obj is None:
+        return {}
+    if isinstance(obj, dict):
+        return dict(obj)
+    for method in ("model_dump", "dict"):
+        fn = getattr(obj, method, None)
+        if callable(fn):
+            try:
+                out = fn()
+                if isinstance(out, dict):
+                    return out
+            except Exception:
+                pass
+    out: Dict[str, Any] = {}
+    for key in (
+        "balance",
+        "model",
+        "name",
+        "value",
+        "tokens",
+        "total_tokens",
+        "data",
+        "result",
+        "object",
+        "remaining",
+        "input",
+    ):
+        if hasattr(obj, key):
+            out[key] = getattr(obj, key)
+    return out
+
+
+def _parse_get_balance_response(balance_obj: Any) -> Tuple[Optional[int], Optional[int], List[Dict[str, Any]]]:
+    """
+    Ответ GET /balance (OpenAPI ``Balance``): ``{ "balance": [ { "usage", "value" }, ... ] }``.
+
+    - ``usage`` — название квоты (например ``GigaChat`` или ``Embeddings``).
+    - ``value`` — остаток токенов (integer по спецификации).
+
+    Возвращает:
+    - ``total_all`` — сумма ``value`` по всем строкам;
+    - ``total_chat`` — сумма по строкам, не относящимся к embeddings (для плашки «доступно» в чате);
+    - ``rows`` — нормализованные записи для UI.
+
+    См.: https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/get-balance
+    """
+    if balance_obj is None:
+        return None, None, []
+    top = balance_obj if isinstance(balance_obj, dict) else _gigachat_object_to_dict(balance_obj)
+    if not isinstance(top, dict):
+        top = _gigachat_object_to_dict(balance_obj)
+    # Обёртка ``data`` (если когда-либо появится у SDK/прокси)
+    inner = top.get("data")
+    if isinstance(inner, dict) and "balance" in inner:
+        top = inner
+    entries = top.get("balance")
+    if entries is None and not isinstance(balance_obj, dict):
+        entries = getattr(balance_obj, "balance", None)
+    if entries is None:
+        return None, None, []
+    if not isinstance(entries, (list, tuple)):
+        entries = [entries]
+    by_model: List[Dict[str, Any]] = []
+    total_all = 0
+    total_chat = 0
+    has_non_embed_quota = False
+    for raw in entries:
+        row = raw if isinstance(raw, dict) else _gigachat_object_to_dict(raw)
+        usage = str(row.get("usage") or "").strip()
+        model = usage or str(row.get("name") or row.get("model") or row.get("id") or "").strip()
+        val = row.get("value")
+        if val is None:
+            val = row.get("tokens") or row.get("total_tokens") or row.get("balance") or row.get("remaining")
+        try:
+            if val is None:
+                num = None
+            elif isinstance(val, bool):
+                num = None
+            elif isinstance(val, (int, float)):
+                num = int(val)
+            else:
+                num = int(str(val).strip())
+        except (TypeError, ValueError):
+            num = None
+        is_embed_quota = "embed" in usage.lower()
+        if not is_embed_quota:
+            has_non_embed_quota = True
+        if num is not None:
+            total_all += num
+            if not is_embed_quota:
+                total_chat += num
+        entry: Dict[str, Any] = {
+            "usage": usage or None,
+            "model": model or "default",
+            "tokens": num,
+        }
+        if val is not None:
+            try:
+                entry["value"] = int(float(val))
+            except (TypeError, ValueError):
+                entry["value"] = val
+        by_model.append(entry)
+    if not by_model:
+        return None, None, []
+    # Для чата: сумма квот без embeddings; если в ответе только embeddings — показываем сумму всех пакетов
+    chat_effective = total_chat if has_non_embed_quota else total_all
+    return total_all, chat_effective, by_model
+
+
+def _call_tokens_count_api(giga: Any, input_strings: List[str], model: str) -> Any:
+    """
+    POST /tokens/count — тело ``TokensCountBody``: обязательные поля ``model`` и ``input`` (массив строк).
+
+    Ответ 200 — схема ``TokensCount``: JSON-массив объектов ``{ object, tokens, characters }`` по каждой строке ``input``.
+    SDK может вернуть объект с полем ``tokens`` — массив тех же элементов (см. пример JS в OpenAPI).
+
+    https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/post-tokens-count
+    """
+    if not hasattr(giga, "tokens_count"):
+        raise AttributeError(
+            "Обновите пакет gigachat: нужен метод tokens_count (REST POST /tokens/count)."
+        )
+    payload_in = [str(s) for s in input_strings]
+    try:
+        return giga.tokens_count(input_=payload_in, model=model)
+    except TypeError:
+        try:
+            return giga.tokens_count(input=payload_in, model=model)
+        except TypeError:
+            return giga.tokens_count(model=model, input_=payload_in)
+
+
+def _tokens_count_row_from_item(it: Any) -> Dict[str, Any]:
+    """Одна строка ответа POST /tokens/count: tokens, characters, object (см. SDK TokensCount)."""
+    row = it if isinstance(it, dict) else _gigachat_object_to_dict(it)
+    n = row.get("tokens")
+    if n is None:
+        n = row.get("total_tokens") or row.get("value")
+    try:
+        cnt = int(n) if n is not None else 0
+    except (TypeError, ValueError):
+        cnt = 0
+    ch = row.get("characters")
+    try:
+        chars = int(ch) if ch is not None else None
+    except (TypeError, ValueError):
+        chars = None
+    obj = row.get("object") or row.get("object_")
+    out: Dict[str, Any] = {"tokens": cnt}
+    if chars is not None:
+        out["characters"] = chars
+    if obj:
+        out["object"] = obj
+    return out
+
+
+def _tokens_count_items_sequence(result: Any) -> Tuple[Any, Optional[str]]:
+    """
+    Извлекает последовательность элементов счётчика и опционально ``model`` из ответа POST /tokens/count.
+
+    OpenAPI: тело ответа — массив ``TokensCount`` (по одному объекту на строку ``input``).
+    SDK (пример JS в спецификации): ``response.tokens`` — массив тех же объектов.
+    """
+    if result is None:
+        return None, None
+    if isinstance(result, (list, tuple)):
+        return result, None
+    data = result if isinstance(result, dict) else _gigachat_object_to_dict(result)
+    if not isinstance(data, dict):
+        return None, None
+    model = data.get("model") if isinstance(data.get("model"), str) else None
+    # Обёртка SDK (пример в OpenAPI): ``{ "tokens": [ { object, tokens, characters }, ... ] }``
+    wrapped = data.get("tokens")
+    if isinstance(wrapped, list) and wrapped and not isinstance(wrapped[0], (str, bytes, int, float, bool)):
+        return wrapped, model
+    for key in ("data", "result"):
+        seq = data.get(key)
+        if isinstance(seq, list) and seq:
+            return seq, model
+    return None, model
+
+
+def normalize_tokens_count_response(result: Any, *, model_fallback: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Приводит ответ POST /tokens/count к единому виду для API/UI.
+
+    Контракт REST (``TokensCount``): массив объектов с полями ``object``, ``tokens``, ``characters``
+    (по одному на каждую строку массива ``input`` в запросе ``TokensCountBody``).
+
+    См.: https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/post-tokens-count
+    """
+    per_input: List[Dict[str, Any]] = []
+    model_name: Optional[str] = model_fallback
+    if result is None:
+        return {"per_input": per_input, "total": 0, "model": model_name}
+
+    items, model_from_resp = _tokens_count_items_sequence(result)
+    if model_from_resp:
+        model_name = model_from_resp or model_name
+
+    if isinstance(items, (list, tuple)):
+        total = 0
+        for it in items:
+            row = _tokens_count_row_from_item(it)
+            per_input.append(row)
+            total += int(row.get("tokens") or 0)
+        return {"per_input": per_input, "total": total, "model": model_name}
+
+    data: Any = result if isinstance(result, dict) else _gigachat_object_to_dict(result)
+    if not isinstance(data, dict):
+        return {"per_input": per_input, "total": 0, "model": model_name}
+
+    model_name = (data.get("model") if isinstance(data.get("model"), str) else None) or model_name
+
+    if "total_tokens" in data and not per_input:
+        try:
+            t = int(data["total_tokens"])
+        except (TypeError, ValueError):
+            t = 0
+        return {"per_input": [{"tokens": t}], "total": t, "model": data.get("model") or model_name}
+
+    total = 0
+    tok_scalar = data.get("tokens")
+    if isinstance(tok_scalar, int):
+        total = tok_scalar
+        per_input.append({"tokens": tok_scalar})
+    elif not per_input:
+        for key in ("total_tokens", "tokens"):
+            if key not in data:
+                continue
+            val = data[key]
+            if isinstance(val, list):
+                continue
+            try:
+                total = int(val)
+                per_input = [{"tokens": total}]
+            except (TypeError, ValueError):
+                pass
+            break
+
+    return {"per_input": per_input, "total": total, "model": model_name}
+
+
+def count_input_tokens(
+    input_strings: List[str],
+    *,
+    credentials_override: Optional[str] = None,
+    scope_override: Optional[str] = None,
+    model_override: Optional[str] = None,
+    verify_ssl_override: Optional[bool] = None,
+) -> Dict[str, Any]:
+    """
+    Подсчёт токенов через POST /tokens/count (тело ``TokensCountBody``: ``model`` + ``input`` — массив строк).
+
+    Ответ — массив ``TokensCount`` по спецификации (или эквивалент от SDK).
+    """
+    texts = [str(s) for s in (input_strings or []) if str(s).strip()]
+    if not texts:
+        return {"ok": True, "per_input": [], "total": 0, "model": None, "error": None}
+
+    kw = _gigachat_client_kwargs(
+        credentials_override=credentials_override,
+        scope_override=scope_override,
+        model_override=model_override,
+        verify_ssl_override=verify_ssl_override,
+    )
+    if not kw:
+        return {"ok": False, "per_input": [], "total": 0, "model": None, "error": "Нет учётных данных GigaChat"}
+
+    model = (model_override or "").strip() or str(kw.get("model") or DEFAULT_MODEL)
+    try:
+        from gigachat import GigaChat
+        with GigaChat(**kw) as giga:
+            raw = _call_tokens_count_api(giga, texts, model)
+        norm = normalize_tokens_count_response(raw, model_fallback=model)
+        norm["ok"] = True
+        norm["model"] = norm.get("model") or model
+        norm["error"] = None
+        return norm
+    except Exception as e:
+        return {
+            "ok": False,
+            "per_input": [],
+            "total": 0,
+            "model": model,
+            "error": str(e).strip() or type(e).__name__,
+        }
+
+
 def get_token_usage(credentials_override: Optional[str] = None, scope_override: Optional[str] = None) -> Dict[str, Any]:
-    """Возвращает накопленные использованные токены и (если доступно) остаток по пакетам.
-    credentials_override: ключ из сессии (форма) или None — тогда из env (нужно для запроса баланса).
-    Для GigaChat Lite (GIGACHAT_API_PERS): при недоступности get_balance используем лимит Freemium 900k."""
-    # Использовано: из БД (накоплено за всё время), иначе in-memory за текущий процесс
+    """Возвращает накопленные токены и остаток (GET /balance при пакетах; иначе оценка Freemium).
+
+    ``GET /balance`` (схема ``Balance``): ``balance[]`` с полями ``usage`` и ``value`` (остаток по пакету).
+    В поле ``available`` — сумма ``value`` по строкам без embeddings (квота для чата); если в ответе только
+    embeddings — сумма всех пакетов. Дополнительно: ``balance_total_all_packages`` — сумма по всем строкам.
+
+    https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/get-balance
+    При pay-as-you-go API отвечает 403 — тогда остаток только оценочный для GIGACHAT_API_PERS."""
     used = None
     try:
         from .agent_cache_db import get_token_usage_totals
@@ -104,28 +448,62 @@ def get_token_usage(credentials_override: Optional[str] = None, scope_override: 
     if not used:
         with _token_usage_lock:
             used = dict(_token_usage)
-    if used and "sessions" not in used:
+    used = dict(used or {})
+    if "sessions" not in used:
         used["sessions"] = 0
+    with _token_usage_lock:
+        used["precached_prompt_tokens"] = int(_token_usage.get("precached_prompt_tokens", 0) or 0)
+
     used_total = (used or {}).get("total_tokens", 0) or 0
     available: Optional[int] = None
+    balance_by_model: List[Dict[str, Any]] = []
+    balance_total_all_packages: Optional[int] = None
+    balance_source = "unknown"
+    balance_error: Optional[str] = None
+
     try:
         kw = _gigachat_client_kwargs(credentials_override=credentials_override, scope_override=scope_override)
         if kw:
             from gigachat import GigaChat
             with GigaChat(**kw) as giga:
                 balance = giga.get_balance()
-                if balance and getattr(balance, "balance", None):
-                    for entry in balance.balance:
-                        if getattr(entry, "value", None) is not None:
-                            available = (available or 0) + getattr(entry, "value", 0)
-    except Exception:
-        pass
-    # Fallback для GigaChat Lite Freemium: get_balance возвращает 403 при pay-as-you-go
+                total_all, total_chat, by_model = _parse_get_balance_response(balance)
+                balance_by_model = by_model
+                balance_total_all_packages = total_all
+                if total_chat is not None:
+                    available = total_chat
+                    balance_source = "get_balance"
+    except Exception as e:
+        err_text = str(e).strip()
+        err_lower = err_text.lower()
+        status = getattr(e, "status_code", None)
+        if status is None:
+            status = getattr(e, "status", None)
+        is_403 = status == 403 or "403" in err_text or "permission" in err_lower or "denied" in err_lower
+        if is_403:
+            balance_error = (
+                "GET /balance недоступен (часто при оплате pay-as-you-go; метод только для пакетов токенов). "
+                "См. https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/get-balance"
+            )
+        balance_source = "get_balance_error"
+
     if available is None:
-        scope = scope_override or os.environ.get("GIGACHAT_SCOPE", DEFAULT_SCOPE)
-        if scope.upper() in ("GIGACHAT_API_PERS",):
+        scope = (scope_override or os.environ.get("GIGACHAT_SCOPE", DEFAULT_SCOPE) or "").strip()
+        if scope.upper() == "GIGACHAT_API_PERS":
             available = max(0, GIGACHAT_LITE_FREEMIUM_TOKENS - used_total)
-    return {"used": used, "available": available}
+            balance_source = "freemium_estimate"
+
+    out: Dict[str, Any] = {
+        "used": used,
+        "available": available,
+        "balance_by_model": balance_by_model or None,
+        "balance_source": balance_source,
+    }
+    if balance_total_all_packages is not None:
+        out["balance_total_all_packages"] = balance_total_all_packages
+    if balance_error:
+        out["balance_error"] = balance_error
+    return out
 
 # Флаг: один раз залогировать, что sqlite-vec недоступен (список, чтобы не использовать global)
 _vec_unavailable_logged = [False]
@@ -135,15 +513,90 @@ MAX_AGENT_CACHE_SIZE = 500
 _CACHE_DIR = Path(__file__).resolve().parent
 _AGENT_CACHE_FILE = _CACHE_DIR / ".agent_cache.json"
 
-# Модели по документации (Выбор модели для генерации)
-DEFAULT_MODEL = "GigaChat"  # по умолчанию в SDK
-MODELS_CHAT = ("GigaChat", "GigaChat-2", "GigaChat-2-Pro", "GigaChat-2-Max")
+# Справочный список для UI и probe-models (как в документации, раздел «Модели GigaChat»).
+# Устаревшие имена вроде GigaChat / GigaChat-2 в выпадающие списки не включаем; в GIGACHAT_MODEL вручную можно задать любое имя, поддерживаемое API.
+# Чат: имена поля model — см. https://developers.sber.ru/docs/ru/gigachat/guides/selecting-a-model
+# (продукт «GigaChat 2 Lite» в API задаётся как GigaChat-2, не GigaChat-2-Lite — иначе 404 No such model).
+CHAT_MODEL_PRIORITY: Tuple[str, ...] = (
+    "GigaChat-2-Max",
+    "GigaChat-2-Pro",
+    "GigaChat-2",
+)
+# Эмбеддинги: https://developers.sber.ru/docs/ru/gigachat/models/main
+EMBEDDING_MODEL_PRIORITY: Tuple[str, ...] = (
+    "EmbeddingsGigaR",
+    "GigaEmbeddings-3B-2025-09",
+    "Embeddings-2",
+    "Embeddings",
+)
+# Обратная совместимость (список для UI / перечислений)
+DEFAULT_MODEL = CHAT_MODEL_PRIORITY[0]
+MODELS_CHAT = CHAT_MODEL_PRIORITY
 # Scope: GIGACHAT_API_PERS (физлица), GIGACHAT_API_B2B, GIGACHAT_API_CORP
 DEFAULT_SCOPE = "GIGACHAT_API_PERS"
+
+
+def _gigachat_http_timeout_seconds() -> float:
+    """
+    Таймаут для httpx внутри SDK gigachat (секунды, единый для connect/read/write).
+    По умолчанию в SDK ~30 с — для chat/completions часто мало (ReadTimeout / «The read operation timed out»).
+    """
+    raw = (os.environ.get("GIGACHAT_HTTP_TIMEOUT_SEC") or "").strip()
+    if not raw:
+        raw = (os.environ.get("GIGACHAT_TIMEOUT_SEC") or "").strip()
+    if not raw:
+        return 180.0
+    try:
+        v = float(str(raw).replace(",", "."))
+        return max(30.0, min(v, 900.0))
+    except (TypeError, ValueError):
+        return 180.0
+
 
 # GigaChat 2 Lite Freemium: 900 000 токенов на 12 мес (developers.sber.ru, тарифы физлиц)
 # Используется как fallback, когда get_balance() недоступен (403 для pay-as-you-go)
 GIGACHAT_LITE_FREEMIUM_TOKENS = 900_000
+
+
+def _resolved_chat_model(model_override: Optional[str] = None) -> str:
+    """Одна чат-модель: из аргумента, иначе GIGACHAT_MODEL, иначе DEFAULT_MODEL."""
+    m = (model_override or "").strip() or (os.environ.get("GIGACHAT_MODEL") or "").strip()
+    return m or DEFAULT_MODEL
+
+
+def _resolved_embedding_model(model_override: Optional[str] = None) -> str:
+    """Одна модель эмбеддингов: из аргумента, иначе GIGACHAT_EMBEDDING_MODEL, иначе первая из списка."""
+    m = (model_override or "").strip() or (os.environ.get("GIGACHAT_EMBEDDING_MODEL") or "").strip()
+    return m or EMBEDDING_MODEL_PRIORITY[0]
+
+
+def _call_gigachat_chat(
+    fn,
+    credentials_override: Optional[str] = None,
+    model_override: Optional[str] = None,
+    scope_override: Optional[str] = None,
+    client_id_override: Optional[str] = None,
+    client_secret_override: Optional[str] = None,
+    verify_ssl_override: Optional[bool] = None,
+):
+    """Один вызов fn(giga) без перебора моделей."""
+    m = _resolved_chat_model(model_override)
+    kw = _gigachat_client_kwargs(
+        credentials_override=credentials_override,
+        model_override=m,
+        scope_override=scope_override,
+        client_id_override=client_id_override,
+        client_secret_override=client_secret_override,
+        verify_ssl_override=verify_ssl_override,
+    )
+    if not kw:
+        raise RuntimeError(
+            "GigaChat не настроен. Задайте ключ в .env (GIGACHAT_CREDENTIALS) или в форме."
+        )
+    from gigachat import GigaChat
+
+    with GigaChat(**kw) as giga:
+        return fn(giga)
 
 
 def _normalize_input(text: str) -> str:
@@ -153,6 +606,59 @@ def _normalize_input(text: str) -> str:
     return " ".join(text.strip().split())
 
 
+def _repair_json_invalid_escapes(s: str) -> str:
+    """
+    В ответах агента в JSON часто попадает SQL с regex (например '\\d', '\\s' в литералах).
+    В JSON допустимы только \\\", \\\\, \\/, \\b, \\f, \\n, \\r, \\t, \\uXXXX — иначе JSONDecodeError: Invalid \\escape.
+    Дублируем обратный слэш только внутри строковых литералов JSON.
+    """
+    out: List[str] = []
+    i = 0
+    n = len(s)
+    in_string = False
+    while i < n:
+        c = s[i]
+        if not in_string:
+            if c == '"':
+                in_string = True
+            out.append(c)
+            i += 1
+            continue
+        # inside "..."
+        if c == "\\":
+            if i + 1 >= n:
+                out.append("\\\\")
+                i += 1
+                continue
+            nxt = s[i + 1]
+            if nxt in '"\\/bfnrt':
+                out.append(c)
+                out.append(nxt)
+                i += 2
+                continue
+            if nxt == "u" and i + 5 < n:
+                hx = s[i + 2 : i + 6]
+                if len(hx) == 4 and all(ch in "0123456789abcdefABCDEF" for ch in hx):
+                    out.append(s[i : i + 6])
+                    i += 6
+                    continue
+            out.append("\\\\")
+            i += 1
+            continue
+        if c == '"':
+            in_string = False
+        out.append(c)
+        i += 1
+    return "".join(out)
+
+
+def _json_decode_error_is_bad_escape(exc: BaseException) -> bool:
+    if not isinstance(exc, json.JSONDecodeError):
+        return False
+    msg = (exc.msg or "").lower()
+    return "escape" in msg or "invalid" in msg and "\\" in str(exc)
+
+
 def _parse_first_json(raw: str):
     """Парсит первый JSON-объект/массив из строки. Игнорирует текст после (Extra data)."""
     raw = (raw or "").strip()
@@ -160,13 +666,20 @@ def _parse_first_json(raw: str):
     for start in ("{", "["):
         idx = raw.find(start)
         if idx >= 0:
-            try:
-                obj, _ = json.JSONDecoder().raw_decode(raw[idx:])
-                return obj
-            except json.JSONDecodeError as e:
-                last_err = e
-            except Exception as e:
-                last_err = e
+            chunk = raw[idx:]
+            for repaired in (False, True):
+                try:
+                    text = _repair_json_invalid_escapes(chunk) if repaired else chunk
+                    obj, _ = json.JSONDecoder().raw_decode(text)
+                    return obj
+                except json.JSONDecodeError as e:
+                    last_err = e
+                    if not repaired and _json_decode_error_is_bad_escape(e):
+                        continue
+                    break
+                except Exception as e:
+                    last_err = e
+                    break
     if last_err:
         raise last_err
     raise ValueError("JSON не найден в ответе (пустой или некорректный ответ агента)")
@@ -393,8 +906,34 @@ def _gigachat_client_kwargs(
         "model": model,
         "scope": scope,
         "verify_ssl_certs": verify_ssl,
+        "timeout": _gigachat_http_timeout_seconds(),
     }
     return kwargs
+
+
+def _exception_http_status(exc: BaseException) -> Optional[int]:
+    """Пытается извлечь HTTP status из исключения SDK/httpx/requests."""
+    seen: set[int] = set()
+    e: Optional[BaseException] = exc
+    while e is not None and id(e) not in seen:
+        seen.add(id(e))
+        for attr in ("response", "http_response"):
+            r = getattr(e, attr, None)
+            if r is not None:
+                sc = getattr(r, "status_code", None)
+                if sc is not None:
+                    try:
+                        return int(sc)
+                    except (TypeError, ValueError):
+                        pass
+        sc = getattr(e, "status_code", None)
+        if sc is not None:
+            try:
+                return int(sc)
+            except (TypeError, ValueError):
+                pass
+        e = getattr(e, "__cause__", None) or getattr(e, "original", None)  # type: ignore[assignment]
+    return None
 
 
 def get_client(
@@ -413,6 +952,19 @@ def get_client(
     return GigaChat(**kw)
 
 
+def _strip_markdown_sql_fence(text: str) -> str:
+    """Убирает обёртку ```sql ... ``` из ответа модели."""
+    text = (text or "").strip()
+    if text.startswith("```"):
+        lines = text.split("\n")
+        if lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines)
+    return text.strip()
+
+
 def generate_sql_from_description(
     description: str,
     credentials_override: Optional[str] = None,
@@ -421,7 +973,7 @@ def generate_sql_from_description(
     """
     Генерирует SQL-запрос или DDL функции по текстовому описанию (GigaChat API).
     credentials_override: ключ из сессии (форма) или None — тогда из env.
-    model_override: модель (GigaChat-2, GigaChat-2-Pro, GigaChat-2-Max) или из env GIGACHAT_MODEL.
+    model_override: чат-модель; иначе GIGACHAT_MODEL из env; иначе DEFAULT_MODEL (без перебора моделей).
     Кэш: повторный запрос с тем же описанием не вызывает API.
     """
     if not description or not description.strip():
@@ -455,30 +1007,27 @@ def generate_sql_from_description(
     except Exception:
         pass
 
-    kw = _gigachat_client_kwargs(credentials_override=credentials_override, model_override=model_override)
-    if not kw:
+    if not _build_credentials(credentials_override=credentials_override):
         raise RuntimeError(
             "GigaChat не настроен. Задайте ключ в .env (GIGACHAT_CREDENTIALS) или в форме."
         )
-
-    from gigachat import GigaChat
 
     prompt = get_prompt("generate_sql", description=description.strip()) if get_prompt else (
         f"По описанию ниже сгенерируй готовый SQL-запрос или полный DDL функции PL/pgSQL для Greenplum/PostgreSQL.\n"
         f"Выдай только код, без пояснений.\n\nОписание:\n{description.strip()}"
     )
-    with GigaChat(**kw) as giga:
+
+    def _generate_sql_chat(giga) -> str:
         response = giga.chat(prompt)
         _add_usage(getattr(response, "usage", None))
         text = response.choices[0].message.content if response.choices else ""
-        if text.strip().startswith("```"):
-            lines = text.strip().split("\n")
-            if lines[0].startswith("```"):
-                lines = lines[1:]
-            if lines and lines[-1].strip() == "```":
-                lines = lines[:-1]
-            text = "\n".join(lines)
-        result = text.strip()
+        return _strip_markdown_sql_fence(text)
+
+    result = _call_gigachat_chat(
+        _generate_sql_chat,
+        credentials_override=credentials_override,
+        model_override=model_override,
+    )
 
     _agent_cache_set("generate_sql", description, result)
     try:
@@ -511,19 +1060,22 @@ def analyze_description_for_sql(
             return json.loads(cached)
         except Exception:
             pass
-    kw = _gigachat_client_kwargs(credentials_override=credentials_override)
-    if not kw:
+    if not _build_credentials(credentials_override=credentials_override):
         return {"intent": "query", "context_sufficient": True, "warning": None}
     prompt = get_prompt("analyze_description", description=description.strip()[:3000]) if get_prompt else ""
     if not prompt:
         return {"intent": "query", "context_sufficient": True, "warning": None}
     raw = ""
     try:
-        from gigachat import GigaChat
-        with GigaChat(**kw) as giga:
+        def _analyze_chat(giga):
             response = giga.chat(prompt)
             _add_usage(getattr(response, "usage", None))
-            raw = response.choices[0].message.content if response.choices else ""
+            return response.choices[0].message.content if response.choices else ""
+
+        raw = _call_gigachat_chat(
+            _analyze_chat,
+            credentials_override=credentials_override,
+        )
         raw = raw.strip()
         if raw.startswith("```"):
             lines = raw.split("\n")
@@ -551,14 +1103,55 @@ def analyze_description_for_sql(
     return {"intent": "query", "context_sufficient": True, "warning": None}
 
 
+def revise_sql_code(
+    sql: str,
+    original_description: str = "",
+    credentials_override: Optional[str] = None,
+    model_override: Optional[str] = None,
+) -> str:
+    """
+    Второй проход GigaChat: ревизия SQL по правилам цепочки данных, PL/pgSQL, GP и безопасного динамического SQL.
+    Кэш не используется. При пустом sql возвращает пустую строку.
+    """
+    if not sql or not str(sql).strip():
+        return (sql or "").strip()
+    if not get_prompt:
+        return str(sql).strip()
+    if not _build_credentials(credentials_override=credentials_override):
+        raise RuntimeError(
+            "GigaChat не настроен. Задайте ключ в .env (GIGACHAT_CREDENTIALS) или в форме."
+        )
+    prompt = get_prompt(
+        "revise_sql",
+        sql=str(sql).strip(),
+        description=(original_description or "").strip(),
+    )
+
+    def _revise_chat(giga) -> str:
+        response = giga.chat(prompt)
+        _add_usage(getattr(response, "usage", None))
+        text = response.choices[0].message.content if response.choices else ""
+        return _strip_markdown_sql_fence(text)
+
+    return _call_gigachat_chat(
+        _revise_chat,
+        credentials_override=credentials_override,
+        model_override=model_override,
+    )
+
+
 def generate_sql_with_review(
     description: str,
     credentials_override: Optional[str] = None,
     model_override: Optional[str] = None,
+    *,
+    code_revision_pass: bool = True,
 ) -> Dict[str, Any]:
     """
-    Анализирует описание, затем генерирует SQL. Возвращает SQL для проверки пользователем,
-    предупреждение о недостаточности контекста и результат анализа (intent, недостающие части и т.д.).
+    Анализирует описание, затем генерирует SQL. Опционально — второй вызов модели (ревизия кода).
+
+    Возвращает sql_or_ddl (после ревизии, если включена), предупреждение о контексте, analysis,
+    revision_applied (была ли применена ревизия успешно и текст изменился).
     """
     analysis = analyze_description_for_sql(description, credentials_override=credentials_override)
     sql = generate_sql_from_description(
@@ -567,27 +1160,54 @@ def generate_sql_with_review(
         model_override=model_override,
     )
     warning = analysis.get("warning") if not analysis.get("context_sufficient") else None
-    return {
+    out: Dict[str, Any] = {
         "sql_or_ddl": sql,
         "warning": warning,
         "analysis": analysis,
+        "revision_applied": False,
+        "code_revision_ran": False,
     }
+    if code_revision_pass and sql and sql.strip():
+        out["code_revision_ran"] = True
+        try:
+            revised = revise_sql_code(
+                sql,
+                original_description=description,
+                credentials_override=credentials_override,
+                model_override=model_override,
+            )
+            if revised and revised.strip():
+                out["revision_applied"] = revised.strip() != sql.strip()
+                out["sql_or_ddl"] = revised.strip()
+        except Exception as e:
+            _log_agent_error("Ревизия SQL", e, None)
+            out["sql_or_ddl"] = sql
+            out["revision_applied"] = False
+    return out
 
 
 def get_embeddings(
     texts: List[str],
     credentials_override: Optional[str] = None,
+    model_override: Optional[str] = None,
 ) -> List[List[float]]:
     """
     Векторные представления текстов (для RAG и поиска по смыслу).
-    Модель эмбеддингов задаётся API по умолчанию (Embeddings и др.).
+    Одна модель: model_override → GIGACHAT_EMBEDDING_MODEL → первая из EMBEDDING_MODEL_PRIORITY.
     """
     if not texts:
         return []
-    kw = _gigachat_client_kwargs(credentials_override=credentials_override)
-    if not kw:
+    if not _build_credentials(credentials_override=credentials_override):
         raise RuntimeError("GigaChat не настроен. Задайте GIGACHAT_CREDENTIALS.")
     from gigachat import GigaChat
+
+    emb_model = _resolved_embedding_model(model_override)
+    kw = _gigachat_client_kwargs(
+        credentials_override=credentials_override,
+        model_override=emb_model,
+    )
+    if not kw:
+        raise RuntimeError("GigaChat не настроен. Задайте GIGACHAT_CREDENTIALS.")
     with GigaChat(**kw) as giga:
         result = giga.embeddings(texts)
         out = []
@@ -610,6 +1230,79 @@ def get_models_list(credentials_override: Optional[str] = None) -> List[Dict[str
         return models
 
 
+def _probe_single_embedding_model(
+    model: str,
+    credentials_override: str,
+    scope_override: Optional[str] = None,
+    verify_ssl_override: Optional[bool] = None,
+) -> Tuple[bool, Optional[str]]:
+    """Один запрос embeddings — без внутреннего перебора моделей."""
+    kw = _gigachat_client_kwargs(
+        credentials_override=credentials_override,
+        scope_override=scope_override,
+        model_override=model,
+        verify_ssl_override=verify_ssl_override,
+    )
+    if not kw:
+        return False, "Нет учётных данных GigaChat"
+    try:
+        from gigachat import GigaChat
+
+        with GigaChat(**kw) as giga:
+            giga.embeddings(["."])
+        return True, None
+    except Exception as e:
+        return False, str(e).strip() or type(e).__name__
+
+
+def probe_models_availability(
+    credentials_override: str,
+    scope_override: Optional[str] = None,
+    verify_ssl_override: Optional[bool] = None,
+) -> Dict[str, Any]:
+    """
+    Проверяет доступность чат- и embedding-моделей по цепочкам приоритетов.
+    Для чата — POST /tokens/count (минимальный ввод); для эмбеддингов — один вызов embeddings.
+    """
+    chat_rows: List[Dict[str, Any]] = []
+    selected_chat: Optional[str] = None
+    for m in CHAT_MODEL_PRIORITY:
+        tc = count_input_tokens(
+            ["x"],
+            credentials_override=credentials_override,
+            scope_override=scope_override,
+            model_override=m,
+            verify_ssl_override=verify_ssl_override,
+        )
+        ok = bool(tc.get("ok"))
+        err = None if ok else (tc.get("error") or "unknown")
+        chat_rows.append({"model": m, "ok": ok, "error": err})
+        if ok and selected_chat is None:
+            selected_chat = m
+
+    emb_rows: List[Dict[str, Any]] = []
+    selected_emb: Optional[str] = None
+    for m in EMBEDDING_MODEL_PRIORITY:
+        ok, err = _probe_single_embedding_model(
+            m,
+            credentials_override,
+            scope_override=scope_override,
+            verify_ssl_override=verify_ssl_override,
+        )
+        emb_rows.append({"model": m, "ok": ok, "error": None if ok else err})
+        if ok and selected_emb is None:
+            selected_emb = m
+
+    return {
+        "chat": chat_rows,
+        "embedding": emb_rows,
+        "selected_chat": selected_chat,
+        "selected_embedding": selected_emb,
+        "chat_priority": list(CHAT_MODEL_PRIORITY),
+        "embedding_priority": list(EMBEDDING_MODEL_PRIORITY),
+    }
+
+
 def synthesize_plan_for_query(
     query: str,
     objects: list,
@@ -618,6 +1311,7 @@ def synthesize_plan_for_query(
     scope_override: Optional[str] = None,
     user_table_sizes: Optional[Dict[str, int]] = None,
     params_and_vars: Optional[Dict[str, str]] = None,
+    model_override: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """
     Синтезирует план запроса для Greenplum в формате EXPLAIN (JSON) без выполнения в БД.
@@ -641,8 +1335,7 @@ def synthesize_plan_for_query(
             return plan
         except Exception:
             pass
-    kw = _gigachat_client_kwargs(credentials_override=credentials_override, scope_override=scope_override)
-    if not kw:
+    if not _build_credentials(credentials_override=credentials_override):
         return None
     tables_desc = ""
     if user_table_sizes:
@@ -658,17 +1351,29 @@ def synthesize_plan_for_query(
     text = ""
     timeout_sec = int(os.environ.get("GIGACHAT_TIMEOUT_SEC", "120"))
     max_retries = 3
+    import asyncio
+
+    def _ensure_loop():
+        try:
+            asyncio.get_event_loop()
+        except RuntimeError:
+            asyncio.set_event_loop(asyncio.new_event_loop())
+
+    from gigachat import GigaChat
+
+    chat_model = _resolved_chat_model(model_override)
+    kw = _gigachat_client_kwargs(
+        credentials_override=credentials_override,
+        scope_override=scope_override,
+        model_override=chat_model,
+    )
+    if not kw:
+        return None
     for attempt in range(1, max_retries + 1):
         try:
-            print(f"   🌐 Запрос к GigaChat (синтез плана, timeout={timeout_sec}s)…")
-            from gigachat import GigaChat
-            import asyncio
-
-            def _ensure_loop():
-                try:
-                    asyncio.get_event_loop()
-                except RuntimeError:
-                    asyncio.set_event_loop(asyncio.new_event_loop())
+            print(
+                f"   🌐 Запрос к GigaChat (синтез плана, модель={chat_model}, timeout={timeout_sec}s)…"
+            )
 
             def _call_chat():
                 _ensure_loop()
@@ -721,6 +1426,7 @@ def synthesize_plan_for_query(
             ctx = _CTX_EMPTY_RESPONSE if not (text and text.strip()) else None
             _log_agent_error("Синтез плана", e, ctx)
             return None
+    return None
 
 
 # GigaChat 128K контекст ≈ 350K символов (с запасом на промпт и ответ)
@@ -753,6 +1459,7 @@ def get_blocks_and_objects_from_ddl(
     text: str,
     credentials_override: Optional[str] = None,
     scope_override: Optional[str] = None,
+    model_override: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """
     Чистый агентский режим: агент сам находит исполняемые блоки и объекты в DDL функции/SQL.
@@ -779,8 +1486,7 @@ def get_blocks_and_objects_from_ddl(
             return data
         except Exception:
             pass
-    kw = _gigachat_client_kwargs(credentials_override=credentials_override, scope_override=scope_override)
-    if not kw:
+    if not _build_credentials(credentials_override=credentials_override):
         return None
 
     use_chunking = len(text) > BLOCKS_BO_MAX_CHARS
@@ -790,6 +1496,19 @@ def get_blocks_and_objects_from_ddl(
     else:
         chunks = [(0, len(text), text)]
 
+    from gigachat import GigaChat
+    timeout_bo = BLOCKS_BO_TIMEOUT_SEC
+    max_retries_bo = 2
+
+    chat_model = _resolved_chat_model(model_override)
+    kw = _gigachat_client_kwargs(
+        credentials_override=credentials_override,
+        scope_override=scope_override,
+        model_override=chat_model,
+    )
+    if not kw:
+        return None
+
     all_blocks = []
     all_objects = set()
     all_params = []
@@ -798,10 +1517,6 @@ def get_blocks_and_objects_from_ddl(
     raw = ""
 
     try:
-        from gigachat import GigaChat
-        timeout_bo = BLOCKS_BO_TIMEOUT_SEC
-        max_retries_bo = 2
-
         with GigaChat(**kw) as giga:
             for idx, (start, end, chunk) in enumerate(chunks):
                 part_num = idx + 1
@@ -900,13 +1615,14 @@ def get_blocks_and_objects_from_ddl(
     except Exception as e:
         ctx = _CTX_EMPTY_RESPONSE if not (raw and raw.strip()) else None
         _log_agent_error("Извлечение блоков и объектов", e, ctx)
-    return None
+        return None
 
 
 def get_objects_from_sql_or_function(
     text: str,
     credentials_override: Optional[str] = None,
     scope_override: Optional[str] = None,
+    model_override: Optional[str] = None,
 ) -> List[str]:
     """
     Извлекает список объектов (таблицы/представления) из текста SQL или DDL функции.
@@ -926,8 +1642,7 @@ def get_objects_from_sql_or_function(
             return out
         except Exception:
             pass
-    kw = _gigachat_client_kwargs(credentials_override=credentials_override, scope_override=scope_override)
-    if not kw:
+    if not _build_credentials(credentials_override=credentials_override):
         return []
     prompt = get_prompt("objects_from_sql", text=text[:_max_chars]) if get_prompt else (
         f"Выпиши таблицы и представления из текста. Текст:\n{text[:_max_chars]}"
@@ -935,11 +1650,18 @@ def get_objects_from_sql_or_function(
     raw = ""
     try:
         print(f"   🌐 Запрос к GigaChat (извлечение объектов)…")
-        from gigachat import GigaChat
-        with GigaChat(**kw) as giga:
+
+        def _objects_chat(giga):
             response = giga.chat(prompt)
             _add_usage(getattr(response, "usage", None))
-            raw = response.choices[0].message.content if response.choices else ""
+            return response.choices[0].message.content if response.choices else ""
+
+        raw = _call_gigachat_chat(
+            _objects_chat,
+            credentials_override=credentials_override,
+            scope_override=scope_override,
+            model_override=model_override,
+        )
         raw = raw.strip()
         if raw.startswith("```"):
             lines = raw.split("\n")
@@ -973,6 +1695,7 @@ def get_missing_objects_for_ddl(
     found_objects: List[str],
     credentials_override: Optional[str] = None,
     scope_override: Optional[str] = None,
+    model_override: Optional[str] = None,
 ) -> List[str]:
     """
     Агент сверяет список найденных объектов с текстом и возвращает список имён объектов,
@@ -991,8 +1714,7 @@ def get_missing_objects_for_ddl(
             return out
         except Exception:
             pass
-    kw = _gigachat_client_kwargs(credentials_override=credentials_override, scope_override=scope_override)
-    if not kw:
+    if not _build_credentials(credentials_override=credentials_override):
         return []
     prompt = get_prompt("missing_objects", found_objects=', '.join(found_objects[:30]), text=function_or_sql_text[:3500]) if get_prompt else (
         f"Определи недостающие объекты для DDL. Уже есть: {', '.join(found_objects[:30])}. Текст:\n{function_or_sql_text[:3500]}"
@@ -1000,11 +1722,18 @@ def get_missing_objects_for_ddl(
     text = ""
     try:
         print(f"   🌐 Запрос к GigaChat (проверка недостающих объектов)…")
-        from gigachat import GigaChat
-        with GigaChat(**kw) as giga:
+
+        def _missing_chat(giga):
             response = giga.chat(prompt)
             _add_usage(getattr(response, "usage", None))
-            text = response.choices[0].message.content if response.choices else ""
+            return response.choices[0].message.content if response.choices else ""
+
+        text = _call_gigachat_chat(
+            _missing_chat,
+            credentials_override=credentials_override,
+            scope_override=scope_override,
+            model_override=model_override,
+        )
         text = text.strip()
         if text.startswith("```"):
             lines = text.split("\n")
@@ -1043,7 +1772,10 @@ def _langchain_giga_chat(credentials_override: Optional[str] = None, model_overr
         from langchain_gigachat.chat_models import GigaChat
     except ImportError:
         return None
-    kw = _gigachat_client_kwargs(credentials_override=credentials_override, model_override=model_override)
+    kw = _gigachat_client_kwargs(
+        credentials_override=credentials_override,
+        model_override=_resolved_chat_model(model_override),
+    )
     if not kw:
         return None
     return GigaChat(
@@ -1069,14 +1801,19 @@ def invoke_with_prompt(
         if llm is not None:
             out = llm.invoke(prompt)
             return getattr(out, "content", str(out))
-    kw = _gigachat_client_kwargs(credentials_override=credentials_override, model_override=model_override)
-    if not kw:
+    if not _build_credentials(credentials_override=credentials_override):
         raise RuntimeError("GigaChat не настроен. Задайте GIGACHAT_CREDENTIALS.")
-    from gigachat import GigaChat
-    with GigaChat(**kw) as giga:
+
+    def _invoke_chat(giga):
         response = giga.chat(prompt)
         _add_usage(getattr(response, "usage", None))
         return (response.choices[0].message.content if response.choices else "") or ""
+
+    return _call_gigachat_chat(
+        _invoke_chat,
+        credentials_override=credentials_override,
+        model_override=model_override,
+    )
 
 
 # --- Точки расширения для RAG и LangGraph ---

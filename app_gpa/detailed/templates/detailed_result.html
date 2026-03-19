@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" class="gpa-detailed-ui">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,67 +7,82 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='detailed.css') }}">
-  <style>
-    .block-row { cursor: pointer; }
-    .block-row:hover { background-color: #f1f3f5; }
-  </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="/">Analyzer</a>
-    <div class="navbar-nav ms-auto">
-      <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#aboutModal">О приложении</a>
-      <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#resetCacheModal">Сброс к базовым</a>
-    </div>
-  </div>
-</nav>
+<div class="apple-shell">
+  {% set shell_active = 'result' %}
+  {% set shell_table_href = '#tables' %}
+  {% set shell_result_href = request.path %}
+  {% set shell_status_title = 'Результат' %}
+  {% set shell_status_note = 'Сводка, вкладки и детали выбранного блока.' %}
+  {% set show_tips = false %}
+  {% include 'apple_sidebar.html' %}
 
-<div id="token-strip" class="token-strip" role="status" aria-live="polite">
-  <span>Токены: использовано <span class="token-used" id="token-used">0</span> (ввод <span id="token-prompt">0</span>, вывод <span id="token-completion">0</span>)</span>
-  <span>|</span>
-  <span>сессий: <span id="token-sessions">0</span></span>
-  <span>|</span>
-  <span>доступно: <span class="token-available na" id="token-available">—</span></span>
-  <span>|</span>
-  <span>429: <span id="token-rate-limit" class="token-rate-limit" title="Превышение лимита запросов GigaChat">0</span></span>
-</div>
+  <main class="apple-main">
+    <header class="apple-toolbar page-reveal">
+      <div class="apple-toolbar__titles">
+        <span class="apple-toolbar__eyebrow">Insight Dashboard</span>
+        <h1 class="apple-toolbar__title">Результат анализа нагрузки</h1>
+        <p class="apple-toolbar__subtitle" id="resultToolbarSubtitle">Спокойная аналитическая панель: сводка сверху, детали по вкладкам, выбранный блок справа.</p>
+      </div>
+      <div class="apple-toolbar__actions">
+        <span class="apple-inline-status">Шаг 3 из 3</span>
+        <div class="apple-toolbar__surface">
+          <span class="apple-toolbar__meta">Статус: {{ status }}</span>
+          {% if agent_chat_model or agent_embedding_model %}
+          <span class="badge bg-dark ms-1" title="Модели GigaChat для этого расчёта">GigaChat: {{ agent_chat_model or '—' }} · emb {{ agent_embedding_model or '—' }}</span>
+          {% endif %}
+          <button type="button" class="btn btn-sm btn-outline-secondary theme-toggle" data-theme-toggle aria-label="Переключить тему">
+            <span class="theme-toggle__icon" aria-hidden="true">◐</span>
+            <span class="theme-toggle__label">Светлая тема</span>
+          </button>
+        </div>
+      </div>
+    </header>
 
-<!-- Плашка системной статистики -->
-<div class="system-stats" id="system-stats">
-  <div class="stat-item">
-    <span class="stat-label">💾 Память:</span>
-    <span class="stat-value" id="stat-memory">0 MB</span>
-  </div>
-  <div class="stat-item">
-    <span class="stat-label">⚡ CPU:</span>
-    <span class="stat-value" id="stat-cpu">0%</span>
-  </div>
-  <div class="stat-item">
-    <span class="stat-label">📊 Блоков:</span>
-    <span class="stat-value" id="stat-blocks">0/0</span>
-  </div>
-  <div class="progress-container">
-    <div class="progress-bar-wrapper">
-      <div class="progress-bar-fill" id="progress-bar-fill"></div>
-    </div>
-    <div class="progress-text">
-      <span><span class="loading-spinner" id="loading-spinner"></span> <span id="progress-status">Выполнение...</span></span>
-      <span id="progress-percent">0%</span>
-    </div>
-  </div>
-</div>
+    <div class="apple-main__body">
+      <div id="token-strip" class="token-strip page-reveal" aria-live="polite">
+        <span>Токены: использовано <span class="token-used" id="token-used">0</span> (ввод <span id="token-prompt">0</span>, вывод <span id="token-completion">0</span>, кэш вх. <span id="token-precached" title="precached_prompt_tokens из ответов API">0</span>)</span>
+        <span>сессий: <span id="token-sessions">0</span></span>
+        <span>доступно: <span class="token-available na" id="token-available">—</span></span>
+        <span>429: <span id="token-rate-limit" class="token-rate-limit" title="Превышение лимита запросов GigaChat">0</span></span>
+      </div>
 
-<div class="container my-4">
-  <div class="row g-4">
-    <div class="col-lg-6">
-      <div class="card shadow-sm">
+      <div class="system-stats page-reveal" id="system-stats">
+        <div class="stat-item">
+          <span class="stat-label">Память</span>
+          <span class="stat-value" id="stat-memory">0 MB</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">CPU</span>
+          <span class="stat-value" id="stat-cpu">0%</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Блоков</span>
+          <span class="stat-value" id="stat-blocks">0/0</span>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bar-wrapper">
+            <div class="progress-bar-fill" id="progress-bar-fill"></div>
+          </div>
+          <div class="progress-text">
+            <span><span class="loading-spinner" id="loading-spinner"></span> <span id="progress-status">Выполнение...</span></span>
+            <span id="progress-percent">0%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="apple-view apple-view__surface app-content apple-view-grid apple-view-grid--result">
+        <div class="apple-stack">
+          <div class="row g-4">
+            <div class="col-lg-5">
+              <div class="card shadow-sm page-reveal apple-log-card">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
           <span>Онлайн-лог</span>
           <div class="d-flex align-items-center gap-2">
             <span id="mode-badge" class="badge bg-info" style="display: none;" title="Режим анализа">—</span>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-copy-log" title="Скопировать весь лог">
-              Копировать весь лог
+              Копировать
             </button>
             <span id="status" class="badge bg-secondary">{{ status }}</span>
           </div>
@@ -76,62 +91,67 @@
           <div id="log"></div>
         </div>
       </div>
-    </div>
-    <div class="col-lg-6">
-      <div class="card shadow-sm">
-        <div class="card-header">Краткая статистика</div>
+            </div>
+            <div class="col-lg-7">
+              <div class="card shadow-sm page-reveal apple-summary-card">
+        <div class="card-header">Сводка</div>
         <div class="card-body">
           <div id="summary">
             <div id="summary-waiting" class="app-loader app-loader--compact app-loader--{{ loader_mode or 'logic' }}">
               <span class="app-loader__spinner"></span>
               <span class="app-loader__mode-icon"></span>
-              <span class="app-loader__status-text">Расчёт нагрузки…</span>
+              <span class="app-loader__status-text">Расчёт…</span>
             </div>
+            <div id="analysis-quality-note" class="alert alert-secondary py-2 small mb-3" style="display: none;"></div>
             <div id="summary-content" style="display: none;"></div>
           </div>
-          <div class="mt-3 d-flex gap-2">
-            <a id="btn-details" href="#" class="btn btn-outline-primary disabled" target="_blank">Полный JSON</a>
-            <a href="/detailed" class="btn btn-outline-secondary">Новый анализ</a>
+          <div class="cta-bar mt-3">
+            <div class="d-flex gap-2 flex-wrap">
+              <a id="btn-details" href="#" class="btn btn-outline-primary disabled" target="_blank">JSON-отчёт</a>
+              <a href="/detailed" class="btn btn-outline-secondary">Новый анализ</a>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
+            </div>
+          </div>
   
-  <!-- Панель ключевых метрик (появляется после расчёта, по мотивам explain-визуализаторов) -->
-  <div id="metrics-strip" class="metrics-strip" style="display: none;"></div>
+          <div id="metrics-strip" class="metrics-strip" style="display: none;"></div>
 
-  <!-- Вкладки с результатами (появятся после завершения) -->
-  <div class="row mt-4" id="results-tabs" style="display: none;">
-    <div class="col-12">
-      <div class="card shadow-sm">
+          <div class="row mt-2" id="results-tabs" style="display: none;">
+            <div class="col-12">
+              <div class="card shadow-sm apple-tabs-card">
         <div class="card-header">
-          <ul class="nav nav-tabs card-header-tabs" id="resultTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button class="nav-link active" id="tables-tab" data-bs-toggle="tab" data-bs-target="#tables" type="button" role="tab">Таблицы</button>
+          <ul class="nav nav-tabs card-header-tabs" id="resultTabs">
+            <li class="nav-item">
+              <button class="nav-link active" id="tables-tab" data-bs-toggle="tab" data-bs-target="#tables" type="button">Таблицы</button>
             </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="blocks-tab" data-bs-toggle="tab" data-bs-target="#blocks" type="button" role="tab">Блоки</button>
+            <li class="nav-item">
+              <button class="nav-link" id="blocks-tab" data-bs-toggle="tab" data-bs-target="#blocks" type="button">Блоки</button>
             </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="top-tab" data-bs-toggle="tab" data-bs-target="#top" type="button" role="tab">Топ-3 запроса</button>
+            <li class="nav-item">
+              <button class="nav-link" id="top-tab" data-bs-toggle="tab" data-bs-target="#top" type="button">Топ нагрузки</button>
             </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="problems-tab" data-bs-toggle="tab" data-bs-target="#problems" type="button" role="tab">Проблемные блоки <span class="badge bg-warning text-dark" id="problems-badge" style="display: none;">0</span></button>
+            <li class="nav-item">
+              <button class="nav-link" id="problems-tab" data-bs-toggle="tab" data-bs-target="#problems" type="button">Риски <span class="badge bg-warning text-dark" id="problems-badge" style="display: none;">0</span></button>
             </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="perf-tab" data-bs-toggle="tab" data-bs-target="#perf" type="button" role="tab">Статистика выполнения</button>
+            <li class="nav-item">
+              <button class="nav-link" id="perf-tab" data-bs-toggle="tab" data-bs-target="#perf" type="button">Исполнение</button>
             </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="errors-tab" data-bs-toggle="tab" data-bs-target="#errors" type="button" role="tab">Ошибки <span class="badge bg-danger" id="errors-badge" style="display: none;">0</span></button>
+            <li class="nav-item">
+              <button class="nav-link" id="errors-tab" data-bs-toggle="tab" data-bs-target="#errors" type="button">Сбои <span class="badge bg-danger" id="errors-badge" style="display: none;">0</span></button>
             </li>
           </ul>
         </div>
         <div class="card-body">
           <div class="tab-content" id="resultTabsContent">
             <!-- Вкладка с таблицами -->
-            <div class="tab-pane fade show active" id="tables" role="tabpanel">
-              <h6>Найденные таблицы</h6>
+            <div class="tab-pane fade show active" id="tables">
+              <div class="table-title-row">
+                <h6 id="resultSourcesTitle">Источники сценария</h6>
+                <p class="mini-note" id="resultSourcesNote">Корректируйте объёмы и пересчитывайте.</p>
+              </div>
+              <div class="table-responsive">
               <table class="table table-sm table-striped">
                 <thead>
                   <tr>
@@ -144,14 +164,17 @@
                 </thead>
                 <tbody id="tables-tbody"></tbody>
               </table>
-              <button class="btn btn-sm btn-primary" id="apply-sizes" title="Обновить размеры таблиц и перезапустить расчёт нагрузки">Применить размеры и пересчитать</button>
+              </div>
+              <button class="btn btn-sm btn-primary" id="apply-sizes" title="Обновить размеры таблиц и перезапустить расчёт нагрузки">Пересчитать</button>
             </div>
             
             <!-- Вкладка со всеми блоками -->
-            <div class="tab-pane fade" id="blocks" role="tabpanel">
-              <div class="mb-2">
-                <small class="text-muted">Нажмите на строку для просмотра деталей</small>
+            <div class="tab-pane fade" id="blocks">
+              <div class="table-title-row">
+                <h6>Все блоки</h6>
+                <p class="mini-note">Выберите строку, чтобы открыть детали справа.</p>
               </div>
+              <div class="table-responsive">
               <table class="table table-sm table-striped">
                 <thead>
                   <tr>
@@ -165,33 +188,34 @@
                 </thead>
                 <tbody id="blocks-tbody"></tbody>
               </table>
+              </div>
             </div>
             
             <!-- Вкладка с топ-3 запросами -->
-            <div class="tab-pane fade" id="top" role="tabpanel">
+            <div class="tab-pane fade" id="top">
+              <p class="panel-note">Самые тяжёлые блоки по памяти и риску.</p>
               <div id="top-blocks"></div>
             </div>
 
             <!-- Вкладка с проблемными блоками (антипаттерны) -->
-            <div class="tab-pane fade" id="problems" role="tabpanel">
+            <div class="tab-pane fade" id="problems">
               <div id="problems-content">
-                <p class="text-muted small">Блоки с антипаттернами, повышающими риск краша расчёта на скейле данных.</p>
+                <p class="text-muted small mb-3">Паттерны, которые сильнее всего повышают риск на росте данных.</p>
                 <div id="problems-list"></div>
-                <hr>
-                <h6 class="mt-3">Рекомендации по хеджированию краша расчёта</h6>
+                <h6 class="mt-3 mb-2">Рекомендации</h6>
                 <ul id="hedge-recommendations" class="small"></ul>
               </div>
             </div>
 
             <!-- Вкладка со статистикой выполнения -->
-            <div class="tab-pane fade" id="errors" role="tabpanel">
-              <p class="text-muted small">Ошибки агента GigaChat, не решённые пересчётом (JSONDecodeError, таймауты и т.п.).</p>
+            <div class="tab-pane fade" id="errors">
+              <p class="text-muted small mb-3">Ошибки агента и сетевые сбои, которые не прошли повторную попытку.</p>
               <div id="errors-list"></div>
             </div>
-            <div class="tab-pane fade" id="perf" role="tabpanel">
+            <div class="tab-pane fade" id="perf">
               <div class="row">
                 <div class="col-md-6">
-                  <div class="card mb-3">
+                  <div class="card mb-3 chart-shell">
                     <div class="card-header">Память (MB)</div>
                     <div class="card-body">
                       <canvas id="memory-chart" style="height: 200px;"></canvas>
@@ -200,7 +224,7 @@
                   </div>
                 </div>
                 <div class="col-md-6">
-                  <div class="card mb-3">
+                  <div class="card mb-3 chart-shell">
                     <div class="card-header">CPU (%)</div>
                     <div class="card-body">
                       <canvas id="cpu-chart" style="height: 200px;"></canvas>
@@ -223,8 +247,37 @@
           </div>
         </div>
       </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="apple-inspector page-reveal">
+          <div class="apple-inspector__panel" id="block-inspector">
+            <span class="apple-inspector__eyebrow">Inspector</span>
+            <h2 class="apple-inspector__title" id="inspector-title">Детали блока</h2>
+            <p class="apple-inspector__placeholder" id="inspector-empty">Выберите блок во вкладке «Блоки», чтобы открыть SQL, нагрузку и антипаттерны.</p>
+            <div id="inspector-content" style="display: none;">
+              <div class="apple-inspector__meta" id="inspector-meta"></div>
+              <div class="apple-inspector__copy">
+                <div class="mini-note mb-2">SQL</div>
+                <pre class="apple-inspector__sql" id="inspector-sql">—</pre>
+              </div>
+              <div class="apple-inspector__copy" id="inspector-fallback-wrap" style="display: none;">
+                <div class="mini-note mb-2">Fallback-оценка</div>
+                <div class="form-subpanel small" id="inspector-fallback"></div>
+              </div>
+              <div class="apple-inspector__copy" id="inspector-antipatterns-wrap" style="display: none;">
+                <div class="mini-note mb-2">Антипаттерны</div>
+                <ul class="apple-inspector__list" id="inspector-antipatterns"></ul>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      {% include 'app_footer.html' %}
     </div>
-  </div>
+  </main>
 </div>
 
 <!-- Форма для автоматического перезапуска анализа (скрытая) -->
@@ -234,14 +287,12 @@
   <div id="restart-sizes-container"></div>
 </form>
 
-{% include 'app_footer.html' %}
-
 {% include 'about_modal.html' %}
 {% include 'reset_cache_modal.html' %}
 
 <!-- Модальное окно: задержка GigaChat, повторная попытка -->
 <div class="modal fade" id="gigachatRetryModal" tabindex="-1" aria-labelledby="gigachatRetryLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered apple-popover-dialog">
     <div class="modal-content">
       <div class="modal-header bg-warning bg-opacity-25">
         <h5 class="modal-title" id="gigachatRetryLabel">Задержка обработки GigaChat</h5>
@@ -260,6 +311,8 @@
 (function(){
   const jobId = {{ job_id | tojson }};
   const initialLoaderMode = {{ (loader_mode or 'logic') | tojson }};
+  const initialStack = {{ (stack or 'greenplum') | tojson }};
+  const analysisQualityNote = document.getElementById('analysis-quality-note');
   function escapeHtml(s) {
     if (s == null) return '';
     const d = document.createElement('div');
@@ -281,6 +334,15 @@
   const restartParams = document.getElementById('restart-params');
   const restartSizesContainer = document.getElementById('restart-sizes-container');
   const btnCopyLog = document.getElementById('btn-copy-log');
+  const inspectorTitle = document.getElementById('inspector-title');
+  const inspectorEmpty = document.getElementById('inspector-empty');
+  const inspectorContent = document.getElementById('inspector-content');
+  const inspectorMeta = document.getElementById('inspector-meta');
+  const inspectorSql = document.getElementById('inspector-sql');
+  const inspectorFallbackWrap = document.getElementById('inspector-fallback-wrap');
+  const inspectorFallback = document.getElementById('inspector-fallback');
+  const inspectorAntipatternsWrap = document.getElementById('inspector-antipatterns-wrap');
+  const inspectorAntipatterns = document.getElementById('inspector-antipatterns');
 
   // Копировать весь лог в буфер обмена
   if (btnCopyLog && logEl) {
@@ -332,6 +394,74 @@
   let memoryChart, cpuChart;
   let memoryData = [], cpuData = [], timeLabels = [];
 
+  function resetInspector() {
+    if (inspectorTitle) inspectorTitle.textContent = 'Детали блока';
+    if (inspectorEmpty) inspectorEmpty.style.display = 'block';
+    if (inspectorContent) inspectorContent.style.display = 'none';
+    if (inspectorMeta) inspectorMeta.innerHTML = '';
+    if (inspectorSql) inspectorSql.textContent = '—';
+    if (inspectorFallbackWrap) inspectorFallbackWrap.style.display = 'none';
+    if (inspectorFallback) inspectorFallback.innerHTML = '';
+    if (inspectorAntipatternsWrap) inspectorAntipatternsWrap.style.display = 'none';
+    if (inspectorAntipatterns) inspectorAntipatterns.innerHTML = '';
+  }
+
+  function renderInspector(block) {
+    if (!block) {
+      resetInspector();
+      return;
+    }
+    if (inspectorTitle) inspectorTitle.textContent = 'Блок ' + (block.index || '—');
+    if (inspectorEmpty) inspectorEmpty.style.display = 'none';
+    if (inspectorContent) inspectorContent.style.display = 'block';
+    if (inspectorMeta) {
+      inspectorMeta.innerHTML = [
+        ['Тип', escapeHtml(block.type || 'N/A')],
+        ['Категория', escapeHtml(block.category || 'N/A')],
+        ['Нагрузка', escapeHtml(((block.max_memory_gb || 0).toFixed(3)) + ' GB')],
+        ['Строк', escapeHtml((block.total_rows || 0).toLocaleString())],
+        ['Таблицы', escapeHtml((block.tables || []).join(', ') || '—')]
+      ].map(function(item) {
+        return '<div class="apple-inspector__meta-item"><span>' + item[0] + '</span><strong>' + item[1] + '</strong></div>';
+      }).join('');
+    }
+    if (inspectorSql) inspectorSql.textContent = block.sql_preview || block.sql_full || '—';
+
+    if (inspectorFallbackWrap && inspectorFallback) {
+      if (block.fallback_estimate && (block.heavy_reason || block.heavy_recommendation)) {
+        inspectorFallbackWrap.style.display = 'block';
+        inspectorFallback.innerHTML =
+          (block.heavy_reason ? '<div><strong>Причина:</strong> ' + escapeHtml(block.heavy_reason) + '</div>' : '') +
+          (block.heavy_recommendation ? '<div class="mt-2"><strong>Рекомендация:</strong> ' + escapeHtml(block.heavy_recommendation) + '</div>' : '');
+      } else {
+        inspectorFallbackWrap.style.display = 'none';
+        inspectorFallback.innerHTML = '';
+      }
+    }
+
+    if (inspectorAntipatternsWrap && inspectorAntipatterns) {
+      if (block.anti_patterns && block.anti_patterns.length > 0) {
+        inspectorAntipatternsWrap.style.display = 'block';
+        inspectorAntipatterns.innerHTML = block.anti_patterns.map(function(ap) {
+          return '<li><strong>' + escapeHtml(ap.pattern || 'Паттерн') + '</strong>: ' + escapeHtml(ap.reason || '—') +
+            (ap.hedge ? '<br><span class="text-success">Хедж: ' + escapeHtml(ap.hedge) + '</span>' : '') + '</li>';
+        }).join('');
+      } else {
+        inspectorAntipatternsWrap.style.display = 'none';
+        inspectorAntipatterns.innerHTML = '';
+      }
+    }
+  }
+
+  function activateTabFromHash() {
+    const hash = (window.location.hash || '').trim();
+    if (!hash || typeof bootstrap === 'undefined') return;
+    const trigger = document.querySelector('[data-bs-target="' + hash + '"]');
+    if (trigger) {
+      bootstrap.Tab.getOrCreateInstance(trigger).show();
+    }
+  }
+
   function updateTokenStrip() {
     fetch('/api/agent/token_usage').then(r => r.json()).then(data => {
       const u = data.used || {};
@@ -343,11 +473,24 @@
       if (elTotal) elTotal.textContent = (u.total_tokens || 0).toLocaleString();
       if (elPrompt) elPrompt.textContent = (u.prompt_tokens || 0).toLocaleString();
       if (elComp) elComp.textContent = (u.completion_tokens || 0).toLocaleString();
+      const elPrec = document.getElementById('token-precached');
+      if (elPrec) elPrec.textContent = (u.precached_prompt_tokens || 0).toLocaleString();
       if (elSess) elSess.textContent = (u.sessions || 0).toLocaleString();
       if (elAv) {
         const av = data.available;
         elAv.textContent = av != null ? av.toLocaleString() : '—';
         elAv.classList.toggle('na', av == null);
+        const src = data.balance_source || '';
+        const be = data.balance_error || '';
+        if (src === 'freemium_estimate') {
+          elAv.title = 'Оценка: лимит GigaChat Lite минус учтённые total_tokens. GET /balance при pay-as-you-go недоступен (403).';
+        } else if (src === 'get_balance' && data.balance_by_model && data.balance_by_model.length) {
+          elAv.title = 'Остаток из GET /balance: ' + data.balance_by_model.map(x => (x.model || '?') + '=' + (x.tokens != null ? x.tokens : '—')).join(', ');
+        } else if (be) {
+          elAv.title = be;
+        } else {
+          elAv.removeAttribute('title');
+        }
       }
       let c429 = 0;
       try { c429 = parseInt(sessionStorage.getItem('gpa_rate_limit_429') || '0', 10) || 0; } catch (e) {}
@@ -587,6 +730,9 @@
     if (mode === 'hybrid') return useDb ? 'hybrid' : 'agent';
     return 'logic';
   }
+  function getStackLabel(stack) {
+    return stack === 'spark' ? 'Spark' : (stack === 'pyspark' ? 'PySpark' : 'GreenPlum');
+  }
   function applyLoaderMode(el, js) {
     if (!el) return;
     el.classList.remove('app-loader--agent', 'app-loader--logic', 'app-loader--hybrid');
@@ -595,12 +741,60 @@
   function getModeLabel(mode) {
     return mode === 'agent' ? 'Чистый агент' : (mode === 'hybrid' ? 'Гибрид' : 'Логика');
   }
-  function updateModeBadge(mode) {
+  function updateModeBadge(mode, stack) {
     const badge = document.getElementById('mode-badge');
     if (!badge) return;
     const effectiveMode = mode || 'logic';
-    badge.textContent = getModeLabel(effectiveMode);
+    badge.textContent = getStackLabel(stack || initialStack) + ' · ' + getModeLabel(effectiveMode);
     badge.style.display = 'inline-block';
+  }
+  function updateResultCopy(stack) {
+    const titleEl = document.getElementById('resultSourcesTitle');
+    const noteEl = document.getElementById('resultSourcesNote');
+    const subtitleEl = document.getElementById('resultToolbarSubtitle');
+    if (stack === 'spark') {
+      if (titleEl) titleEl.textContent = 'Spark-источники сценария';
+      if (noteEl) noteEl.textContent = 'Корректируйте объёмы Spark-источников и пересчитывайте.';
+      if (subtitleEl) subtitleEl.textContent = 'Сводка по Spark-аналитике: источники, блоки, риски и детали выбранного блока.';
+      return;
+    }
+    if (stack === 'pyspark') {
+      if (titleEl) titleEl.textContent = 'PySpark-источники сценария';
+      if (noteEl) noteEl.textContent = 'Корректируйте объёмы источников PySpark и пересчитывайте.';
+      if (subtitleEl) subtitleEl.textContent = 'Сводка по PySpark-аналитике: источники, блоки, риски и детали выбранного блока.';
+      return;
+    }
+    if (titleEl) titleEl.textContent = 'Источники сценария';
+    if (noteEl) noteEl.textContent = 'Корректируйте объёмы и пересчитывайте.';
+    if (subtitleEl) subtitleEl.textContent = 'Спокойная аналитическая панель: сводка сверху, детали по вкладкам, выбранный блок справа.';
+  }
+  function renderAnalysisQuality(result) {
+    if (!analysisQualityNote) return;
+    const runtime = (result && result.runtime_context) || {};
+    const quality = (result && result.analysis_quality) || 'approximate';
+    const qualityLabel = quality === 'profile_enriched'
+      ? 'Profile-enriched analysis'
+      : (quality === 'metadata_enriched'
+        ? 'Metadata-enriched analysis'
+        : (quality === 'runtime_hinted' ? 'Runtime-hinted analysis' : (quality === 'deep' ? 'Deep analysis' : 'Approximate analysis')));
+    const parts = [`<strong>${qualityLabel}</strong>`];
+    if (runtime.capacity_gb) {
+      parts.push(`runtime capacity: ${Number(runtime.capacity_gb).toFixed(1)} GB`);
+    }
+    if (result && result.memory_pressure != null) {
+      parts.push(`pressure: ${(Number(result.memory_pressure) * 100).toFixed(1)}%`);
+    }
+    if (runtime.metadata_sources) {
+      parts.push(`metadata snapshot: ${runtime.metadata_sources}`);
+    }
+    if (runtime.profile_attached) {
+      parts.push('runtime profile attached');
+    }
+    if (Array.isArray(runtime.notes) && runtime.notes.length) {
+      parts.push(runtime.notes.join(' '));
+    }
+    analysisQualityNote.innerHTML = parts.join(' · ');
+    analysisQualityNote.style.display = 'block';
   }
 
   // Poll status
@@ -611,7 +805,8 @@
       statusEl.textContent = js.status;
       statusEl.className = 'badge bg-' + (js.status === 'done' ? 'success' : js.status === 'error' ? 'danger' : 'secondary');
       applyLoaderMode(summaryWaiting, js);
-      updateModeBadge(getLoaderMode(js));
+      updateModeBadge(getLoaderMode(js), js.stack || initialStack);
+      updateResultCopy(js.stack || initialStack);
 
       if (js.status === 'running') {
         if (systemStats && systemStats.style.display !== 'flex') {
@@ -631,26 +826,32 @@
           currentParams = js.summary.user_params;
         }
         
-        const s = js.summary;
+        const s = js.summary || {};
+        const fnRaw = s.function;
+        const objectName = (fnRaw && String(fnRaw).toLowerCase() !== 'unknown')
+          ? String(fnRaw)
+          : (s.input_type === 'query' ? 'SQL-запрос' : (fnRaw ? String(fnRaw) : '—'));
         if (summaryWaiting) summaryWaiting.style.display = 'none';
         if (summaryContent) {
           summaryContent.style.display = 'block';
+          const riskRaw = s.risk || 'Н/Д';
+          const riskClass = riskRaw === 'ВЫСОКИЙ' ? 'bg-danger' : riskRaw === 'СРЕДНИЙ' ? 'bg-warning' : 'bg-success';
           summaryContent.innerHTML = `
-          <ul class="list-group list-group-flush small">
+          <ul class="list-group list-group-flush small summary-list">
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              Функция/Запрос <span class="badge bg-secondary">${s.function || 'SQL Query'}</span>
+              <span class="summary-list__label">Объект</span> <span class="badge bg-secondary" title="${escapeHtml(objectName)}">${escapeHtml(objectName)}</span>
             </li>
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              Проанализировано блоков <span class="badge bg-secondary">${s.blocks_analyzed || 0}</span>
+              <span class="summary-list__label">Блоки</span> <span class="badge bg-secondary">${escapeHtml(String(s.blocks_analyzed || 0))}</span>
             </li>
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              Общая нагрузка <span class="badge bg-secondary">${s.total_memory_gb || 0} GB</span>${(s.antipattern_added_gb || 0) > 0 ? ` <small class="text-warning">(+${s.antipattern_added_gb || 0} GB антипаттерны)</small>` : ''}
+              <span class="summary-list__label">Нагрузка</span> <span><span class="badge bg-secondary">${escapeHtml(String(s.total_memory_gb || 0))} GB</span>${(s.antipattern_added_gb || 0) > 0 ? ` <small class="text-warning">+${escapeHtml(String(s.antipattern_added_gb))} GB</small>` : ''}</span>
             </li>
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              Оценка времени <span class="badge bg-secondary">${s.estimated_time_sec || 0} сек</span>
+              <span class="summary-list__label">Время</span> <span class="badge bg-secondary">${escapeHtml(String(s.estimated_time_sec || 0))} сек</span>
             </li>
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              Риск <span class="badge ${s.risk === 'ВЫСОКИЙ' ? 'bg-danger' : s.risk === 'СРЕДНИЙ' ? 'bg-warning' : 'bg-success'}">${s.risk || 'Н/Д'}</span>
+              <span class="summary-list__label">Риск</span> <span class="badge ${riskClass}">${escapeHtml(String(riskRaw))}</span>
             </li>
           </ul>`;
         }
@@ -659,6 +860,7 @@
         
         const detailsResp = await fetch(`/details/${jobId}`);
         currentResult = await detailsResp.json();
+        renderAnalysisQuality(currentResult);
         
         if (currentResult.blocks_count) {
           totalEstimatedBlocks = currentResult.blocks_count;
@@ -686,25 +888,31 @@
 
   function displayResults(result) {
     resultsTabs.style.display = 'block';
+    resetInspector();
+    activateTabFromHash();
 
     const metricsStrip = document.getElementById('metrics-strip');
     if (metricsStrip) {
       const m = result.analysis_mode || 'logic';
       const useDb = !!result.use_db_connection;
       const displayMode = (m === 'hybrid' && !useDb) ? 'agent' : (m || 'logic');
-      updateModeBadge(displayMode);
+      updateModeBadge(displayMode, result.stack || initialStack);
+      updateResultCopy(result.stack || initialStack);
 
       const risk = (result.risk || 'N/A').toLowerCase();
       const riskClass = risk.includes('высок') ? 'risk-high' : (risk.includes('средн') ? 'risk-medium' : 'risk-low');
       metricsStrip.innerHTML = `
         <span class="metrics-strip-item"><span class="text-muted">Режим:</span> <span class="metric-value">${getModeLabel(displayMode)}</span></span>
+        <span class="metrics-strip-item"><span class="text-muted">Качество:</span> <span class="metric-value">${result.analysis_quality || 'N/A'}</span></span>
         <span class="metrics-strip-item"><span class="text-muted">Риск:</span> <span class="metric-value ${riskClass}">${result.risk || 'N/A'}</span></span>
         <span class="metrics-strip-item"><span class="text-muted">Нагрузка:</span> <span class="metric-value">${(result.total_memory_gb || 0).toFixed(2)} GB</span>${(result.antipattern_added_gb || 0) > 0 ? ` <small class="text-warning">(+${(result.antipattern_added_gb || 0).toFixed(2)} от антипаттернов)</small>` : ''}</span>
+        <span class="metrics-strip-item"><span class="text-muted">Runtime:</span> <span class="metric-value">${(result.cluster_capacity_gb || 0).toFixed(1)} GB</span></span>
         <span class="metrics-strip-item"><span class="text-muted">Блоков:</span> <span class="metric-value">${(result.analyzed_blocks || 0) + '/' + (result.blocks_count || 0)}</span></span>
         <span class="metrics-strip-item"><span class="text-muted">Время:</span> <span class="metric-value">${(result.estimated_time_sec || 0).toFixed(1)} сек</span></span>
       `;
       metricsStrip.style.display = 'flex';
     }
+    renderAnalysisQuality(result);
     
     if (result.blocks_count) {
       totalEstimatedBlocks = result.blocks_count;
@@ -760,19 +968,11 @@
           const index = this.dataset.blockIndex;
           const block = result.block_details.find(b => b.index == index);
           if (!block) return;
-          let msg = 'SQL:\n' + (block.sql_preview || '—');
-          if (block.fallback_estimate && (block.heavy_reason || block.heavy_recommendation)) {
-            msg += '\n\n⚠️ Оценка по размерам (план недоступен)\n';
-            if (block.heavy_reason) msg += 'Причина: ' + block.heavy_reason + '\n';
-            if (block.heavy_recommendation) msg += 'Рекомендация: ' + block.heavy_recommendation;
-          }
-          if (block.anti_patterns && block.anti_patterns.length > 0) {
-            msg += '\n\n⚠️ Антипаттерны:\n';
-            block.anti_patterns.forEach(ap => {
-              msg += '• ' + ap.pattern + ': ' + ap.reason + '\n  Хедж: ' + ap.hedge + '\n';
-            });
-          }
-          alert(msg);
+          document.querySelectorAll('.block-row').forEach(function(item) {
+            item.classList.remove('is-selected');
+          });
+          this.classList.add('is-selected');
+          renderInspector(block);
         });
       });
     } else {
@@ -935,6 +1135,9 @@
     
     restartForm.submit();
   });
+
+  window.addEventListener('hashchange', activateTabFromHash);
+  activateTabFromHash();
 
   window.validateInput = function(input) {
     const value = parseInt(input.value);
@@ -1152,19 +1355,22 @@
   }
 
   // Начальный режим и плашка
-  updateModeBadge(initialLoaderMode);
+  updateModeBadge(initialLoaderMode, initialStack);
+  updateResultCopy(initialStack);
 
   // Автоматический запуск прогресса при загрузке
   fetch(`/status/${jobId}`).then(r => r.json()).then(js => {
     applyLoaderMode(summaryWaiting, js);
-    updateModeBadge(getLoaderMode(js));
+    updateModeBadge(getLoaderMode(js), js.stack || initialStack);
+    updateResultCopy(js.stack || initialStack);
     if (js.status === 'running') {
       startProgressTracking();
     }
   }).catch(e => {
     console.error('Error checking initial status:', e);
     applyLoaderMode(summaryWaiting, { status: 'not_found' });
-    updateModeBadge(initialLoaderMode);
+    updateModeBadge(initialLoaderMode, initialStack);
+    updateResultCopy(initialStack);
   });
 
 })(); // <--- ЭТО КОНЕЦ СКРИПТА
