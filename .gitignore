@@ -1,14 +1,60 @@
-.venv
-app_gpa/__pycache__
-app_gpa/detailed/__pycache__
+# --- Python ---
+.venv/
+venv/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+**/.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# --- Секреты и локальная конфигурация ---
+.key
+.env
+.env.local
+.env.*.local
+
+# --- Локальное состояние приложения (SQLite jobs и т.п.) ---
+.runtime_store/
+
+# --- Кэш агента GigaChat ---
+.agent_cache.json
+.agent_cache.db
+.agent_cache.baseline.json
+.agent_cache.baseline.db
+app_gpa/agent/.agent_cache.json
+app_gpa/agent/.agent_cache.db
+app_gpa/agent/.agent_cache.baseline.json
+app_gpa/agent/.agent_cache.baseline.db
+
+# --- Логи и архивы ---
+*.log
+*.zip
+
+# --- Проектные артефакты / одноразовые скрипты 
 restore_obj.sql
 extension_map.json
-arch
-./test_cases
 app_gpa_structure.json
-extension_map.json
-*.log
+arch/
+/test_cases/
+
+# Локальные утилиты 
 TreeINsideGit.py
 backup_to_zip.py
 get_project_struct.py
 restore_from_zip.py
+test_query
+
+# --- ОС и IDE ---
+.DS_Store
+.idea/
+*.swp
+*~

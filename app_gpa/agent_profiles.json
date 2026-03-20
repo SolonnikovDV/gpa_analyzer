@@ -1,0 +1,16 @@
+[
+  {
+    "name": "дмитрий",
+    "clientId": "b7e38e99-3850-4004-ba56-204d8322a69d",
+    "scope": "GIGACHAT_API_PERS"
+  },
+  {
+    "name": "разработчик",
+    "clientId": "b7e38e99-3850-4004-ba56-204d8322a69d",
+    "scope": "GIGACHAT_API_PERS",
+    "tokenFromEnv": true,
+    "sourceProfile": "дмитрий",
+    "chatModel": "GigaChat-2",
+    "embeddingModel": "Embeddings-2"
+  }
+]

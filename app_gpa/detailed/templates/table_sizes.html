@@ -1,40 +1,59 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" class="gpa-detailed-ui">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Настройка размеров таблиц</title>
+  <title>Настройка размеров источников</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='detailed.css') }}">
-  <style>
-    .table-input { max-width: 120px; }
-    .param-input { font-family: ui-monospace, Consolas, monospace; }
-    .table-info { font-size: 0.9rem; color: #6c757d; }
-  </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="/">Analyzer</a>
-    <div class="collapse navbar-collapse">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item"><a class="nav-link active" href="/">Детальный анализ</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#aboutModal">О приложении</a></li>
-      </ul>
-    </div>
-  </div>
-</nav>
+<div class="apple-shell">
+  {% set shell_active = 'tables' %}
+  {% set shell_table_href = request.path %}
+  {% set shell_result_href = none %}
+  {% set shell_status_title = 'Таблицы и параметры' %}
+  {% set shell_status_note = 'Лог слева, сценарий данных и параметры справа.' %}
+  {% set show_tips = false %}
+  {% include 'apple_sidebar.html' %}
 
-<div class="container my-4">
-  <div class="row g-4">
-    <div class="col-lg-5">
-      <div class="card shadow-sm">
+  <main class="apple-main">
+    <header class="apple-toolbar page-reveal">
+      <div class="apple-toolbar__titles">
+        <span class="apple-toolbar__eyebrow">Scenario Tuning</span>
+        <h1 class="apple-toolbar__title">Настройка размеров источников и параметров</h1>
+        <p class="apple-toolbar__subtitle">Лог discovery слева, сценарий данных и входные параметры справа.</p>
+      </div>
+      <div class="apple-toolbar__actions">
+        <span class="apple-inline-status">Шаг 2 из 3</span>
+        <div class="apple-toolbar__surface">
+          <span class="apple-toolbar__meta">Статус: {{ status }}</span>
+          <button type="button" class="btn btn-sm btn-outline-secondary theme-toggle" data-theme-toggle aria-label="Переключить тему">
+            <span class="theme-toggle__icon" aria-hidden="true">◐</span>
+            <span class="theme-toggle__label">Светлая тема</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="apple-main__body">
+      <div id="token-strip" class="token-strip page-reveal" aria-live="polite">
+        <span>Токены: использовано <span class="token-used" id="token-used">0</span> (ввод <span id="token-prompt">0</span>, вывод <span id="token-completion">0</span>, кэш вх. <span id="token-precached" title="precached_prompt_tokens из ответов API">0</span>)</span>
+        <span>сессий: <span id="token-sessions">0</span></span>
+        <span>доступно: <span class="token-available na" id="token-available">—</span></span>
+        <span>429: <span id="token-rate-limit" class="token-rate-limit" title="Превышение лимита запросов GigaChat">0</span></span>
+      </div>
+
+      <div class="apple-view apple-view__surface app-content apple-view-grid apple-view-grid--split">
+        <div class="card shadow-sm page-reveal apple-log-card">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
           <span>Онлайн-лог</span>
           <div class="d-flex align-items-center gap-2">
+            <span id="mode-badge" class="badge bg-info" style="display: none;" title="Режим анализа">—</span>
+            <span id="agent-models-job-badge" class="badge bg-dark" style="display: none;" title="Модели GigaChat для этого расчёта">—</span>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-copy-log" title="Скопировать весь лог">
-              Копировать весь лог
+              Копировать
             </button>
             <span id="status" class="badge bg-secondary">{{ status }}</span>
           </div>
@@ -43,47 +62,56 @@
           <div id="log"></div>
         </div>
       </div>
-    </div>
-    <div class="col-lg-7">
-      <div class="card shadow-sm">
+      <div class="card shadow-sm page-reveal apple-table-card">
         <div class="card-header">
-          <h5 class="mb-0">Настройка размеров таблиц и параметров функции</h5>
+          <h5 class="mb-0">Шаг 2. Сценарий</h5>
         </div>
         <div class="card-body">
           <div id="tables-container" style="display: none;">
             <form id="sizes-form" method="post" action="{{ url_for('detailed_analyze') }}">
               <input type="hidden" name="job_id" value="{{ job_id }}">
+
+              <p class="panel-note">Параметры функции вводятся в порядке сигнатуры и подставляются в анализируемые запросы.</p>
               
-              <div class="alert alert-info">
-                <strong>Важно!</strong> Укажите параметры функции в том же порядке, что и в сигнатуре.
-                Они будут использованы для подстановки в запросы.
+              <div id="agent-requested-ddl-block" class="mb-4" style="display: none;">
+                <h6 class="text-warning">Нужен дополнительный DDL</h6>
+                <p class="small mb-2">Если объектов не хватило, вставьте их DDL ниже.</p>
+                <ul id="agent-requested-ddl-list" class="small mb-2"></ul>
+                <label class="form-label small" for="agent-ddl-paste">DDL недостающих объектов (CREATE VIEW / TABLE …):</label>
+                <textarea id="agent-ddl-paste" class="form-control font-monospace small" rows="4" placeholder="Вставьте DDL по запрошенным объектам…"></textarea>
+              </div>
+
+              <div id="logic-warnings-block" class="mb-4 panel-note" style="display: none;">
+                <strong>Гибрид доуточнил спорные фрагменты</strong>
+                <ul id="logic-warnings-list" class="small mb-0 mt-2"></ul>
               </div>
               
-              <div class="mb-4 p-3 bg-light rounded">
-                <label class="form-label fw-bold">Параметры функции:</label>
+              <div class="mb-4 form-subpanel">
+                <label class="form-label fw-bold" for="params-input">Параметры</label>
                 <div class="row g-2">
                   <div class="col-md-8">
                     <input type="text" class="form-control param-input" id="params-input" name="params" 
                            placeholder="'2024-01-01', 'current_date', '5', ''">
                   </div>
                   <div class="col-md-4">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadParamsExample()">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadParamsExample()" title="Вставить пример параметров в поле">
                       Пример
                     </button>
                   </div>
                 </div>
-                <div class="form-text mt-2">
-                  Введите параметры через запятую. Для строковых значений используйте кавычки.
-                  Например: <code>'2024-01-01', 'current_date', '5', ''</code>
-                </div>
+                <div class="form-text mt-2">Через запятую. Строки оставляйте в кавычках: <code>'2024-01-01', 'current_date', '5', ''</code></div>
               </div>
               
-              <h6 class="mt-4">Найденные таблицы (укажите желаемое количество строк):</h6>
+              <div class="table-title-row mt-4">
+                <h6 id="sources-title">Найденные источники данных</h6>
+                <p class="mini-note" id="sources-note">Меняйте только «Желаемое строк», если моделируете рост.</p>
+              </div>
+              <output id="runtime-quality-note" class="alert alert-secondary py-2 small d-none"></output>
               <div class="table-responsive">
                 <table class="table table-sm table-striped">
                   <thead>
                     <tr>
-                      <th>Таблица</th>
+                      <th id="source-name-column">Источник</th>
                       <th>Текущее строк</th>
                       <th>Текущий размер (GB)</th>
                       <th>Средняя ширина строки (байт)</th>
@@ -94,36 +122,40 @@
                 </table>
               </div>
               
-              <div class="alert alert-warning mt-3">
-                <small>
-                  <strong>Примечание:</strong> Оставьте желаемое количество строк равным текущему, 
-                  если не хотите изменять размер таблицы. Для пустых таблиц укажите желаемый размер.
-                </small>
-              </div>
+              <p class="ghost-note mt-3 mb-0">Если рост не моделируется, оставьте текущее значение. Для пустых таблиц задайте ожидаемый объём вручную.</p>
               
-              <div class="text-end mt-4">
-                <button type="submit" class="btn btn-primary btn-lg" id="analyze-btn">
-                  Запустить анализ нагрузки
+              <div class="cta-bar mt-4">
+                <span class="ghost-note">Дальше: риск, нагрузка, блоки и ошибки</span>
+                <button type="submit" class="btn btn-primary btn-lg" id="analyze-btn" title="Запустить расчёт нагрузки по планам запросов с учётом размеров таблиц и параметров">
+                  Запустить анализ
                 </button>
               </div>
             </form>
           </div>
-          <div id="loading" class="app-loader app-loader--compact" role="status">
+          <div id="loading" class="app-loader app-loader--compact">
             <span class="app-loader__spinner"></span>
+            <span class="app-loader__mode-icon"></span>
             <span class="app-loader__status-text">Сканирование таблиц…</span>
           </div>
         </div>
       </div>
+      </div>
+      {% include 'app_footer.html' %}
     </div>
-  </div>
+  </main>
 </div>
 
 {% include 'about_modal.html' %}
+{% include 'reset_cache_modal.html' %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 (function(){
   const jobId = {{ job_id | tojson }};
+  const initialLoaderMode = {{ (loader_mode or 'logic') | tojson }};
+  const initialStack = {{ (stack or 'greenplum') | tojson }};
+  const serverAgentChatModel = {{ (agent_chat_model or '') | tojson }};
+  const serverAgentEmbModel = {{ (agent_embedding_model or '') | tojson }};
   const logEl = document.getElementById('log');
   const statusEl = document.getElementById('status');
   const loadingEl = document.getElementById('loading');
@@ -131,6 +163,9 @@
   const tablesTbody = document.getElementById('tables-tbody');
   const paramsInput = document.getElementById('params-input');
   const analyzeBtn = document.getElementById('analyze-btn');
+  const logicWarningsBlock = document.getElementById('logic-warnings-block');
+  const logicWarningsList = document.getElementById('logic-warnings-list');
+  const runtimeQualityNote = document.getElementById('runtime-quality-note');
 
   // Функция для загрузки примера параметров
   window.loadParamsExample = function() {
@@ -171,18 +206,171 @@
     logEl.scrollTop = logEl.scrollHeight;
   };
 
+  function updateTokenStrip() {
+    fetch('/api/agent/token_usage')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var u = data.used || {};
+        var elTotal = document.getElementById('token-used');
+        var elPrompt = document.getElementById('token-prompt');
+        var elComp = document.getElementById('token-completion');
+        var elSess = document.getElementById('token-sessions');
+        var elAv = document.getElementById('token-available');
+        if (elTotal) elTotal.textContent = (u.total_tokens || 0).toLocaleString();
+        if (elPrompt) elPrompt.textContent = (u.prompt_tokens || 0).toLocaleString();
+        if (elComp) elComp.textContent = (u.completion_tokens || 0).toLocaleString();
+        var elPrec = document.getElementById('token-precached');
+        if (elPrec) elPrec.textContent = (u.precached_prompt_tokens || 0).toLocaleString();
+        if (elSess) elSess.textContent = (u.sessions || 0).toLocaleString();
+        if (elAv) {
+          var av = data.available;
+          elAv.textContent = av != null ? av.toLocaleString() : '—';
+          elAv.classList.toggle('na', av == null);
+          var src = data.balance_source || '';
+          var be = data.balance_error || '';
+          if (src === 'freemium_estimate') {
+            elAv.title = 'Оценка: лимит GigaChat Lite минус учтённые total_tokens. GET /balance при pay-as-you-go недоступен (403).';
+          } else if (src === 'get_balance' && data.balance_by_model && data.balance_by_model.length) {
+            elAv.title = 'Остаток из GET /balance: ' + data.balance_by_model.map(function(x) {
+              return (x.model || '?') + '=' + (x.tokens != null ? x.tokens : '—');
+            }).join(', ');
+          } else if (be) {
+            elAv.title = be;
+          } else {
+            elAv.removeAttribute('title');
+          }
+        }
+        var c429 = 0;
+        try { c429 = parseInt(sessionStorage.getItem('gpa_rate_limit_429') || '0', 10) || 0; } catch (e) {}
+        var el429 = document.getElementById('token-rate-limit');
+        if (el429) {
+          el429.textContent = c429.toLocaleString();
+          el429.classList.toggle('warn', c429 > 0);
+        }
+      })
+      .catch(function() {});
+  }
+  updateTokenStrip();
+  setInterval(updateTokenStrip, 12000);
+
+  function getLoaderMode(js) {
+    var mode = js.analysis_mode || 'logic';
+    var useDb = !!js.use_db_connection;
+    if (mode === 'logic') return 'logic';
+    if (mode === 'hybrid') return useDb ? 'hybrid' : 'agent';
+    return 'logic';
+  }
+  function getStackLabel(stack) {
+    return stack === 'spark' ? 'Spark' : (stack === 'pyspark' ? 'PySpark' : 'GreenPlum');
+  }
+  function getModeLabel(mode) {
+    return mode === 'agent' ? 'Чистый агент' : (mode === 'hybrid' ? 'Гибрид' : 'Логика');
+  }
+  function updateModeBadge(mode, stack) {
+    var badge = document.getElementById('mode-badge');
+    if (!badge) return;
+    var effectiveMode = mode || 'logic';
+    badge.textContent = getStackLabel(stack || initialStack) + ' · ' + getModeLabel(effectiveMode);
+    badge.style.display = 'inline-block';
+  }
+  (function showJobAgentModels() {
+    var el = document.getElementById('agent-models-job-badge');
+    if (!el || (!serverAgentChatModel && !serverAgentEmbModel)) return;
+    el.style.display = 'inline-block';
+    el.textContent = 'GigaChat: ' + (serverAgentChatModel || '—') + ' · emb ' + (serverAgentEmbModel || '—');
+  })();
+  function updateSourceCopy(stack) {
+    var sourceTitle = document.getElementById('sources-title');
+    var sourceNote = document.getElementById('sources-note');
+    var sourceColumn = document.getElementById('source-name-column');
+    if (stack === 'spark') {
+      if (sourceTitle) sourceTitle.textContent = 'Найденные Spark-источники';
+      if (sourceNote) sourceNote.textContent = 'Меняйте только «Желаемое строк», если моделируете рост для Spark-таблиц или датасетов.';
+      if (sourceColumn) sourceColumn.textContent = 'Источник Spark';
+      return;
+    }
+    if (stack === 'pyspark') {
+      if (sourceTitle) sourceTitle.textContent = 'Найденные PySpark-источники';
+      if (sourceNote) sourceNote.textContent = 'Меняйте только «Желаемое строк», если моделируете рост для источников PySpark.';
+      if (sourceColumn) sourceColumn.textContent = 'Источник PySpark';
+      return;
+    }
+    if (sourceTitle) sourceTitle.textContent = 'Найденные источники данных';
+    if (sourceNote) sourceNote.textContent = 'Меняйте только «Желаемое строк», если моделируете рост.';
+    if (sourceColumn) sourceColumn.textContent = 'Источник';
+  }
+  function renderRuntimeQuality(discovery) {
+    if (!runtimeQualityNote) return;
+    const runtime = (discovery && discovery.runtime_context) || {};
+    const notes = Array.isArray(runtime.notes) ? runtime.notes : [];
+    const quality = discovery && discovery.analysis_quality ? discovery.analysis_quality : 'approximate';
+    const label = quality === 'profile_enriched'
+      ? 'Profile-enriched'
+      : (quality === 'metadata_enriched' ? 'Metadata-enriched' : (quality === 'runtime_hinted' ? 'Runtime-hinted' : (quality === 'deep' ? 'Deep' : 'Approximate')));
+    const parts = [`Качество оценки: <strong>${label}</strong>`];
+    if (runtime.capacity_gb) {
+      parts.push(`Оценочная ёмкость runtime: <strong>${Number(runtime.capacity_gb).toFixed(1)} GB</strong>`);
+    }
+    if (runtime.master_url) {
+      parts.push(`Endpoint: <code>${runtime.master_url}</code>`);
+    }
+    if (runtime.metadata_sources) {
+      parts.push(`metadata snapshot: <strong>${runtime.metadata_sources}</strong>`);
+    }
+    if (runtime.profile_attached) {
+      parts.push('runtime profile: <strong>attached</strong>');
+    }
+    if (notes.length) {
+      parts.push(notes.join(' '));
+    }
+    runtimeQualityNote.innerHTML = parts.join(' · ');
+    runtimeQualityNote.classList.remove('d-none');
+  }
+  function applyLoaderMode(el, js) {
+    if (!el) return;
+    el.classList.remove('app-loader--agent', 'app-loader--logic', 'app-loader--hybrid');
+    el.classList.add('app-loader--' + getLoaderMode(js));
+  }
+  var lastJobStatus = null;
+
+  // Начальная плашка режима
+  updateModeBadge(initialLoaderMode, initialStack);
+  updateSourceCopy(initialStack);
+
   // Poll status
   const interval = setInterval(async () => {
     try {
       const r = await fetch(`/status/${jobId}`);
       const js = await r.json();
+      lastJobStatus = js;
       statusEl.textContent = js.status;
       statusEl.className = 'badge bg-' + (js.status === 'tables_discovered' ? 'success' : js.status === 'error' ? 'danger' : 'secondary');
-      
+      applyLoaderMode(loadingEl, js);
+      updateModeBadge(getLoaderMode(js), js.stack || initialStack);
+      updateSourceCopy(js.stack || initialStack);
+
       if (js.status === 'tables_discovered') {
         clearInterval(interval);
         loadingEl.style.display = 'none';
         tablesContainer.style.display = 'block';
+        
+        // Режим агента: показать запрос DDL по недостающим объектам
+        const requestedDdl = js.discovery.agent_requested_ddl;
+        const ddlBlock = document.getElementById('agent-requested-ddl-block');
+        const ddlList = document.getElementById('agent-requested-ddl-list');
+        if (requestedDdl && requestedDdl.length && ddlBlock && ddlList) {
+          ddlList.innerHTML = requestedDdl.map(function(name) { return '<li>' + name + '</li>'; }).join('');
+          ddlBlock.style.display = 'block';
+        }
+
+        const logicWarnings = js.discovery.logic_warnings || [];
+        if (logicWarnings.length && logicWarningsBlock && logicWarningsList) {
+          logicWarningsList.innerHTML = logicWarnings.map(function(message) {
+            return '<li>' + String(message).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</li>';
+          }).join('');
+          logicWarningsBlock.style.display = 'block';
+        }
+        renderRuntimeQuality(js.discovery);
         
         // Отображаем таблицы
         const tables = js.discovery.discovered_tables;
@@ -202,6 +390,8 @@
           const formattedRows = currentRows.toLocaleString();
           const sizeGB = (info.size_gb || 0).toFixed(3);
           const avgRowSize = (info.avg_row_size_bytes || 0).toFixed(1);
+          // Безопасный ключ для name (точки могут мешать в некоторых фреймворках)
+          const safeKey = key.replace(/\./g, '___DOT___');
           
           html += `
             <tr>
@@ -212,8 +402,9 @@
               <td>
                 <input type="number" 
                        class="form-control form-control-sm table-input" 
-                       name="size_${key}" 
-                       value="${currentRows}" 
+                       name="size_${safeKey}" 
+                       data-table-key="${key}"
+                       value="${currentRows}"
                        min="0"
                        step="1"
                        onchange="validateInput(this)">
@@ -256,6 +447,7 @@
     }
   };
 
+
   // Сохранение параметров в localStorage
   paramsInput.addEventListener('input', function() {
     localStorage.setItem('last_params', this.value);
@@ -273,7 +465,9 @@
     analyzeBtn.classList.add('loading');
     analyzeBtn.disabled = true;
     var btnText = analyzeBtn.textContent;
-    analyzeBtn.innerHTML = '<span class="app-loader__spinner" style="margin-right:8px;vertical-align:middle"></span> Расчёт нагрузки…';
+    var mode = getLoaderMode(lastJobStatus || {});
+    analyzeBtn.classList.add('app-loader', 'app-loader--compact', 'app-loader--' + mode);
+    analyzeBtn.innerHTML = '<span class="app-loader__spinner" style="margin-right:8px;vertical-align:middle"></span><span class="app-loader__mode-icon"></span> Расчёт нагрузки…';
   });
 
   // Обработка ошибок EventSource

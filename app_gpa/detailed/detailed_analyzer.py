@@ -19,6 +19,7 @@ from .block_parser import split_plpgsql_blocks
 from .sql_object_extractor import SQLObjectExtractor
 from .nested_block_extractor import extract_nested_sql_blocks, NestedBlockExtractor
 from .execute_parser import ExecuteParser
+from .antipattern_detector import detect_antipatterns, get_hedge_recommendations, GENERAL_HEDGE_RECOMMENDATIONS
 
 
 @dataclass
@@ -223,45 +224,113 @@ class DetailedGreenplumFunctionAnalyzer:
 
         return set()
 
-    def _parse_function_signature(self, ddl: str) -> Tuple[str, List[str]]:
-        """Извлекает имя функции и параметры из сигнатуры"""
-        sig_match = re.search(r'CREATE.*?FUNCTION\s+(?:\w+\.)?(\w+)\s*\((.*?)\)', ddl, re.IGNORECASE | re.DOTALL)
-        if not sig_match:
-            return "unknown", []
+    @staticmethod
+    def _qualified_name_last_segment(qual: str) -> str:
+        """Последний сегмент schema.name или \"Имя\" из квалифицированного идентификатора."""
+        qual = qual.strip()
+        if not qual:
+            return "unknown"
+        parts = re.split(r"\s*\.\s*", qual)
+        last = parts[-1].strip()
+        if len(last) >= 2 and last.startswith('"') and last.endswith('"'):
+            return last[1:-1].replace('""', '"')
+        return last
 
-        func_name = sig_match.group(1)
-        sig = sig_match.group(2).strip()
-
+    def _split_signature_params(self, sig: str) -> List[str]:
+        """Делит список аргументов функции по запятым с учётом скобок в типах (varchar(10) и т.д.)."""
+        sig = sig.strip()
         if not sig:
-            return func_name, []
-
-        params = []
+            return []
+        params: List[str] = []
         bracket_level = 0
-        current = []
-
+        current: List[str] = []
         for char in sig:
-            if char == '(':
+            if char == "(":
                 bracket_level += 1
                 current.append(char)
-            elif char == ')':
+            elif char == ")":
                 bracket_level -= 1
                 current.append(char)
-            elif char == ',' and bracket_level == 0:
-                param = ''.join(current).strip()
+            elif char == "," and bracket_level == 0:
+                param = "".join(current).strip()
                 if param:
-                    param_name = param.split()[0].strip()
-                    params.append(param_name)
+                    params.append(param.split()[0].strip())
                 current = []
             else:
                 current.append(char)
-
         if current:
-            param = ''.join(current).strip()
+            param = "".join(current).strip()
             if param:
-                param_name = param.split()[0].strip()
-                params.append(param_name)
+                params.append(param.split()[0].strip())
+        return params
 
-        return func_name, params
+    def _parse_function_signature_pglast(self, ddl: str) -> Optional[Tuple[str, List[str]]]:
+        """Имя и параметры через pglast (устойчиво к скобкам в типах и кавычкам)."""
+        try:
+            from pglast.ast import CreateFunctionStmt
+        except ImportError:
+            return None
+        try:
+            trees = pglast.parse_sql(ddl)
+        except Exception:
+            return None
+        for tree in trees:
+            stmt = getattr(tree, "stmt", None)
+            if not isinstance(stmt, CreateFunctionStmt):
+                continue
+            parts: List[str] = []
+            for node in stmt.funcname:
+                sv = getattr(node, "sval", None)
+                if sv is not None:
+                    parts.append(str(sv))
+                else:
+                    s = getattr(node, "str", None)
+                    if s:
+                        parts.append(str(s))
+            if not parts:
+                continue
+            func_name = parts[-1]
+            params: List[str] = []
+            for p in stmt.parameters or []:
+                nm = getattr(p, "name", None)
+                if nm:
+                    params.append(str(nm))
+            return func_name, params
+        return None
+
+    def _parse_function_signature_regex(self, ddl: str) -> Tuple[str, List[str]]:
+        """Fallback: имя через regex + баланс скобок для списка аргументов."""
+        m = re.search(
+            r"CREATE\s+(?:OR\s+REPLACE\s+)?(?:FUNCTION|PROCEDURE)\s+"
+            r"((?:\"[^\"]+\"|[a-zA-Z_]\w*)(?:\s*\.\s*(?:\"[^\"]+\"|[a-zA-Z_]\w*))*)\s*\(",
+            ddl,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if not m:
+            return "unknown", []
+
+        func_name = self._qualified_name_last_segment(m.group(1))
+        open_paren = m.end() - 1
+        depth = 0
+        i = open_paren
+        while i < len(ddl):
+            c = ddl[i]
+            if c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 0:
+                    sig_inner = ddl[open_paren + 1 : i]
+                    return func_name, self._split_signature_params(sig_inner)
+            i += 1
+        return func_name, []
+
+    def _parse_function_signature(self, ddl: str) -> Tuple[str, List[str]]:
+        """Извлекает имя функции и параметры из сигнатуры (pglast → regex со скобками)."""
+        parsed = self._parse_function_signature_pglast(ddl)
+        if parsed:
+            return parsed
+        return self._parse_function_signature_regex(ddl)
 
     # -------------------------------------------------------------------------
     # ПАРСИНГ СЕКЦИИ DECLARE
@@ -768,11 +837,12 @@ class DetailedGreenplumFunctionAnalyzer:
                     result_values = self._execute_select_into(stmt, variables)
                     if result_values:
                         for var_name, value in result_values.items():
-                            if var_name in variables:
-                                variables[var_name] = value
-                                variable_expressions[var_name] = value
-                                changed = True
-                                print(f"    📍 {var_name} = {value} (из SELECT INTO)")
+                            # Добавляем переменные из SELECT INTO даже если их не было в DECLARE
+                            # (в агентском режиме блоки могут не включать секцию DECLARE)
+                            variables[var_name] = value
+                            variable_expressions[var_name] = value
+                            changed = True
+                            print(f"    📍 {var_name} = {value} (из SELECT INTO)")
                     continue  # переходим к следующему оператору
 
                 # Пропускаем чистые SQL запросы, кроме SELECT INTO (уже обработано выше)
@@ -936,6 +1006,7 @@ class DetailedGreenplumFunctionAnalyzer:
     def _discover_tables_from_function(self, ddl: str, user_params: List[str] = None) -> Dict[str, Any]:
         """Обнаружение таблиц из функции с использованием pglast"""
         print("🔍 Этап 1: Обнаружение таблиц в DDL функции")
+        print("   Поиск блоков и извлечение объектов: логика (парсер pglast/block_parser)")
 
         function_body = self._extract_function_body(ddl)
         print(f"📄 Извлечено тело функции, длина: {len(function_body)} символов")
@@ -966,7 +1037,7 @@ class DetailedGreenplumFunctionAnalyzer:
         self.blocks = split_plpgsql_blocks(function_body)
         self.block_types = [block_parser.classify_block(block) for block in self.blocks]
 
-        print(f"🧩 Найдено {len(self.blocks)} логических блоков в теле функции:")
+        print(f"🧩 [Логика] Найдено {len(self.blocks)} логических блоков в теле функции:")
         type_stats = {}
         for bt in self.block_types:
             type_stats[bt] = type_stats.get(bt, 0) + 1
@@ -1007,7 +1078,7 @@ class DetailedGreenplumFunctionAnalyzer:
 
             print(f"  [Блок {i+1}] Найдено {len(objects)} объектов: {objects[:5]}...")
 
-        print(f"📋 Итого найдено {len(all_objects)} уникальных объектов из всех исполняемых блоков")
+        print(f"📋 [Логика] Итого найдено {len(all_objects)} уникальных объектов из всех исполняемых блоков")
 
         if not self.conn:
             print("❌ Нет подключения к БД. Невозможно раскрыть представления.")
@@ -1018,6 +1089,7 @@ class DetailedGreenplumFunctionAnalyzer:
                 'block_types': self.block_types,
                 'temp_tables': list(self.temp_tables),
                 'discovered_tables': {},
+                'objects_referenced_in_blocks': len(all_objects),
                 'variables': self.variables,
                 'status': 'error',
                 'error': 'Нет подключения к БД'
@@ -1102,6 +1174,7 @@ class DetailedGreenplumFunctionAnalyzer:
             'discovered_tables': self.discovered_tables,
             'view_to_tables_map': self.view_to_tables_map,
             'physical_tables_count': len(self.physical_tables),
+            'objects_referenced_in_blocks': len(all_objects),
             'variables': self.variables,
             'status': 'tables_discovered'
         }
@@ -1109,6 +1182,7 @@ class DetailedGreenplumFunctionAnalyzer:
     def _discover_tables_from_query(self, query: str, user_params: List[str] = None) -> Dict[str, Any]:
         """Обнаружение таблиц в обычном SQL запросе"""
         print("🔍 Этап 1: Обнаружение таблиц в SQL запросе")
+        print("   Поиск блоков и извлечение объектов: логика (парсер)")
 
         # Очищаем запрос от параметров если они есть
         clean_query = query
@@ -1123,7 +1197,7 @@ class DetailedGreenplumFunctionAnalyzer:
         self.blocks = block_parser.split_sql_blocks(clean_query)
         self.block_types = [block_parser.classify_block(block) for block in self.blocks]
 
-        print(f"🧩 Найдено {len(self.blocks)} логических блоков в запросе")
+        print(f"🧩 [Логика] Найдено {len(self.blocks)} логических блоков в запросе")
 
         all_objects = set()
         view_definitions = {}
@@ -1133,7 +1207,7 @@ class DetailedGreenplumFunctionAnalyzer:
             for sch, tbl in objects:
                 all_objects.add((sch, tbl))
 
-        print(f"📋 Найдено {len(all_objects)} объектов (таблиц/представлений) в запросе")
+        print(f"📋 [Логика] Найдено {len(all_objects)} объектов (таблиц/представлений) в запросе")
 
         if not self.conn:
             print("❌ Нет подключения к БД. Невозможно раскрыть представления.")
@@ -1375,32 +1449,69 @@ class DetailedGreenplumFunctionAnalyzer:
     # -------------------------------------------------------------------------
     # ВТОРОЙ ЭТАП: АНАЛИЗ С ПОЛЬЗОВАТЕЛЬСКИМИ РАЗМЕРАМИ
     # -------------------------------------------------------------------------
-    def analyze_with_user_sizes(self, user_params: List[str], user_table_sizes: Dict[str, int]) -> Dict:
-        """Второй этап: анализ нагрузки с пользовательскими размерами таблиц."""
+    def analyze_with_user_sizes(
+        self,
+        user_params: List[str],
+        user_table_sizes: Dict[str, int],
+        analysis_mode: Optional[str] = None,
+        plan_source: Optional[str] = None,
+        agent_credentials: Optional[str] = None,
+        agent_scope: Optional[str] = None,
+        agent_chat_model: Optional[str] = None,
+        agent_embedding_model: Optional[str] = None,
+    ) -> Dict:
+        """Второй этап: анализ нагрузки с пользовательскими размерами таблиц.
+        analysis_mode: 'logic' | 'agent'; plan_source: 'db' | 'agent'; agent_credentials — ключ GigaChat; agent_scope — GIGACHAT_API_PERS и т.д."""
+        del agent_embedding_model  # зарезервировано (эмбеддинги — generate_sql / кэш)
         if self.input_type == 'function':
-            return self._analyze_function_with_user_sizes(user_params, user_table_sizes)
+            return self._analyze_function_with_user_sizes(
+                user_params, user_table_sizes,
+                analysis_mode=analysis_mode, plan_source=plan_source,
+                agent_credentials=agent_credentials, agent_scope=agent_scope,
+                agent_chat_model=agent_chat_model,
+            )
         else:
             return self._analyze_query_with_user_sizes(user_params, user_table_sizes)
 
     # -------------------------------------------------------------------------
     # ОСНОВНОЙ МЕТОД АНАЛИЗА ФУНКЦИИ
     # -------------------------------------------------------------------------
-    def _analyze_function_with_user_sizes(self, user_params: List[str], user_table_sizes: Dict[str, int]) -> Dict:
-        """Анализ нагрузки для функции с пользовательскими размерами"""
+    def _analyze_function_with_user_sizes(
+        self,
+        user_params: List[str],
+        user_table_sizes: Dict[str, int],
+        analysis_mode: Optional[str] = None,
+        plan_source: Optional[str] = None,
+        agent_credentials: Optional[str] = None,
+        agent_scope: Optional[str] = None,
+        agent_chat_model: Optional[str] = None,
+    ) -> Dict:
+        """Анализ нагрузки для функции с пользовательскими размерами.
+        При plan_source=='agent' планы синтезируются агентом (GigaChat), подключение к БД не обязательно."""
         function_body = '\n'.join(self.blocks)
         print("\n[DEBUG] Первые 20 строк тела функции:")
         for i, line in enumerate(function_body.split('\n')[:20]):
             print(f"  {i+1}: {line}")
 
         self.block_results = []
-        print("\n🔍 Этап 2: Анализ нагрузки функции с пользовательскими размерами")
+        use_agent_plan = (plan_source == 'agent' and agent_credentials)
+        if use_agent_plan:
+            print("\n🔍 Этап 2: Анализ нагрузки (источник плана: агент)")
+            try:
+                from agent.gigachat_agent import clear_agent_errors
+                clear_agent_errors()
+            except Exception:
+                pass
+        else:
+            print("\n🔍 Этап 2: Анализ нагрузки функции с пользовательскими размерами")
 
         if not self.blocks:
             print("❌ Нет блоков для анализа")
             return {}
 
-        if not self.conn:
-            print("❌ Нет подключения к БД")
+        print(f"Всего блоков: {len(self.blocks)}")
+        if not self.conn and not use_agent_plan:
+            print("❌ Нет подключения к БД (для режима «план из БД» нужно подключение)")
             return {'error': 'Нет подключения к БД', 'status': 'error'}
 
         print(f"[DEBUG] Параметры функции (входные): {user_params}")
@@ -1506,13 +1617,48 @@ class DetailedGreenplumFunctionAnalyzer:
                     print(f"  📋 Таблицы в блоке: {[f'{sch}.{tbl}' for sch, tbl in tables_in_block]}")
 
                     cache_key = hashlib.md5(clean_sql.encode()).hexdigest()
+                    sizes_hash = hashlib.sha256(
+                        json.dumps(user_table_sizes or {}, sort_keys=True).encode()
+                    ).hexdigest()
+                    plan_json = None
                     if cache_key in self.plan_cache:
                         plan_json = self.plan_cache[cache_key]
                         print(f"  🔄 Использован кэшированный план")
-                    else:
-                        plan_json = self._get_plan_for_block(clean_sql)
+                    if plan_json is None:
+                        try:
+                            from agent.agent_cache_db import get_plan
+                            plan_json = get_plan(cache_key, sizes_hash)
+                            if plan_json:
+                                print(f"  🔄 План из персистентного кэша (SQLite)")
+                                self.plan_cache[cache_key] = plan_json
+                        except Exception:
+                            pass
+                    if plan_json is None:
+                        if use_agent_plan and agent_credentials:
+                            try:
+                                from agent.gigachat_agent import synthesize_plan_for_query
+                                plan_json = synthesize_plan_for_query(
+                                    clean_sql,
+                                    [(sch, tbl) for sch, tbl in tables_in_block],
+                                    credentials_override=agent_credentials,
+                                    scope_override=agent_scope,
+                                    user_table_sizes=user_table_sizes,
+                                    params_and_vars=current_vars,
+                                    model_override=agent_chat_model,
+                                )
+                                if plan_json:
+                                    pass  # логирование в gigachat_agent.synthesize_plan_for_query
+                            except ImportError:
+                                plan_json = self._get_plan_for_block(clean_sql) if self.conn else None
+                        else:
+                            plan_json = self._get_plan_for_block(clean_sql)
                         if plan_json:
                             self.plan_cache[cache_key] = plan_json
+                            try:
+                                from agent.agent_cache_db import set_plan
+                                set_plan(cache_key, sizes_hash, plan_json)
+                            except Exception:
+                                pass
 
                     if plan_json:
                         enhanced_plan = self.temp_table_tracker.enhance_plan_with_temp_table_stats(
@@ -1537,20 +1683,52 @@ class DetailedGreenplumFunctionAnalyzer:
                             segments=self.config.segments
                         )
 
-                        self.block_results.append({
+                        blk = {
                             'index': idx+1,
                             'type': block_type_display,
                             'category': block_parser.get_block_category(block_type) if not is_execute else 'EXECUTE',
                             'sql_preview': clean_sql[:200] + '...',
+                            'sql_full': clean_sql,
                             'plan': adjusted_plan,
                             'load': block_load,
                             'tables': [f"{sch}.{tbl}" for sch, tbl in tables_in_block]
-                        })
+                        }
+                        self._add_antipatterns_to_block(blk, clean_sql)
+                        self.block_results.append(blk)
                         print(f"  ✅ Нагрузка блока: {block_load['max_memory_gb']:.3f} GB")
                         last_sql_rowcount = block_load['total_rows']
                         last_sql_block_index = len(self.block_results) - 1
                     else:
-                        print(f"  ❌ Не удалось получить план для SQL")
+                        block_load = plan_adjuster.estimate_block_load_from_tables(
+                            tables_in_block,
+                            user_table_sizes,
+                            self.discovered_tables,
+                            segments=self.config.segments,
+                            sql=clean_sql,
+                        )
+                        if block_load['max_memory_gb'] > 0:
+                            blk = {
+                                'index': idx+1,
+                                'type': block_type_display,
+                                'category': block_parser.get_block_category(block_type) if not is_execute else 'EXECUTE',
+                                'sql_preview': clean_sql[:200] + '...',
+                                'sql_full': clean_sql,
+                                'plan': None,
+                                'load': block_load,
+                                'tables': [f"{sch}.{tbl}" for sch, tbl in tables_in_block],
+                                'fallback_estimate': True,
+                            }
+                            if block_load.get('heavy_reason'):
+                                blk['heavy_reason'] = block_load['heavy_reason']
+                            if block_load.get('heavy_recommendation'):
+                                blk['heavy_recommendation'] = block_load['heavy_recommendation']
+                            self._add_antipatterns_to_block(blk, clean_sql)
+                            self.block_results.append(blk)
+                            print(f"  ⚠️ План недоступен (таймаут/ошибка) — оценка по размерам таблиц: {block_load['max_memory_gb']:.3f} GB")
+                            last_sql_rowcount = block_load['total_rows']
+                            last_sql_block_index = len(self.block_results) - 1
+                        else:
+                            print(f"  ❌ Не удалось получить план для SQL")
                 else:
                     print(f"  ⏭️ Блок не является SQL запросом после очистки")
             else:
@@ -1606,13 +1784,48 @@ class DetailedGreenplumFunctionAnalyzer:
                     print(f"    📋 Таблицы: {[f'{sch}.{tbl}' for sch, tbl in tables_in_block][:3]}")
 
                     cache_key = hashlib.md5(clean_sql.encode()).hexdigest()
+                    sizes_hash_n = hashlib.sha256(
+                        json.dumps(user_table_sizes or {}, sort_keys=True).encode()
+                    ).hexdigest()
+                    plan_json = None
                     if cache_key in self.plan_cache:
                         plan_json = self.plan_cache[cache_key]
                         print(f"    🔄 Кэш")
-                    else:
-                        plan_json = self._get_plan_for_block(clean_sql)
+                    if plan_json is None:
+                        try:
+                            from agent.agent_cache_db import get_plan
+                            plan_json = get_plan(cache_key, sizes_hash_n)
+                            if plan_json:
+                                print(f"    🔄 План из персистентного кэша")
+                                self.plan_cache[cache_key] = plan_json
+                        except Exception:
+                            pass
+                    if plan_json is None:
+                        if use_agent_plan and agent_credentials:
+                            try:
+                                from agent.gigachat_agent import synthesize_plan_for_query
+                                plan_json = synthesize_plan_for_query(
+                                    clean_sql,
+                                    [(sch, tbl) for sch, tbl in tables_in_block],
+                                    credentials_override=agent_credentials,
+                                    scope_override=agent_scope,
+                                    user_table_sizes=user_table_sizes,
+                                    params_and_vars=current_vars,
+                                    model_override=agent_chat_model,
+                                )
+                                if plan_json:
+                                    pass  # логирование в gigachat_agent.synthesize_plan_for_query
+                            except ImportError:
+                                plan_json = self._get_plan_for_block(clean_sql) if self.conn else None
+                        else:
+                            plan_json = self._get_plan_for_block(clean_sql)
                         if plan_json:
                             self.plan_cache[cache_key] = plan_json
+                            try:
+                                from agent.agent_cache_db import set_plan
+                                set_plan(cache_key, sizes_hash_n, plan_json)
+                            except Exception:
+                                pass
 
                     if plan_json:
                         try:
@@ -1632,18 +1845,50 @@ class DetailedGreenplumFunctionAnalyzer:
                             segments=self.config.segments
                         )
 
-                        self.block_results.append({
+                        blk = {
                             'index': len(self.block_results) + 1,
                             'type': block_type_display,
                             'category': 'EXECUTE' if is_execute else ('DATA_QUERY' if 'SELECT' in sql_block_obj.block_type else 'DATA_MODIFICATION'),
                             'sql_preview': clean_sql[:200] + ('...' if len(clean_sql) > 200 else ''),
+                            'sql_full': clean_sql,
                             'plan': adjusted_plan,
                             'load': block_load,
                             'tables': [f"{sch}.{tbl}" for sch, tbl in tables_in_block],
                             'context': sql_block_obj.block_context,
                             'line': sql_block_obj.line_number
-                        })
+                        }
+                        self._add_antipatterns_to_block(blk, clean_sql)
+                        self.block_results.append(blk)
                         print(f"    ✅ Нагрузка: {block_load['max_memory_gb']:.3f} GB")
+                    else:
+                        block_load = plan_adjuster.estimate_block_load_from_tables(
+                            tables_in_block,
+                            user_table_sizes,
+                            self.discovered_tables,
+                            segments=self.config.segments,
+                            sql=clean_sql,
+                        )
+                        if block_load['max_memory_gb'] > 0:
+                            blk = {
+                                'index': len(self.block_results) + 1,
+                                'type': block_type_display,
+                                'category': 'EXECUTE' if is_execute else ('DATA_QUERY' if 'SELECT' in sql_block_obj.block_type else 'DATA_MODIFICATION'),
+                                'sql_preview': clean_sql[:200] + ('...' if len(clean_sql) > 200 else ''),
+                                'sql_full': clean_sql,
+                                'plan': None,
+                                'load': block_load,
+                                'tables': [f"{sch}.{tbl}" for sch, tbl in tables_in_block],
+                                'context': sql_block_obj.block_context,
+                                'line': sql_block_obj.line_number,
+                                'fallback_estimate': True,
+                            }
+                            if block_load.get('heavy_reason'):
+                                blk['heavy_reason'] = block_load['heavy_reason']
+                            if block_load.get('heavy_recommendation'):
+                                blk['heavy_recommendation'] = block_load['heavy_recommendation']
+                            self._add_antipatterns_to_block(blk, clean_sql)
+                            self.block_results.append(blk)
+                            print(f"    ⚠️ План недоступен — оценка по размерам: {block_load['max_memory_gb']:.3f} GB")
 
         total_load = self._calculate_total_load(self.block_results)
         top_blocks = self._get_top_blocks(self.block_results, 3)
@@ -1654,6 +1899,7 @@ class DetailedGreenplumFunctionAnalyzer:
             'blocks_count': len(self.blocks),
             'analyzed_blocks': len(self.block_results),
             'total_memory_gb': total_load['total_memory_gb'],
+            'antipattern_added_gb': total_load.get('antipattern_added_gb', 0),
             'max_utilization': total_load['max_utilization'],
             'risk': total_load['risk'],
             'estimated_time_sec': total_load['estimated_time_sec'],
@@ -1680,9 +1926,16 @@ class DetailedGreenplumFunctionAnalyzer:
                     'max_memory_gb': b['load']['max_memory_gb'],
                     'total_rows': b['load']['total_rows'],
                     'sql_preview': b['sql_preview'],
-                    'tables': b['tables']
+                    'tables': b['tables'],
+                    **({k: b[k] for k in ('fallback_estimate', 'heavy_reason', 'heavy_recommendation', 'anti_patterns', 'block_hedge') if k in b}),
                 } for b in self.block_results
             ],
+            'problematic_blocks': [
+                {'index': b['index'], 'type': b['type'], 'anti_patterns': b['anti_patterns'], 'block_hedge': b.get('block_hedge', []), 'max_memory_gb': b['load']['max_memory_gb'], 'tables': b['tables'], 'sql_full': b.get('sql_full', b.get('sql_preview', ''))}
+                for b in self.block_results if b.get('anti_patterns')
+            ],
+            'general_hedge_recommendations': GENERAL_HEDGE_RECOMMENDATIONS,
+            'agent_errors': self._get_agent_errors(),
             'timestamp': datetime.now().isoformat()
         }
 
@@ -1774,27 +2027,59 @@ class DetailedGreenplumFunctionAnalyzer:
                     segments=self.config.segments
                 )
 
-                self.block_results.append({
+                blk = {
                     'index': idx+1,
                     'type': block_type,
                     'category': block_parser.get_block_category(block_type),
                     'sql_preview': clean_sql[:200] + '...',
+                    'sql_full': clean_sql,
                     'plan': adjusted_plan,
                     'load': block_load,
                     'tables': [f"{sch}.{tbl}" for sch, tbl in tables_in_block]
-                })
+                }
+                self._add_antipatterns_to_block(blk, clean_sql)
+                self.block_results.append(blk)
                 print(f"  ✅ Нагрузка блока: {block_load['max_memory_gb']:.3f} GB")
             else:
-                print(f"  ❌ Не удалось получить план для SQL")
+                block_load = plan_adjuster.estimate_block_load_from_tables(
+                    tables_in_block,
+                    user_table_sizes,
+                    self.discovered_tables,
+                    segments=self.config.segments,
+                    sql=clean_sql,
+                )
+                if block_load['max_memory_gb'] > 0:
+                    blk = {
+                        'index': idx+1,
+                        'type': block_type,
+                        'category': block_parser.get_block_category(block_type),
+                        'sql_preview': clean_sql[:200] + '...',
+                        'sql_full': clean_sql,
+                        'plan': None,
+                        'load': block_load,
+                        'tables': [f"{sch}.{tbl}" for sch, tbl in tables_in_block],
+                        'fallback_estimate': True,
+                    }
+                    if block_load.get('heavy_reason'):
+                        blk['heavy_reason'] = block_load['heavy_reason']
+                    if block_load.get('heavy_recommendation'):
+                        blk['heavy_recommendation'] = block_load['heavy_recommendation']
+                    self._add_antipatterns_to_block(blk, clean_sql)
+                    self.block_results.append(blk)
+                    print(f"  ⚠️ План недоступен — оценка по размерам: {block_load['max_memory_gb']:.3f} GB")
+                else:
+                    print(f"  ❌ Не удалось получить план для SQL")
 
         total_load = self._calculate_total_load(self.block_results)
         top_blocks = self._get_top_blocks(self.block_results, 3)
 
         result = {
             'input_type': 'query',
+            'function': 'SQL-запрос',
             'blocks_count': len(self.blocks),
             'analyzed_blocks': len(self.block_results),
             'total_memory_gb': total_load['total_memory_gb'],
+            'antipattern_added_gb': total_load.get('antipattern_added_gb', 0),
             'max_utilization': total_load['max_utilization'],
             'risk': total_load['risk'],
             'estimated_time_sec': total_load['estimated_time_sec'],
@@ -1820,21 +2105,57 @@ class DetailedGreenplumFunctionAnalyzer:
                     'max_memory_gb': b['load']['max_memory_gb'],
                     'total_rows': b['load']['total_rows'],
                     'sql_preview': b['sql_preview'],
-                    'tables': b['tables']
+                    'tables': b['tables'],
+                    **({k: b[k] for k in ('fallback_estimate', 'heavy_reason', 'heavy_recommendation', 'anti_patterns', 'block_hedge') if k in b}),
                 } for b in self.block_results
             ],
+            'problematic_blocks': [
+                {'index': b['index'], 'type': b['type'], 'anti_patterns': b['anti_patterns'], 'block_hedge': b.get('block_hedge', []), 'max_memory_gb': b['load']['max_memory_gb'], 'tables': b['tables'], 'sql_full': b.get('sql_full', b.get('sql_preview', ''))}
+                for b in self.block_results if b.get('anti_patterns')
+            ],
+            'general_hedge_recommendations': GENERAL_HEDGE_RECOMMENDATIONS,
+            'agent_errors': self._get_agent_errors(),
             'timestamp': datetime.now().isoformat()
         }
 
         self._print_detailed_report(result)
         return result
 
+    def _get_agent_errors(self) -> List[Dict]:
+        """Возвращает ошибки агента (не решённые пересчётом) для вкладки сводки."""
+        try:
+            from agent.gigachat_agent import get_recent_agent_errors
+            return get_recent_agent_errors()
+        except Exception:
+            return []
+
+    def _add_antipatterns_to_block(self, blk: Dict, clean_sql: str) -> None:
+        """Добавляет anti_patterns и block_hedge в блок при обнаружении антипаттернов."""
+        ap_list = detect_antipatterns(clean_sql)
+        if ap_list:
+            blk['anti_patterns'] = ap_list
+            blk['block_hedge'] = get_hedge_recommendations(ap_list)
+
     # -------------------------------------------------------------------------
     # ВЫЧИСЛЕНИЕ НАГРУЗКИ И ОТЧЁТ
     # -------------------------------------------------------------------------
     def _calculate_total_load(self, block_results: List[Dict]) -> Dict:
-        """Вычисляет суммарную нагрузку"""
-        total_memory_gb = sum(b['load']['max_memory_gb'] for b in block_results)
+        """Вычисляет суммарную нагрузку с учётом антипаттернов (доп. нагрузка на скейле)."""
+        from .antipattern_detector import get_antipattern_load_multiplier
+
+        total_memory_gb = 0.0
+        antipattern_added_gb = 0.0
+        for b in block_results:
+            base_gb = b['load']['max_memory_gb']
+            mult = get_antipattern_load_multiplier(
+                b.get('anti_patterns') or [],
+                block_max_memory_gb=base_gb,
+            )
+            adjusted_gb = base_gb * mult
+            total_memory_gb += adjusted_gb
+            if mult > 1.0:
+                antipattern_added_gb += (adjusted_gb - base_gb)
+
         max_utilization = total_memory_gb / self.config.ram_per_seg_gb * 100 if self.config.ram_per_seg_gb > 0 else 0
 
         if max_utilization > 40:
@@ -1848,6 +2169,7 @@ class DetailedGreenplumFunctionAnalyzer:
 
         return {
             'total_memory_gb': round(total_memory_gb, 2),
+            'antipattern_added_gb': round(antipattern_added_gb, 2),
             'max_utilization': round(max_utilization, 2),
             'risk': risk,
             'estimated_time_sec': round(estimated_time_sec, 2)
@@ -1887,7 +2209,12 @@ class DetailedGreenplumFunctionAnalyzer:
         else:
             print(f"Тип: SQL запрос")
 
-        print(f"Всего блоков: {result['blocks_count']}, проанализировано: {result['analyzed_blocks']}")
+        total = result['blocks_count']
+        analyzed = result['analyzed_blocks']
+        skipped = total - analyzed
+        print(f"Всего блоков: {total}, проанализировано: {analyzed}")
+        if skipped > 0:
+            print(f"Пропущено: {skipped} (TRUNCATE/ANALYZE/VACUUM или EXECUTE INTO — не оцениваются по плану)")
 
         if result.get('temp_tables'):
             print(f"\n📋 Временные таблицы: {', '.join(result['temp_tables'])}")
@@ -1909,6 +2236,8 @@ class DetailedGreenplumFunctionAnalyzer:
             print(f"   Таблицы: {', '.join(b['tables'])}")
             print(f"   SQL: {b['sql_preview'][:100]}...")
         print(f"\nСУММАРНАЯ НАГРУЗКА: {result['total_memory_gb']:.2f} GB")
+        if result.get('antipattern_added_gb', 0) > 0:
+            print(f"  (в т.ч. +{result['antipattern_added_gb']:.2f} GB от антипаттернов на скейле)")
         print(f"МАКСИМАЛЬНАЯ УТИЛИЗАЦИЯ: {result['max_utilization']:.1f}% RAM/сегмент")
         print(f"РИСК: {result['risk']}")
         print(f"ОЦЕНОЧНОЕ ВРЕМЯ ВЫПОЛНЕНИЯ: {result['estimated_time_sec']:.2f} сек")

@@ -1,0 +1,69 @@
+{# Apple-like sidebar shell #}
+<aside class="apple-sidebar">
+  <div class="apple-sidebar__brand-wrap">
+    <a class="apple-sidebar__brand" href="{{ url_for('detailed_index') }}">
+      <span class="apple-sidebar__brand-mark">GPA</span>
+      <span class="apple-sidebar__brand-copy">
+        <strong>Analyzer</strong>
+        <small>Workspace</small>
+      </span>
+    </a>
+  </div>
+
+  <div class="apple-sidebar__section-label">Навигация</div>
+  <nav class="apple-sidebar__nav" aria-label="Основные view">
+    <a class="apple-sidebar__item{% if shell_active == 'prepare' %} is-active{% endif %}" href="{{ url_for('detailed_index') }}">
+      <span class="apple-sidebar__item-icon">1</span>
+      <span class="apple-sidebar__item-copy">
+        <span class="apple-sidebar__item-title">Подготовка</span>
+        <span class="apple-sidebar__item-subtitle">Режим, SQL и инфраструктура</span>
+      </span>
+    </a>
+
+    {% if shell_table_href or shell_active == 'tables' %}
+    <a class="apple-sidebar__item{% if shell_active == 'tables' %} is-active{% endif %}" href="{{ shell_table_href or request.path }}">
+    {% else %}
+    <span class="apple-sidebar__item{% if shell_active == 'tables' %} is-active{% else %} is-disabled{% endif %}">
+    {% endif %}
+      <span class="apple-sidebar__item-icon">2</span>
+      <span class="apple-sidebar__item-copy">
+        <span class="apple-sidebar__item-title">Таблицы и параметры</span>
+        <span class="apple-sidebar__item-subtitle">Сценарий данных и входные значения</span>
+      </span>
+    {% if shell_table_href %}</a>{% else %}</span>{% endif %}
+
+    {% if shell_result_href or shell_active == 'result' %}
+    <a class="apple-sidebar__item{% if shell_active == 'result' %} is-active{% endif %}" href="{{ shell_result_href or request.path }}">
+    {% else %}
+    <span class="apple-sidebar__item{% if shell_active == 'result' %} is-active{% else %} is-disabled{% endif %}">
+    {% endif %}
+      <span class="apple-sidebar__item-icon">3</span>
+      <span class="apple-sidebar__item-copy">
+        <span class="apple-sidebar__item-title">Результат</span>
+        <span class="apple-sidebar__item-subtitle">KPI, риски, блоки и ошибки</span>
+      </span>
+    {% if shell_result_href %}</a>{% else %}</span>{% endif %}
+  </nav>
+
+  {% if shell_sidebar_extra_template %}
+  {% include shell_sidebar_extra_template %}
+  {% endif %}
+
+  <div class="apple-sidebar__section-label">Инструменты</div>
+  <div class="apple-sidebar__section">
+    <button type="button" class="apple-sidebar__item apple-sidebar__item--toggle" data-sidebar-section-toggle="tools" aria-expanded="false">
+      <span class="apple-sidebar__item-icon">i</span>
+      <span class="apple-sidebar__item-copy">
+        <span class="apple-sidebar__item-title">Инструменты</span>
+        <span class="apple-sidebar__item-subtitle">{{ shell_status_title }}</span>
+      </span>
+    </button>
+    <div class="apple-sidebar__subnav is-collapsed" data-sidebar-section="tools">
+      {% if show_tips %}
+      <button type="button" class="apple-sidebar__subitem" data-bs-toggle="modal" data-bs-target="#tipsModal">Подсказки</button>
+      {% endif %}
+      <button type="button" class="apple-sidebar__subitem" data-bs-toggle="modal" data-bs-target="#aboutModal">О приложении</button>
+      <button type="button" class="apple-sidebar__subitem" data-bs-toggle="modal" data-bs-target="#resetCacheModal">Сброс к базовым</button>
+    </div>
+  </div>
+</aside>

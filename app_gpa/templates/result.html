@@ -12,7 +12,7 @@
   </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
   <div class="container-fluid">
     <a class="navbar-brand" href="/">Analyzer</a>
     <div class="navbar-nav ms-auto">
@@ -48,6 +48,10 @@
     </div>
   </div>
 </div>
+
+{% set show_reset_cache = false %}
+{% include 'app_footer.html' %}
+
 <script>
 (function(){
   const jobId = {{ job_id | tojson }};

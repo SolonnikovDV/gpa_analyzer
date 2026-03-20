@@ -1,6 +1,6 @@
 from typing import Dict, List, Any
 
-# Множители операций
+# Множители операций (Lateral — N+1, подзапрос на каждую строку внешней таблицы)
 DEFAULT_MULTIPLIERS = {
     'Seq Scan': 1.15,
     'Index Scan': 0.05,
@@ -17,6 +17,8 @@ DEFAULT_MULTIPLIERS = {
     'Redistribute Motion': 1.5,
     'Broadcast Motion': 1.5,
     'ModifyTable': 1.0,
+    'Lateral': 2.0,
+    'Lateral Join': 2.0,
 }
 
 def compute_block_load(plan: dict, multipliers: Dict[str, float] = None, segments: int = 120) -> Dict[str, Any]:

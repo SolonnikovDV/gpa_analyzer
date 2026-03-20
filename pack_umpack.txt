@@ -1,0 +1,12 @@
+# Упаковать весь проект в packed.zip
+python pack_to_txt.py . packed.zip
+# или (один аргумент = упаковать текущую директорию в указанный архив)
+python pack_to_txt.py packed.zip
+
+# Упаковать только app_gpa
+python pack_to_txt.py ./app_gpa packed.zip
+
+# Распаковать архив в текущую директорию
+python unpack_from_txt.py packed.zip .
+# или (по умолчанию распаковка в .)
+python unpack_from_txt.py packed.zip
