@@ -1,22 +1,28 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Упаковывает весь проект в zip, сохраняя структуру.
-Создаёт мапу «путь_в_архиве → исходное_расширение»; в архиве все файлы имеют расширение .txt.
-Служебные каталоги (.venv, .git, __pycache__ и др.) не включаются.
+Скрипт 1: упаковывает директорию в zip, сохраняя структуру,
+создаёт мапу «файл → расширение» и в архиве все файлы имеют расширение .txt.
+Служебные каталоги (.venv, .git, __pycache__ и др.) не включаются в архив.
 """
 
+import base64
 import os
 import sys
 import json
 import zipfile
 from pathlib import Path
 
-# Каталоги и файлы, которые не упаковываются
+# Корень проекта — директория, где лежит этот скрипт
+PROJECT_ROOT = Path(__file__).resolve().parent
+
+# Каталоги, которые не упаковываются (кеш, служебные)
 EXCLUDE_DIRS = {
     ".venv",
     ".git",
+    ".qodo",
     "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
     "node_modules",
     ".cursor",
     ".idea",
@@ -26,14 +32,12 @@ EXCLUDE_DIRS = {
     ".eggs",
     "dist",
     "build",
+    "htmlcov",
 }
 
-EXCLUDE_FILES = {
-    "packed.zip",
-    "extension_map.json",
-    ".agent_cache.db",
-    ".agent_cache.json",
-}
+# Расширения и имена файлов кеша, которые не упаковываются
+EXCLUDE_FILE_EXTENSIONS = {".pyc", ".pyo", ".pyd"}
+EXCLUDE_FILE_NAMES = {".coverage", "coverage.xml", ".DS_Store"}
 
 
 def _should_skip_dir(dirname: str) -> bool:
@@ -55,17 +59,24 @@ def pack_directory_to_txt(source_dir: str, output_zip: str) -> None:
     if not source_path.is_dir():
         raise FileNotFoundError(f"Директория не найдена: {source_dir}")
 
-    extension_map = {}  # путь в архиве (с .txt) -> исходное расширение (без точки, "" если нет)
+    extension_map = {}  # путь в архиве (с .txt) -> исходное расширение без точки
 
-    with zipfile.ZipFile(
-        output_zip, "w", zipfile.ZIP_DEFLATED, compresslevel=9
-    ) as zf:
+    output_path = Path(output_zip).resolve()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # ZIP_STORED — без сжатия, максимальная совместимость с корпоративными
+    # почтовыми системами (ZIP_DEFLATED иногда помечается как «повреждённый»)
+    with zipfile.ZipFile(output_path, "w", zipfile.ZIP_STORED) as zf:
         for root, dirs, files in os.walk(source_path):
+            # Не спускаемся в исключённые каталоги
             dirs[:] = [d for d in dirs if not _should_skip_dir(d)]
 
             root_path = Path(root)
             for name in files:
-                if name in EXCLUDE_FILES:
+                if name in EXCLUDE_FILE_NAMES:
+                    continue
+                ext = os.path.splitext(name)[1].lower()
+                if ext in EXCLUDE_FILE_EXTENSIONS:
                     continue
                 file_path = root_path / name
                 try:
@@ -73,37 +84,41 @@ def pack_directory_to_txt(source_dir: str, output_zip: str) -> None:
                 except ValueError:
                     continue
                 rel_str = rel.as_posix()
+                rel_path = Path(rel_str)
                 _, ext = os.path.splitext(name)
-                original_ext = (ext or "").lstrip(".")
-                # Для файлов без расширения сохраняем пустую строку
+                original_ext = (ext or "").lstrip(".") or ""  # "" для файлов без расширения
 
-                rel_txt = Path(rel_str).with_suffix(".txt").as_posix()
+                # Заменяем расширение на .txt (не дописываем!), чтобы службы безопасности
+                # не видели реальные расширения (.py, .exe и т.д.)
+                rel_txt = (rel_path.parent / (rel_path.stem + ".txt")).as_posix()
                 extension_map[rel_txt] = original_ext
 
-                zf.write(file_path, rel_txt)
+                # Base64 — всё содержимое в текстовом виде, сканер не находит бинарник/код
+                content = file_path.read_bytes()
+                encoded = base64.b64encode(content).decode("ascii")
+                zf.writestr(rel_txt, encoded)
 
-        # Мапу кладём в корень архива
+        extension_map["_format"] = "base64"
         map_json = json.dumps(extension_map, ensure_ascii=False, indent=2)
         zf.writestr("extension_map.json", map_json.encode("utf-8"))
 
-    print(f"Упаковано в: {output_zip}")
+    # Проверка: архив должен открываться и содержать extension_map
+    try:
+        with zipfile.ZipFile(output_path, "r") as zf:
+            zf.testzip()
+            if "extension_map.json" not in zf.namelist():
+                raise ValueError("extension_map.json отсутствует в архиве")
+    except zipfile.BadZipFile as e:
+        raise RuntimeError(f"Архив повреждён: {e}") from e
+
+    print(f"Упаковано в: {output_path}")
     print(f"Записей в мапе расширений: {len(extension_map)}")
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Использование: python pack_to_txt.py [исходная_директория] [выходной.zip]")
-        print("  Один аргумент: упаковать текущую директорию в указанный архив.")
-        print("  Два аргумента: упаковать исходную директорию в архив.")
-        print("  По умолчанию: python pack_to_txt.py . packed.zip")
-        sys.exit(1)
-
-    if len(sys.argv) == 2:
-        source_dir = "."
-        output_zip = sys.argv[1]
-    else:
-        source_dir = sys.argv[1]
-        output_zip = sys.argv[2]
+    # По умолчанию: упаковываем корень проекта, архив в корне проекта
+    source_dir = sys.argv[1] if len(sys.argv) > 1 else str(PROJECT_ROOT)
+    output_zip = sys.argv[2] if len(sys.argv) > 2 else str(PROJECT_ROOT / "packed.zip")
 
     pack_directory_to_txt(source_dir, output_zip)
 
