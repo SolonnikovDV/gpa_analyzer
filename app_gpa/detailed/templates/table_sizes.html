@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='detailed.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='ux.css') }}">
 </head>
 <body>
 <div class="apple-shell">
@@ -21,12 +22,11 @@
   <main class="apple-main">
     <header class="apple-toolbar page-reveal">
       <div class="apple-toolbar__titles">
-        <span class="apple-toolbar__eyebrow">Scenario Tuning</span>
+        <span class="apple-toolbar__eyebrow">Workspace · Шаг 2</span>
         <h1 class="apple-toolbar__title">Настройка размеров источников и параметров</h1>
         <p class="apple-toolbar__subtitle">Лог discovery слева, сценарий данных и входные параметры справа.</p>
       </div>
       <div class="apple-toolbar__actions">
-        <span class="apple-inline-status">Шаг 2 из 3</span>
         <div class="apple-toolbar__surface">
           <span class="apple-toolbar__meta">Статус: {{ status }}</span>
           <button type="button" class="btn btn-sm btn-outline-secondary theme-toggle" data-theme-toggle aria-label="Переключить тему">
@@ -37,7 +37,10 @@
       </div>
     </header>
 
-    <div class="apple-main__body">
+    <div class="apple-main__body gpa-workflow-enter">
+      {% set workflow_current = 2 %}
+      {% set workflow_job_id = job_id %}
+      {% include 'workflow_progress.html' %}
       <div id="token-strip" class="token-strip page-reveal" aria-live="polite">
         <span>Токены: использовано <span class="token-used" id="token-used">0</span> (ввод <span id="token-prompt">0</span>, вывод <span id="token-completion">0</span>, кэш вх. <span id="token-precached" title="precached_prompt_tokens из ответов API">0</span>)</span>
         <span>сессий: <span id="token-sessions">0</span></span>
@@ -46,9 +49,12 @@
       </div>
 
       <div class="apple-view apple-view__surface app-content apple-view-grid apple-view-grid--split">
-        <div class="card shadow-sm page-reveal apple-log-card">
+        <div class="card shadow-sm page-reveal apple-log-card apple-log-card--compact">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <span>Онлайн-лог</span>
+          <div class="apple-log-card__title-group">
+            <span class="apple-log-card__title">Лог</span>
+            <span class="apple-log-card__count" id="log-line-count">0 строк</span>
+          </div>
           <div class="d-flex align-items-center gap-2">
             <span id="mode-badge" class="badge bg-info" style="display: none;" title="Режим анализа">—</span>
             <span id="agent-models-job-badge" class="badge bg-dark" style="display: none;" title="Модели GigaChat для этого расчёта">—</span>
@@ -59,7 +65,7 @@
           </div>
         </div>
         <div class="card-body p-0">
-          <div id="log"></div>
+          <div id="log" class="gpa-log--compact"></div>
         </div>
       </div>
       <div class="card shadow-sm page-reveal apple-table-card">
@@ -148,6 +154,7 @@
 {% include 'about_modal.html' %}
 {% include 'reset_cache_modal.html' %}
 
+<script src="{{ url_for('static', filename='gpa-ui.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 (function(){
@@ -157,6 +164,8 @@
   const serverAgentChatModel = {{ (agent_chat_model or '') | tojson }};
   const serverAgentEmbModel = {{ (agent_embedding_model or '') | tojson }};
   const logEl = document.getElementById('log');
+  const logLineCount = document.getElementById('log-line-count');
+  if (window.GpaLog) GpaLog.bindCounter(logEl, logLineCount);
   const statusEl = document.getElementById('status');
   const loadingEl = document.getElementById('loading');
   const tablesContainer = document.getElementById('tables-container');
@@ -463,11 +472,16 @@
   document.getElementById('sizes-form').addEventListener('submit', function() {
     analyzeBtn.disabled = true;
     analyzeBtn.classList.add('loading');
-    analyzeBtn.disabled = true;
-    var btnText = analyzeBtn.textContent;
     var mode = getLoaderMode(lastJobStatus || {});
     analyzeBtn.classList.add('app-loader', 'app-loader--compact', 'app-loader--' + mode);
-    analyzeBtn.innerHTML = '<span class="app-loader__spinner" style="margin-right:8px;vertical-align:middle"></span><span class="app-loader__mode-icon"></span> Расчёт нагрузки…';
+    analyzeBtn.innerHTML = '<span class="app-loader__spinner" style="margin-right:8px;vertical-align:middle"></span><span class="app-loader__mode-icon"></span> Расчёт…';
+    if (window.GpaWait) {
+      GpaWait.show({
+        mode: mode,
+        message: 'Расчёт нагрузки…',
+        subtitle: 'EXPLAIN, блоки и оценка рисков'
+      });
+    }
   });
 
   // Обработка ошибок EventSource

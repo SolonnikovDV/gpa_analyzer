@@ -95,6 +95,20 @@ class DetailedGreenplumFunctionAnalyzer:
         self.variables = {}
         self.plan_cache = {}
 
+    def _analysis_llm_budget_allows(self, step_id: str) -> bool:
+        """Guard для LLM-шагов анализа, чтобы не наращивать число chat-вызовов бесконтрольно."""
+        try:
+            from llm import budget_allows_chat, get_profile
+
+            profile = get_profile("analysis_default")
+            allowed = budget_allows_chat(profile.budget.max_llm_calls)
+        except Exception:
+            return True
+        if allowed:
+            return True
+        print(f"  ⚠️ Лимит LLM-вызовов исчерпан для шага анализа: {step_id}")
+        return False
+
     def connect(self, conn_string: str) -> bool:
         """Устанавливает соединение с Greenplum"""
         try:
@@ -1634,7 +1648,7 @@ class DetailedGreenplumFunctionAnalyzer:
                         except Exception:
                             pass
                     if plan_json is None:
-                        if use_agent_plan and agent_credentials:
+                        if use_agent_plan and agent_credentials and self._analysis_llm_budget_allows("synthesize_plan"):
                             try:
                                 from agent.gigachat_agent import synthesize_plan_for_query
                                 plan_json = synthesize_plan_for_query(
@@ -1801,7 +1815,7 @@ class DetailedGreenplumFunctionAnalyzer:
                         except Exception:
                             pass
                     if plan_json is None:
-                        if use_agent_plan and agent_credentials:
+                        if use_agent_plan and agent_credentials and self._analysis_llm_budget_allows("synthesize_plan"):
                             try:
                                 from agent.gigachat_agent import synthesize_plan_for_query
                                 plan_json = synthesize_plan_for_query(

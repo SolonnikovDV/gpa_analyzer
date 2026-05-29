@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='detailed.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='ux.css') }}">
 </head>
 <body>
 <div class="apple-shell">
@@ -21,12 +22,11 @@
   <main class="apple-main">
     <header class="apple-toolbar page-reveal">
       <div class="apple-toolbar__titles">
-        <span class="apple-toolbar__eyebrow">Insight Dashboard</span>
+        <span class="apple-toolbar__eyebrow">Workspace · Шаг 3</span>
         <h1 class="apple-toolbar__title">Результат анализа нагрузки</h1>
         <p class="apple-toolbar__subtitle" id="resultToolbarSubtitle">Спокойная аналитическая панель: сводка сверху, детали по вкладкам, выбранный блок справа.</p>
       </div>
       <div class="apple-toolbar__actions">
-        <span class="apple-inline-status">Шаг 3 из 3</span>
         <div class="apple-toolbar__surface">
           <span class="apple-toolbar__meta">Статус: {{ status }}</span>
           {% if agent_chat_model or agent_embedding_model %}
@@ -40,7 +40,10 @@
       </div>
     </header>
 
-    <div class="apple-main__body">
+    <div class="apple-main__body gpa-workflow-enter">
+      {% set workflow_current = 3 %}
+      {% set workflow_job_id = job_id %}
+      {% include 'workflow_progress.html' %}
       <div id="token-strip" class="token-strip page-reveal" aria-live="polite">
         <span>Токены: использовано <span class="token-used" id="token-used">0</span> (ввод <span id="token-prompt">0</span>, вывод <span id="token-completion">0</span>, кэш вх. <span id="token-precached" title="precached_prompt_tokens из ответов API">0</span>)</span>
         <span>сессий: <span id="token-sessions">0</span></span>
@@ -48,25 +51,25 @@
         <span>429: <span id="token-rate-limit" class="token-rate-limit" title="Превышение лимита запросов GigaChat">0</span></span>
       </div>
 
-      <div class="system-stats page-reveal" id="system-stats">
-        <div class="stat-item">
-          <span class="stat-label">Память</span>
-          <span class="stat-value" id="stat-memory">0 MB</span>
+      <div class="gpa-analysis-hero page-reveal" id="system-stats">
+        <div class="gpa-analysis-hero__stat">
+          <span class="gpa-analysis-hero__label">Память</span>
+          <span class="gpa-analysis-hero__value" id="stat-memory">0 MB</span>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">CPU</span>
-          <span class="stat-value" id="stat-cpu">0%</span>
+        <div class="gpa-analysis-hero__stat">
+          <span class="gpa-analysis-hero__label">CPU</span>
+          <span class="gpa-analysis-hero__value" id="stat-cpu">0%</span>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">Блоков</span>
-          <span class="stat-value" id="stat-blocks">0/0</span>
+        <div class="gpa-analysis-hero__stat">
+          <span class="gpa-analysis-hero__label">Блоки</span>
+          <span class="gpa-analysis-hero__value" id="stat-blocks">0/0</span>
         </div>
-        <div class="progress-container">
+        <div class="gpa-analysis-hero__progress">
           <div class="progress-bar-wrapper">
             <div class="progress-bar-fill" id="progress-bar-fill"></div>
           </div>
           <div class="progress-text">
-            <span><span class="loading-spinner" id="loading-spinner"></span> <span id="progress-status">Выполнение...</span></span>
+            <span><span class="loading-spinner" id="loading-spinner"></span> <span id="progress-status">Выполнение…</span></span>
             <span id="progress-percent">0%</span>
           </div>
         </div>
@@ -76,9 +79,12 @@
         <div class="apple-stack">
           <div class="row g-4">
             <div class="col-lg-5">
-              <div class="card shadow-sm page-reveal apple-log-card">
+              <div class="card shadow-sm page-reveal apple-log-card apple-log-card--compact">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <span>Онлайн-лог</span>
+          <div class="apple-log-card__title-group">
+            <span class="apple-log-card__title">Лог</span>
+            <span class="apple-log-card__count" id="log-line-count">0 строк</span>
+          </div>
           <div class="d-flex align-items-center gap-2">
             <span id="mode-badge" class="badge bg-info" style="display: none;" title="Режим анализа">—</span>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-copy-log" title="Скопировать весь лог">
@@ -88,7 +94,7 @@
           </div>
         </div>
         <div class="card-body p-0">
-          <div id="log"></div>
+          <div id="log" class="gpa-log--compact"></div>
         </div>
       </div>
             </div>
@@ -305,6 +311,7 @@
   </div>
 </div>
 
+<script src="{{ url_for('static', filename='gpa-ui.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -320,6 +327,8 @@
     return d.innerHTML;
   }
   const logEl = document.getElementById('log');
+  const logLineCount = document.getElementById('log-line-count');
+  if (window.GpaLog && logEl && logLineCount) GpaLog.bindCounter(logEl, logLineCount);
   const statusEl = document.getElementById('status');
   const summaryEl = document.getElementById('summary');
   const summaryWaiting = document.getElementById('summary-waiting');
@@ -537,8 +546,11 @@
     
     // Показываем плашку
     if (systemStats) {
-      systemStats.style.display = 'flex';
+      systemStats.style.display = 'grid';
+      systemStats.classList.add('is-running');
     }
+    var shell = document.querySelector('.apple-shell');
+    if (shell) shell.classList.add('gpa-analysis-running');
     
     // Показываем спиннер
     if (loadingSpinner) {
@@ -680,7 +692,10 @@
     setTimeout(() => {
       if (systemStats) {
         systemStats.style.display = 'none';
+        systemStats.classList.remove('is-running');
       }
+      var shell = document.querySelector('.apple-shell');
+      if (shell) shell.classList.remove('gpa-analysis-running');
     }, 3000);
   }
 
