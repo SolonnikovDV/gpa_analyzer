@@ -548,11 +548,38 @@ def embed_text(text: str) -> Tuple[List[float], str]:
     return hash_embed(text), "hash_embed:384"
 
 
+def desired_embed_source() -> str:
+    if env("DCI_EMBED_URL"):
+        ok, _ = tei_ping()
+        if ok:
+            model = env("DCI_EMBED_MODEL", "intfloat/multilingual-e5-small")
+            return f"tei:{model}"
+    api_key = env("OPENAI_API_KEY")
+    if api_key:
+        model = env("DCI_EMBEDDING_MODEL", "text-embedding-3-small")
+        return f"openai:{model}"
+    return "hash_embed:384"
+
+
+def needs_reembed(stored_source: Optional[str], desired: str, force: bool) -> bool:
+    if force:
+        return True
+    if not stored_source:
+        return True
+    if stored_source == desired:
+        return False
+    weak = stored_source.startswith("hash_embed")
+    strong = desired.startswith("tei:") or desired.startswith("openai:")
+    if weak and strong:
+        return True
+    return stored_source != desired
+
+
 def last_embed_source(namespace: Optional[str] = None) -> str:
     rows = read_fallback(namespace)
     sources = {r.get("embed_source", "") for r in rows if r.get("embed_source")}
     if not sources:
-        return "unknown"
+        return desired_embed_source()
     for pref in ("tei:", "openai:", "hash_embed"):
         for src in sources:
             if src.startswith(pref) or src == pref:
@@ -563,6 +590,25 @@ def last_embed_source(namespace: Optional[str] = None) -> str:
 def get_db_content_hash(namespace: str, ledger_id: str) -> Optional[str]:
     hashes = get_db_content_hashes(namespace, [ledger_id])
     return hashes.get(ledger_id)
+
+
+def get_db_embed_sources(namespace: str, ledger_ids: List[str]) -> Dict[str, str]:
+    if not ledger_ids:
+        return {}
+    ok, _ = db_ping()
+    if not ok:
+        return {}
+    try:
+        with db_connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT ledger_id, source FROM dci_embeddings "
+                    "WHERE dialog_id = %s AND ledger_id = ANY(%s)",
+                    (namespace, ledger_ids),
+                )
+                return {row[0]: row[1] for row in cur.fetchall() if row[1]}
+    except Exception:  # noqa: BLE001
+        return {}
 
 
 def get_db_content_hashes(namespace: str, ledger_ids: List[str]) -> Dict[str, str]:
@@ -924,6 +970,7 @@ def sync_records(
     namespace: str,
     meta_path: Path,
     migrate: bool,
+    reembed: bool = False,
 ) -> Tuple[List[str], List[str], str]:
     ok, reason = db_ping()
     if migrate and ok:
@@ -933,9 +980,12 @@ def sync_records(
     embedded: List[str] = []
     pending: List[str] = []
     skipped: List[str] = []
-    embed_source = "hash_embed:384"
+    reembedded: List[str] = []
+    desired = desired_embed_source()
+    embed_source = desired
     ledger_ids = [r.ledger_id for r in records]
     stored_hashes = get_db_content_hashes(namespace, ledger_ids) if ok else {}
+    stored_sources = get_db_embed_sources(namespace, ledger_ids) if ok else {}
     fb_rows = read_fallback(namespace)
 
     for record in records:
@@ -947,10 +997,15 @@ def sync_records(
         fb_match = next((r for r in fb_rows if r.get("ledger_id") == record.ledger_id), None)
         if fb_match and fb_match.get("metadata", {}).get("content_hash") == rec_hash:
             stored_hash = stored_hash or rec_hash
-        if ok and stored_hash == rec_hash:
+        stored_source = stored_sources.get(record.ledger_id) or (
+            fb_match.get("embed_source") if fb_match else None
+        )
+        if ok and stored_hash == rec_hash and not needs_reembed(stored_source, desired, reembed):
             skipped.append(record.ledger_id)
             embedded.append(record.ledger_id)
             continue
+        if stored_hash == rec_hash and needs_reembed(stored_source, desired, reembed):
+            reembedded.append(record.ledger_id)
         embedding, embed_source = embed_text(record.embed_text())
         if ok:
             try:
@@ -973,6 +1028,8 @@ def sync_records(
 
     if skipped:
         print(f"DCI sync [{namespace}]: skipped unchanged={len(skipped)}")
+    if reembedded:
+        print(f"DCI sync [{namespace}]: reembedded backend upgrade={len(reembedded)}")
 
     fallback_rows = read_fallback(namespace)
     unsynced = sum(1 for r in fallback_rows if not r.get("synced_to_db"))
@@ -1044,14 +1101,18 @@ def migrate_fallback_to_db(namespace: Optional[str] = None) -> int:
     return migrated
 
 
-def cmd_sync_window(migrate: bool, dialog_window_id: Optional[str] = None) -> int:
+def cmd_sync_window(
+    migrate: bool,
+    dialog_window_id: Optional[str] = None,
+    reembed: bool = False,
+) -> int:
     dw = dialog_window_id or resolve_dialog_window_id()
     assert_window_scope("sync", dw)
     path = window_index_path(dw)
     records = parse_dialog_index(path)
     if not records:
         print(f"WARN no window records parsed from {path}", file=sys.stderr)
-    sync_records(records, vector_namespace(dw), window_meta_path(dw), migrate)
+    sync_records(records, vector_namespace(dw), window_meta_path(dw), migrate, reembed=reembed)
     write_project_lock(project_scope_id())
     write_window_lock(dw)
     ok, _ = db_ping()
@@ -1060,12 +1121,18 @@ def cmd_sync_window(migrate: bool, dialog_window_id: Optional[str] = None) -> in
     return 0
 
 
-def cmd_sync_project(migrate: bool) -> int:
+def cmd_sync_project(migrate: bool, reembed: bool = False) -> int:
     assert_project_scope("sync-project")
     records = parse_project_catalog()
     if not records:
         print(f"WARN no project records parsed from {PROJECT_CATALOG}", file=sys.stderr)
-    sync_records(records, project_vector_namespace(), CONTEXT_DIR / "vector_index.meta.md", migrate)
+    sync_records(
+        records,
+        project_vector_namespace(),
+        CONTEXT_DIR / "vector_index.meta.md",
+        migrate,
+        reembed=reembed,
+    )
     write_project_lock(project_scope_id())
     ok, _ = db_ping()
     if ok:
@@ -2168,6 +2235,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         ],
     )
     parser.add_argument("--migrate", action="store_true")
+    parser.add_argument(
+        "--reembed",
+        action="store_true",
+        help="force re-embed all records (also auto on hash_embed→tei upgrade)",
+    )
     parser.add_argument("--force", action="store_true", help="bypass validate/hash gate on compress")
     parser.add_argument("--project", action="store_true", help="sync/lookup project EV namespace")
     parser.add_argument("--all", action="store_true", help="sync both window and project")
@@ -2246,9 +2318,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.command == "sync":
         rc = 0
         if args.all or not args.project:
-            rc = cmd_sync_window(args.migrate, args.window or None)
+            rc = cmd_sync_window(args.migrate, args.window or None, reembed=args.reembed)
         if args.all or args.project:
-            rc = cmd_sync_project(args.migrate) or rc
+            rc = cmd_sync_project(args.migrate, reembed=args.reembed) or rc
         return rc
 
     return 1

@@ -252,6 +252,14 @@ run_grep_stdout "TC-AGENT-03" "load_mode: delta" bash "${DCI}" compress --force
 run_grep_stdout "TC-AGENT-03" "handoff_ready: true" bash "${DCI}" compress --force
 run_grep_stdout "TC-AGENT-03" "load_mode: restore" bash "${DCI}" restore DW-001
 
+# token read budget contract (rule + skill)
+if grep -q "Token read budget" "${ROOT}/.cursor/rules/dialog-context-index.mdc" \
+   && grep -q "## Token read budget" "${ROOT}/.cursor/skills/dialog-context-index/SKILL.md"; then
+  pass "TC-DCI-TOK-01"
+else
+  fail "TC-DCI-TOK-01" "Token read budget missing in rule or skill"
+fi
+
 echo ""
 echo "=== SUMMARY: PASS=${PASS} FAIL=${FAIL} SKIP=${SKIP} ==="
 if [[ "${FAIL}" -eq 0 ]]; then

@@ -195,7 +195,7 @@ DCI_VECTOR_USER=dci
 DCI_VECTOR_PASSWORD=dci_local
 DCI_PROJECT_ID=${pid}
 
-# Local TEI embeddings — uncomment after: bash scripts/dci-vector.sh up
+# Local embed server — enabled by dci-setup-projects.sh / dci-vector.sh up
 # DCI_EMBED_URL=http://localhost:18081/embed
 # DCI_EMBED_MODEL=intfloat/multilingual-e5-small
 EOF
@@ -205,18 +205,79 @@ update_inheritance_router() {
   local target="$1"
   local router="${target}/.cursor/rules/team-command-router.mdc"
   [[ -f "${router}" ]] || return 0
-  if grep -q "dialog-context-index.mdc" "${router}" 2>/dev/null; then
-    echo "  team-command-router: DCI already referenced"
+  if ! grep -q "Team Router Inheritance" "${router}" 2>/dev/null; then
     return 0
   fi
-  cat >>"${router}" <<'EOF'
+  cat >"${router}" <<'EOF'
+---
+description: Inherit global team command router defaults
+alwaysApply: true
+---
+
+# Team Router Inheritance
+
+Use `~/.cursor/rules/team-command-router.mdc` as the authoritative router for this project.
+
+Apply all command workflows from the global router, including:
+- `sql-команда`
+- `b2c-команда`
+- `de-matrix-команда`
+- `web-app-команда`
+- `presentation-команда`
+- `auto-команда`
 
 ## DCI (project-local)
 
 Follow `.cursor/rules/dialog-context-index.mdc` and `.cursor/skills/dialog-context-index/SKILL.md`.
 Shell: `bash scripts/dci-vector.sh` (compress, windows, restore, projects, validate).
+
+## TIG (project-local)
+
+Follow `.cursor/rules/tig-preflight-enforced.mdc` and `.cursor/rules/tig-snapshot.mdc`.
+Shell: `bash scripts/tig-context.sh` (preflight / `--delta-only` postflight).
 EOF
-  echo "  team-command-router: appended DCI section"
+  echo "  team-command-router: inheritance stub refreshed (DCI + TIG)"
+}
+
+propagate_rules_and_tig() {
+  local target="$1"
+  local rules=(
+    dialog-context-index.mdc
+    tig-preflight-enforced.mdc
+    tig-snapshot.mdc
+    presentation-team-methodology.mdc
+  )
+  for r in "${rules[@]}"; do
+    copy_file "${SOURCE}/.cursor/rules/${r}" "${target}/.cursor/rules/${r}"
+  done
+  local skills=(
+    dialog-context-index
+    tig-snapshot
+    sql-team
+    b2c-team
+    de-matrix-team
+    web-app-team
+    presentation-team
+  )
+  for s in "${skills[@]}"; do
+    copy_file "${SOURCE}/.cursor/skills/${s}/SKILL.md" "${target}/.cursor/skills/${s}/SKILL.md"
+  done
+  copy_file "${SOURCE}/tig_app_ru.py" "${target}/tig_app_ru.py"
+  copy_file "${SOURCE}/scripts/tig-context.sh" "${target}/scripts/tig-context.sh"
+  copy_file "${SOURCE}/scripts/tig-test.sh" "${target}/scripts/tig-test.sh"
+  copy_file "${SOURCE}/scripts/rules-validate-all-projects.sh" "${target}/scripts/rules-validate-all-projects.sh"
+  chmod +x "${target}/scripts/tig-context.sh" "${target}/scripts/tig-test.sh" "${target}/scripts/rules-validate-all-projects.sh" 2>/dev/null || true
+}
+
+sync_global_router() {
+  local global="${HOME}/.cursor/rules/team-command-router.mdc"
+  mkdir -p "$(dirname "${global}")"
+  if [[ "${DRY}" == "1" ]]; then
+    echo "DRY copy ${SOURCE}/.cursor/rules/team-command-router.mdc -> ${global}"
+  else
+    cp -f "${SOURCE}/.cursor/rules/team-command-router.mdc" "${global}"
+    echo "Updated global router: ${global}"
+  fi
 }
 
 propagate_one() {
@@ -233,8 +294,7 @@ propagate_one() {
   fi
 
   echo "=== ${name} ==="
-  copy_file "${SOURCE}/.cursor/rules/dialog-context-index.mdc" "${target}/.cursor/rules/dialog-context-index.mdc"
-  copy_file "${SOURCE}/.cursor/skills/dialog-context-index/SKILL.md" "${target}/.cursor/skills/dialog-context-index/SKILL.md"
+  propagate_rules_and_tig "${target}"
   copy_file "${SOURCE}/.cursor/context/dci_test_cases.md" "${target}/.cursor/context/dci_test_cases.md"
   copy_file "${SOURCE}/scripts/dci_vector_sync.py" "${target}/scripts/dci_vector_sync.py"
   copy_file "${SOURCE}/scripts/dci-vector.sh" "${target}/scripts/dci-vector.sh"
@@ -243,6 +303,7 @@ propagate_one() {
   copy_file "${SOURCE}/scripts/dci-setup-projects.sh" "${target}/scripts/dci-setup-projects.sh"
   copy_file "${SOURCE}/.cursor/dci/docker-compose.yml" "${target}/.cursor/dci/docker-compose.yml"
   copy_file "${SOURCE}/.cursor/dci/dci.env.example" "${target}/.cursor/dci/dci.env.example"
+  copy_file "${SOURCE}/scripts/dci_embed_server.py" "${target}/scripts/dci_embed_server.py"
   copy_file "${SOURCE}/.cursor/dci/embedding_golden.json" "${target}/.cursor/dci/embedding_golden.json"
   copy_file "${SOURCE}/.cursor/dci/init/01_schema.sql" "${target}/.cursor/dci/init/01_schema.sql"
   copy_file "${SOURCE}/.cursor/dci/init/02_window_scope.sql" "${target}/.cursor/dci/init/02_window_scope.sql"
@@ -289,4 +350,5 @@ for dir in "${ROOT}"/*; do
 done
 
 write_projects_registry
+sync_global_router
 echo "Done."

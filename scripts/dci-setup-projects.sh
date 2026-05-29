@@ -46,7 +46,9 @@ DCI_GITIGNORE_BLOCK="${DCI_GITIGNORE_MARKER}
 .cursor/context/dialogs/**/dialog_bundle.md
 .cursor/context/dialog_bundle.md
 .cursor/context/vector_index.meta.md
-.cursor/context/dialogs/**/vector_index.meta.md"
+.cursor/context/dialogs/**/vector_index.meta.md
+.cursor/dci/.embed_server.pid
+.cursor/dci/embed_server.log"
 
 ensure_gitignore() {
   local target="$1"
@@ -99,6 +101,10 @@ sync_projects_registry() {
   local reg_src="${SOURCE}/.cursor/dci/projects.registry"
   local reg_dst="${target}/.cursor/dci/projects.registry"
   [[ -f "${reg_src}" ]] || return 0
+  if [[ "$(cd "${target}" && pwd)" == "$(cd "${SOURCE}" && pwd)" ]]; then
+    echo "  projects.registry: source (skip copy)"
+    return 0
+  fi
   mkdir -p "$(dirname "${reg_dst}")"
   cp -f "${reg_src}" "${reg_dst}"
   echo "  projects.registry: synced"
@@ -120,6 +126,12 @@ ensure_venv() {
     "${pip}" install -q psycopg2-binary
   else
     echo "  venv: psycopg2 ok"
+  fi
+  if [[ "$(basename "${target}")" == "gp_dq" ]] && ! "${py}" -c "import sentence_transformers" 2>/dev/null; then
+    echo "  venv: installing sentence-transformers (embed server)"
+    "${pip}" install -q "numpy<2" sentence-transformers
+  elif "${py}" -c "import sentence_transformers" 2>/dev/null; then
+    echo "  venv: sentence-transformers ok"
   fi
 }
 

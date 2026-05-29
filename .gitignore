@@ -31,10 +31,9 @@ build/
 .agent_cache.db
 .agent_cache.baseline.json
 .agent_cache.baseline.db
-app_gpa/agent/.agent_cache.json
-app_gpa/agent/.agent_cache.db
-app_gpa/agent/.agent_cache.baseline.json
-app_gpa/agent/.agent_cache.baseline.db
+app_gpa/var/
+app_gpa/modules/agents/.agent_cache.*
+app_gpa/modules/agents/.agent_baseline_config.json
 
 # --- Логи и архивы ---
 *.log
