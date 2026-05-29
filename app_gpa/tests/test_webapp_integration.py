@@ -3,10 +3,10 @@ from types import SimpleNamespace
 import pytest
 
 import webapp
-from detailed.job_contracts import JOB_STATUS_DONE, JOB_STATUS_TABLES_DISCOVERED
-from detailed.job_service import JobService
-from detailed.job_store import SQLiteJobStore
-from detailed.runtime_preset_store import SQLiteRuntimePresetStore
+from modules.analysis.job_contracts import JOB_STATUS_DONE, JOB_STATUS_TABLES_DISCOVERED
+from modules.analysis.job_service import JobService
+from modules.analysis.job_store import SQLiteJobStore
+from modules.analysis.runtime_preset_store import SQLiteRuntimePresetStore
 
 
 @pytest.fixture()

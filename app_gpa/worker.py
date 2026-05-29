@@ -1,7 +1,11 @@
 from __future__ import annotations
 
-from app_settings import settings
-from detailed.queue_backend import create_redis_connection
+from core.compat import install_compat_imports
+
+install_compat_imports()
+
+from core.settings import settings
+from infrastructure import create_redis_connection
 
 
 def main() -> None:

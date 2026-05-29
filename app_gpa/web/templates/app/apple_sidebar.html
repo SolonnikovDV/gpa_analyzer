@@ -1,0 +1,87 @@
+{# Apple-like sidebar shell #}
+<aside class="apple-sidebar">
+  <div class="apple-sidebar__brand-wrap">
+    <a class="apple-sidebar__brand" href="{{ url_for('pages.home_index') }}">
+      <span class="apple-sidebar__brand-mark">GPA</span>
+      <span class="apple-sidebar__brand-copy">
+        <strong>Analyzer</strong>
+        <small>Workspace</small>
+      </span>
+    </a>
+  </div>
+
+  <div class="apple-sidebar__section-label">Пространство</div>
+  <nav class="apple-sidebar__nav" aria-label="Основные view">
+    <a class="apple-sidebar__item{% if shell_active == 'home' %} is-active{% endif %}" href="{{ url_for('pages.home_index') }}">
+      <span class="apple-sidebar__item-icon apple-sidebar__item-icon--svg" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 10.5L12 4l8 6.5V20a1 1 0 01-1 1h-5v-6H10v6H5a1 1 0 01-1-1v-9.5z"/></svg>
+      </span>
+      <span class="apple-sidebar__item-copy">
+        <span class="apple-sidebar__item-title">Главная</span>
+        <span class="apple-sidebar__item-subtitle">Обзор и быстрый старт</span>
+      </span>
+    </a>
+
+    <a class="apple-sidebar__item{% if shell_active == 'prepare' %} is-active{% endif %}" href="{{ url_for('analysis.detailed_index') }}">
+      <span class="apple-sidebar__item-icon apple-sidebar__item-icon--svg" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M8 4h8l2 2v14H6V6l2-2z"/><path d="M9 12h6M9 16h4"/></svg>
+      </span>
+      <span class="apple-sidebar__item-copy">
+        <span class="apple-sidebar__item-title">Подготовка</span>
+        <span class="apple-sidebar__item-subtitle">Режим, SQL и инфраструктура</span>
+      </span>
+    </a>
+
+    {% if shell_table_href or shell_active == 'tables' %}
+    <a class="apple-sidebar__item{% if shell_active == 'tables' %} is-active{% endif %}" href="{{ shell_table_href or request.path }}">
+    {% else %}
+    <span class="apple-sidebar__item{% if shell_active == 'tables' %} is-active{% else %} is-disabled{% endif %}">
+    {% endif %}
+      <span class="apple-sidebar__item-icon apple-sidebar__item-icon--svg" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 5v14"/></svg>
+      </span>
+      <span class="apple-sidebar__item-copy">
+        <span class="apple-sidebar__item-title">Таблицы и параметры</span>
+        <span class="apple-sidebar__item-subtitle">Сценарий данных и входные значения</span>
+      </span>
+    {% if shell_table_href %}</a>{% else %}</span>{% endif %}
+
+    {% if shell_result_href or shell_active == 'result' %}
+    <a class="apple-sidebar__item{% if shell_active == 'result' %} is-active{% endif %}" href="{{ shell_result_href or request.path }}">
+    {% else %}
+    <span class="apple-sidebar__item{% if shell_active == 'result' %} is-active{% else %} is-disabled{% endif %}">
+    {% endif %}
+      <span class="apple-sidebar__item-icon apple-sidebar__item-icon--svg" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 19V5M4 19h16M8 15l3-3 3 2 4-5"/></svg>
+      </span>
+      <span class="apple-sidebar__item-copy">
+        <span class="apple-sidebar__item-title">Результат</span>
+        <span class="apple-sidebar__item-subtitle">KPI, риски, блоки и ошибки</span>
+      </span>
+    {% if shell_result_href %}</a>{% else %}</span>{% endif %}
+  </nav>
+
+  {% if shell_sidebar_extra_template %}
+  {% include shell_sidebar_extra_template %}
+  {% endif %}
+
+  <div class="apple-sidebar__section-label">Инструменты</div>
+  <div class="apple-sidebar__section">
+    <button type="button" class="apple-sidebar__item apple-sidebar__item--toggle" data-sidebar-section-toggle="tools" aria-expanded="false">
+      <span class="apple-sidebar__item-icon apple-sidebar__item-icon--svg" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </span>
+      <span class="apple-sidebar__item-copy">
+        <span class="apple-sidebar__item-title">Инструменты</span>
+        <span class="apple-sidebar__item-subtitle">{{ shell_status_title }}</span>
+      </span>
+    </button>
+    <div class="apple-sidebar__subnav is-collapsed" data-sidebar-section="tools">
+      {% if show_tips %}
+      <button type="button" class="apple-sidebar__subitem" data-bs-toggle="modal" data-bs-target="#tipsModal">Подсказки</button>
+      {% endif %}
+      <button type="button" class="apple-sidebar__subitem" data-bs-toggle="modal" data-bs-target="#aboutModal">О приложении</button>
+      <button type="button" class="apple-sidebar__subitem" data-bs-toggle="modal" data-bs-target="#resetCacheModal">Сброс к базовым</button>
+    </div>
+  </div>
+</aside>

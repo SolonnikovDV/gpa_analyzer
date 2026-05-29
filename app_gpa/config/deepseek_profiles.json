@@ -1,0 +1,10 @@
+[
+  {
+    "name": "разработчик",
+    "chat_model": "deepseek-chat",
+    "api_key_hint": "",
+    "from_env": true,
+    "created_at": "2026-05-28T15:00:00Z",
+    "note": "Токен берётся из DEEPSEEK_TOKEN в .key (корень проекта) или .env"
+  }
+]

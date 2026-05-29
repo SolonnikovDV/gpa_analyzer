@@ -1,6 +1,6 @@
 """Разбор ответов POST /tokens/count и GET /balance (контракт GigaChat REST / SDK)."""
 
-from agent.gigachat_agent import _parse_get_balance_response, normalize_tokens_count_response
+from modules.agents.gigachat_agent import _parse_get_balance_response, normalize_tokens_count_response
 
 
 def test_normalize_tokens_count_list_like_rest():

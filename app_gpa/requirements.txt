@@ -1,6 +1,9 @@
 # Зависимости приложения (app_gpa)
-# webapp.py
+# webapp.py (legacy pages) + main.py (FastAPI /api)
 flask
+fastapi
+uvicorn[standard]
+pydantic>=2.0
 jinja2
 python-dotenv
 gunicorn
@@ -24,6 +27,9 @@ pytest
 
 # agent/gigachat_agent.py — генерация и анализ через GigaChat
 gigachat
+
+# agent/providers/deepseek.py — DeepSeek (OpenAI-compatible API)
+openai>=1.0.0
 
 # agent/agent_cache_db.py — семантический кэш (похожие запросы → экономия токенов)
 sqlite-vec

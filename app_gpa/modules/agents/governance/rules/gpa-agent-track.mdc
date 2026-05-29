@@ -1,0 +1,32 @@
+---
+description: GPA agent track — team locked for prepare/discovery/analysis; governance loaded from app_gpa/agent/governance
+alwaysApply: false
+globs: app_gpa/agent/**,app_gpa/webapp.py,app_gpa/detailed/**
+---
+
+# GPA Agent Track
+
+**Source of truth:** `app_gpa/agent/governance/` (manifest, roles, skills, multi-agent policy).
+
+При изменении состава команды или правил — править файлы в `governance/`, не дублировать в `.cursor/` без sync.
+
+## Runtime
+
+Flask читает governance через:
+- `agent.governance.loader`
+- `agent.governance.prompt_composer.enrich_prompt(step, stack, prompt)`
+- `agent.orchestrator.AgentOrchestrator`
+
+## Cursor
+
+При `команда: gpa-agent` следовать `app_gpa/agent/governance/skills/gpa-agent-team/SKILL.md`.
+
+## Stack-aware roles
+
+- greenplum: + greenplum_developer
+- spark: + spark_engineer
+- pyspark: + pyspark_engineer
+
+## Multi-agent
+
+Конфиг: `manifest.json` → `multi_agent`. Не включать debate вручную в Cursor — только через manifest + orchestrator.

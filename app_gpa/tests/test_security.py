@@ -1,4 +1,4 @@
-from detailed.security import InMemoryRateLimiter
+from modules.analysis.security import InMemoryRateLimiter
 
 
 def test_rate_limiter_blocks_after_limit(monkeypatch):

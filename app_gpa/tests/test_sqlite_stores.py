@@ -1,6 +1,6 @@
-from detailed.job_contracts import JOB_STATUS_DONE, JOB_STATUS_RUNNING
-from detailed.job_store import SQLiteJobStore
-from detailed.runtime_preset_store import SQLiteRuntimePresetStore
+from modules.analysis.job_contracts import JOB_STATUS_DONE, JOB_STATUS_RUNNING
+from modules.analysis.job_store import SQLiteJobStore
+from modules.analysis.runtime_preset_store import SQLiteRuntimePresetStore
 
 
 def test_sqlite_job_store_persists_jobs_and_logs(tmp_path):

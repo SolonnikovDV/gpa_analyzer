@@ -1,6 +1,6 @@
 from flask import Flask
 
-from detailed.api_contracts import api_error, api_ok, read_json_object
+from modules.analysis.api_contracts import api_error, api_ok, read_json_object
 
 
 def test_api_ok_wraps_payload():
