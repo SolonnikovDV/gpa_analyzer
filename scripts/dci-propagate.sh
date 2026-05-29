@@ -101,7 +101,7 @@ session: initial | team: none | refreshed: ${now}
 
 | th | status | topic | next_action |
 |----|--------|-------|-------------|
-| TH-001 | open | Initial dialog window | — |
+| TH-001 | open | Initial dialog window | record first CL/EV on session start |
 
 ## lookup_index
 
@@ -118,7 +118,7 @@ session: initial | team: none | refreshed: ${now}
 
 | ref | risk | owner | next_action |
 |-----|------|-------|-------------|
-| — | none | — | — |
+| TH-001 | fresh window, no conclusions yet | — | record CL/EV on first session |
 EOF
 
   cat >"${target}/.cursor/context/dialogs/DW-001/dialog_delta.md" <<EOF
@@ -177,6 +177,20 @@ EOF
 project_id: ${pid}
 locked_at: ${now}
 EOF
+}
+
+repair_bootstrap_ledger() {
+  # Self-heal legacy/hand-edited windows via the propagated core `doctor`
+  # (single source of truth). Idempotent; no-op when ledger already valid.
+  local target="$1"
+  [[ -f "${target}/scripts/dci-vector.sh" ]] || return 0
+  if [[ "${DRY}" == "1" ]]; then
+    echo "  repair-ledger: dry (skip)"
+    return 0
+  fi
+  local out
+  out="$(cd "${target}" && bash scripts/dci-vector.sh doctor 2>&1)" || true
+  echo "${out}" | sed 's/^/  /'
 }
 
 write_env() {
@@ -312,6 +326,7 @@ propagate_one() {
   chmod +x "${target}/scripts/dci-vector.sh" "${target}/scripts/dci-test.sh" "${target}/scripts/dci-propagate.sh" "${target}/scripts/dci-setup-projects.sh" "${target}/scripts/dci-validate-all-projects.sh" 2>/dev/null || true
 
   bootstrap_project "${target}" "${name}"
+  repair_bootstrap_ledger "${target}"
   write_env "${target}" "${name}"
 
   if [[ -f "${target}/.cursor/rules/team-command-router.mdc" ]] && grep -q "Team Router Inheritance" "${target}/.cursor/rules/team-command-router.mdc" 2>/dev/null; then

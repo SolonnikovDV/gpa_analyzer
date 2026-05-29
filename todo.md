@@ -72,3 +72,6 @@ https://api-docs.deepseek.com/faq
 - дойди до консенсуса и завискисируй результат
 - сделай финальную шлифовку
 - вернись с отчетом
+
+Failed to apply worktree to current branch: Не удается записать файл "/PycharmProjects/overhead_analyzer/app_gpa/tests/test_json_escape_repair.py" (Unknown (FileSystemError): Error: EROFS: read-only file system, mkdir '/PycharmProjects')
+

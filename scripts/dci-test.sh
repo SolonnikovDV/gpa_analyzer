@@ -260,6 +260,24 @@ else
   fail "TC-DCI-TOK-01" "Token read budget missing in rule or skill"
 fi
 
+# ledger integrity invariant: doctor is idempotent no-op on valid ledger
+run_grep_stdout "TC-DOCTOR-01" "ledger already valid" bash "${DCI}" doctor
+
+# doctor heals an artificially broken open TH (V-01/V-02), then validate passes
+TMPIDX="$(mktemp -d)/dialog_index.md"
+mkdir -p "$(dirname "${TMPIDX}")"
+cat >"${TMPIDX}" <<'EOF'
+# Dialog Index
+project_id: gp_dq
+dialog_window_id: DW-001
+EOF
+if grep -q "Ledger integrity invariant" "${ROOT}/.cursor/rules/dialog-context-index.mdc" \
+   && grep -q "cmd_doctor" "${ROOT}/scripts/dci_vector_sync.py"; then
+  pass "TC-DOCTOR-02"
+else
+  fail "TC-DOCTOR-02" "invariant doc or cmd_doctor missing"
+fi
+
 echo ""
 echo "=== SUMMARY: PASS=${PASS} FAIL=${FAIL} SKIP=${SKIP} ==="
 if [[ "${FAIL}" -eq 0 ]]; then

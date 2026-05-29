@@ -1243,6 +1243,82 @@ def resolve_evidence_path(evidence: str) -> Path:
     return REPO_ROOT / ev
 
 
+def cmd_doctor(dialog_window_id: Optional[str] = None) -> int:
+    """Self-heal window ledger to satisfy validate invariants (V-01/V-02).
+
+    Idempotent: only patches open TH rows that lack next_action and have no
+    CL link / open_risks entry. Safe to run on any project; no-op when clean.
+    """
+    validate_window_scope("doctor")
+    dw = dialog_window_id or resolve_dialog_window_id()
+    index_path = window_index_path(dw)
+    if not index_path.is_file():
+        print(f"ERROR: missing index {index_path}", file=sys.stderr)
+        return 1
+
+    text = index_path.read_text(encoding="utf-8")
+    original = text
+    records = parse_dialog_index(index_path)
+    threads = parse_thread_rows(text)
+    open_risks = set(parse_open_risk_refs(text))
+    fixes: List[str] = []
+
+    open_threads = [t for t in threads if t["status"].lower() in ("open", "in_progress")]
+
+    # V-01: open TH must have a next_action in thread_map.
+    for th in open_threads:
+        if th.get("next_action", "").strip() in ("", "—", "-", "none"):
+            pattern = (
+                r"(\|\s*" + re.escape(th["id"]) + r"\s*\|\s*(?:open|in_progress)\s*\|[^|]*\|\s*)"
+                r"(—|-|none|)(\s*\|)"
+            )
+            new_text, n = re.subn(
+                pattern,
+                r"\1record first CL/EV on session start\3",
+                text,
+                flags=re.IGNORECASE,
+            )
+            if n:
+                text = new_text
+                fixes.append(f"V-01 {th['id']}: set next_action")
+
+    # V-02: open TH needs CL link or open_risks entry.
+    def has_cl_link(th_id: str) -> bool:
+        return any(
+            th_id in ((r.metadata or {}).get("links", ""))
+            for r in records
+            if r.ledger_type == "CL"
+        )
+
+    missing_risk = [
+        t["id"]
+        for t in open_threads
+        if t["id"] not in open_risks and not has_cl_link(t["id"])
+    ]
+    if missing_risk:
+        block = re.search(r"(## open_risks\n+)(\|.*?)(?=\n## |\Z)", text, re.S)
+        if block:
+            table = block.group(2)
+            rows = [
+                f"| {tid} | fresh window, no conclusions yet | — | record CL/EV on first session |"
+                for tid in missing_risk
+            ]
+            # drop default 'none' placeholder row if present
+            table = re.sub(r"\n\|\s*—\s*\|\s*none\s*\|\s*—\s*\|\s*—\s*\|", "", table)
+            table = table.rstrip("\n") + "\n" + "\n".join(rows) + "\n"
+            text = text[: block.start(2)] + table + text[block.end(2):]
+            fixes.append(f"V-02: open_risks += {', '.join(missing_risk)}")
+
+    if text != original:
+        index_path.write_text(text, encoding="utf-8")
+        for f in fixes:
+            print(f"doctor: fixed {f}")
+        print(f"doctor: ledger normalized ({dw})")
+    else:
+        print(f"doctor: ledger already valid ({dw})")
+    return 0
+
+
 def cmd_validate() -> int:
     """Pre-compress ledger integrity gate (V-01..V-06)."""
     validate_window_scope("validate")
@@ -2054,7 +2130,14 @@ def cmd_compress(force: bool = False) -> int:
 
     val_rc = cmd_validate()
     if val_rc == 1 and not force:
-        print("ERROR validate gate failed; use --force to override", file=sys.stderr)
+        # Self-heal known structural defects (legacy bootstrap), then re-validate.
+        cmd_doctor(dw)
+        val_rc = cmd_validate()
+    if val_rc == 1 and not force:
+        print(
+            "ERROR validate gate failed; fix ledger (`dci-vector.sh doctor`) or use --force",
+            file=sys.stderr,
+        )
         return 1
     embed_src = last_embed_source(vector_namespace(dw))
     if embed_src.startswith("hash_embed") and not force:
@@ -2231,6 +2314,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             "windows",
             "projects",
             "validate",
+            "doctor",
             "user-restore",
         ],
     )
@@ -2277,6 +2361,9 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     if args.command == "validate":
         return cmd_validate()
+
+    if args.command == "doctor":
+        return cmd_doctor(args.window or None)
 
     if args.command == "windows":
         return cmd_windows()

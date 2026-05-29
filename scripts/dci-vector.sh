@@ -158,6 +158,9 @@ case "${cmd}" in
   validate)
     "${PY}" "${SYNC_PY}" validate "$@"
     ;;
+  doctor)
+    "${PY}" "${SYNC_PY}" doctor "$@"
+    ;;
   windows)
     "${PY}" "${SYNC_PY}" windows "$@"
     ;;
@@ -168,7 +171,7 @@ case "${cmd}" in
     "${PY}" "${SYNC_PY}" user-restore --window "новое" --summary "${*:-New dialog window}"
     ;;
   *)
-    echo "Usage: $0 {compress|validate|windows|projects|restore|restore-new|up|down|status|...}" >&2
+    echo "Usage: $0 {compress|validate|doctor|windows|projects|restore|restore-new|up|down|status|...}" >&2
     exit 1
     ;;
 esac
