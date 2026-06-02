@@ -1,9 +1,10 @@
 """OpenRouter inference client — public API.
 
 Free tier (`:free` suffix models, no credit card):
-  deepseek/deepseek-r1-0528:free           — full DeepSeek R1 (best reasoning)
+  openrouter/free                              — dynamic free-router (recommended)
+  meta-llama/llama-3.3-70b-instruct:free   — stable default
+  deepseek/deepseek-chat-v3-0324:free      — DeepSeek chat family
   deepseek/deepseek-r1-distill-llama-70b:free — distilled R1
-  meta-llama/llama-3.3-70b-instruct:free   — general-purpose
   mistralai/mistral-small-3.2-24b-instruct:free — EU-hosted, solid
   nvidia/nemotron-nano-9b-v2:free          — fast reasoning
 

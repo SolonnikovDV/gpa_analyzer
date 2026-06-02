@@ -2,7 +2,7 @@
 
 **Оценка нагрузки и рисков выполнения PL/pgSQL-функций в Greenplum по планам запросов.**
 
-> Architecture overview → [`app_gpa/STRUCTURE.md`](app_gpa/STRUCTURE.md)
+> Architecture overview → [`project_doc/index.md`](project_doc/index.md)
 
 Приложение анализирует DDL функции, извлекает SQL-блоки, подставляет параметры и переменные, выполняет `EXPLAIN` для каждого блока и оценивает пиковую нагрузку на память сегментов кластера. Распространяется по лицензии [MIT](LICENSE).
 
@@ -52,14 +52,18 @@ pip install -r requirements.txt
 
 ### Запуск
 
-Из каталога `app_gpa` (чтобы корректно резолвились импорты и шаблоны):
+Единый запуск на любой машине (рекомендуется):
 
 ```bash
-cd app_gpa
-python webapp.py
+bash scripts/run-app.sh
 ```
 
-По умолчанию приложение слушает `http://0.0.0.0:8000`. Откройте в браузере `http://localhost:8000` или `http://localhost:8000/detailed`.
+Скрипт сам:
+- создаёт `.venv` (если нет),
+- устанавливает зависимости из `app_gpa/requirements.txt`,
+- запускает `app_gpa/main.py` (FastAPI + Flask hybrid).
+
+По умолчанию приложение слушает `http://0.0.0.0:8003`. Откройте в браузере `http://localhost:8003` или `http://localhost:8003/detailed`.
 
 ### Production queue backend
 
@@ -74,6 +78,12 @@ export JOB_QUEUE_NAME=gpa-jobs
 ```
 
 Запуск web-приложения:
+
+```bash
+bash scripts/run-app.sh
+```
+
+Legacy fallback (только Flask, для отладки совместимости):
 
 ```bash
 cd app_gpa
@@ -288,8 +298,8 @@ CI:
 
 ### Шаг 1. Открытие приложения
 
-1. Запустите сервер (`python webapp.py` из каталога `app_gpa`).
-2. В браузере откройте `http://localhost:8000` — откроется страница **«Детальный анализ»**.
+1. Запустите сервер (`bash scripts/run-app.sh` из корня репозитория).
+2. В браузере откройте `http://localhost:8003` — откроется страница **«Детальный анализ»**.
 
 ### Шаг 2. Выбор режима и ввод DDL
 

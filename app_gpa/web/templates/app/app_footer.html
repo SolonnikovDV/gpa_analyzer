@@ -1,7 +1,7 @@
 {# Футер по стандартам W3C/MDN: nav, address, small, role="contentinfo" #}
 <footer class="app-footer" role="contentinfo" aria-label="Информация о странице">
   <nav class="app-footer__nav" aria-label="Дополнительная навигация">
-    <a href="#" data-bs-toggle="modal" data-bs-target="#aboutModal">О приложении</a>
+    <a href="{{ url_for('pages.about_page') }}">О приложении</a>
   </nav>
   <span class="app-footer__sep" aria-hidden="true">·</span>
   <small class="app-footer__copyright">

@@ -94,6 +94,8 @@
       <div class="modal-footer flex-wrap gap-2">
         <button type="button" class="btn btn-outline-secondary" id="agentProbeModelsBtn" title="Проверить ответ API по каждой модели">Проверить модели</button>
         <div class="ms-auto d-flex gap-2">
+          <span id="agentTokenSourceBadge" class="agent-token-source-badge" style="display: none;" aria-live="polite"></span>
+          <span id="agentCredentialsApplyState" class="small text-muted align-self-center" style="display: none;" aria-live="polite"></span>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
           <button type="button" class="btn btn-primary" id="agentCredentialsApply" title="Проверить ключ и сохранить контекст сессии">Применить контекст</button>
         </div>

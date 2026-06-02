@@ -64,8 +64,25 @@ run_grep_stdout "TC-VAL-01" "validate: pass" bash "${DCI}" validate
 
 # handoff + delta restore
 run_grep_stdout "TC-HO-01" "handoff_ready: true" bash "${DCI}" compress --force
-run_grep_stdout "TC-HO-01" "restore: контекст: восстановить DW-001" bash "${DCI}" compress --force
+run_grep_stdout "TC-HO-01" "restore: /custom-rule: dci restore DW-001" bash "${DCI}" compress --force
 run_grep_stdout "TC-HO-02" "load_mode: delta" bash "${DCI}" restore DW-001
+run_grep_stdout "TC-MAT-01" "materialize:" bash "${DCI}" compress --force
+
+# QA: compress -> restore (derive DW from compress output)
+set +e
+ho_out="$(bash "${DCI}" compress --force 2>&1)"
+rc_ho=$?
+set -e
+if [[ "${rc_ho}" -ne 0 ]]; then
+  fail "TC-HO-03" "compress failed rc=${rc_ho}"
+else
+  dw_restore="$(echo "${ho_out}" | sed -n 's#^restore: /custom-rule: dci restore ##p' | head -1 | tr -d '[:space:]')"
+  if [[ -z "${dw_restore}" ]]; then
+    fail "TC-HO-03" "restore command not found in compress output"
+  else
+    run_grep_stdout "TC-HO-03" "load_mode: restore" bash "${DCI}" restore "${dw_restore}"
+  fi
+fi
 
 # window registry slot/lifecycle sync + tree output
 run_grep_stdout "TC-REG-01" "name: «" bash "${DCI}" windows

@@ -1,10 +1,9 @@
 """Groq inference client — public API.
 
 Free tier:
-  - deepseek-r1-distill-llama-70b  (reasoning, SQL analysis)
   - llama-3.3-70b-versatile        (fast general-purpose)
-  - llama-3.1-8b-instant           (ultra-fast, lightweight tasks)
   - qwen-qwq-32b                   (chain-of-thought reasoning)
+  - llama-3.1-8b-instant           (ultra-fast, lightweight tasks)
 
 Limits (free): 30 RPM, ~14 400 req/day, 6K TPM per model
 Docs: https://console.groq.com/docs/openai

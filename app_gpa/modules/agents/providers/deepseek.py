@@ -46,7 +46,11 @@ class DeepSeekProvider:
         oai_messages = [{"role": m.role, "content": m.content} for m in messages]
         resolved_model = (model or self.info().default_chat_model).strip()
 
-        result = _chat(oai_messages, api_key=credentials, model=resolved_model)
+        result = _chat(
+            oai_messages,
+            api_key=credentials,
+            model=resolved_model,
+        )
 
         usage = result.get("usage", {})
         try:

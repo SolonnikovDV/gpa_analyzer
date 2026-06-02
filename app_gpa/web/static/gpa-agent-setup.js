@@ -46,8 +46,7 @@
         })
         .catch(function() {
           self.providers = [
-            { id: 'gigachat', label: 'GigaChat', configured: false },
-            { id: 'deepseek', label: 'DeepSeek', configured: false }
+            { id: 'gigachat', label: 'GigaChat', configured: false }
           ];
           return self.providers;
         });
@@ -55,13 +54,11 @@
 
     restoreFromSession: function() {
       var sess = global.GpaAgentSession && GpaAgentSession.read();
-      if (sess && sess.multiAgent) this.llmMode = 'multi';
-      else if (sess && sess.provider) this.llmMode = sess.provider;
+      if (sess && sess.provider) this.llmMode = sess.provider;
       else {
         try {
           var p = sessionStorage.getItem('gpa_agent_provider');
           if (p) this.llmMode = p;
-          if (sessionStorage.getItem('gpa_agent_multi_agent') === '1') this.llmMode = 'multi';
         } catch (e) {}
       }
       this._prevMode = this.llmMode;
@@ -92,22 +89,14 @@
         btn.addEventListener('click', function() { self.selectMode(p.id, true); });
         el.appendChild(btn);
       });
-      var multiBtn = document.createElement('button');
-      multiBtn.type = 'button';
-      multiBtn.className = 'llm-provider-switch__btn llm-provider-switch__btn--multi';
-      multiBtn.dataset.llmMode = 'multi';
-      multiBtn.textContent = 'Multi-agent';
-      if (self.llmMode === 'multi') multiBtn.classList.add('is-active');
-      multiBtn.addEventListener('click', function() { self.selectMode('multi', true); });
-      el.appendChild(multiBtn);
       this._updateStatus();
     },
 
     fetchFlowPlan: function(mode, extra) {
       var qs = new URLSearchParams();
-      qs.set('mode', mode === 'multi' ? 'multi' : 'single');
+      qs.set('mode', 'single');
       qs.set('stack', (extra && extra.stack) || 'greenplum');
-      if (mode !== 'multi' && mode !== 'off') qs.set('provider', mode);
+      if (mode !== 'off') qs.set('provider', mode);
       if (extra && extra.selected_provider_ids) qs.set('selected_provider_ids', extra.selected_provider_ids.join(','));
       return fetch('/api/agent/flow/plan?' + qs.toString())
         .then(function(r) { return r.json(); })
@@ -119,22 +108,18 @@
     selectMode: function(mode, openFlow) {
       if (!this._callbacks.isAgentScenario()) return;
       var next = (mode || 'off').toLowerCase();
+      var isKnownProvider = this.providers.some(function(p) { return p.id === next; });
       this._prevMode = this.llmMode;
       this.llmMode = next;
       this.renderSwitch();
-      var isMulti = next === 'multi';
-      this._callbacks.syncMultiAgent(isMulti);
-      if (!isMulti && (next === 'gigachat' || next === 'deepseek')) {
+      this._callbacks.syncMultiAgent(false);
+      if (next !== 'off' && isKnownProvider) {
         this._callbacks.setProvider(next, false);
       }
       this._callbacks.onModeChange(next);
       if (!openFlow) return;
       var self = this;
-      if (isMulti) {
-        this.openMultiAgentPickModal();
-        return;
-      }
-      if (next === 'gigachat' || next === 'deepseek') {
+      if (next !== 'off' && isKnownProvider) {
         this.fetchFlowPlan(next).then(function(plan) {
           self.flowPlan = plan;
           self._stepIndex = 0;
@@ -285,7 +270,7 @@
         var provSel = document.getElementById('agentProviderSelect');
         if (provSel) provSel.disabled = false;
         var authenticated = !!(window.agentCredentialsInMemory || window.agentCredentialsFromKey);
-        if (!authenticated && self.llmMode !== 'multi') self.revertPendingMode();
+        if (!authenticated) self.revertPendingMode();
         self._updateStatus();
       });
     },
@@ -293,8 +278,8 @@
     revertPendingMode: function() {
       this.llmMode = this._prevMode || 'off';
       this.renderSwitch();
-      this._callbacks.syncMultiAgent(this.llmMode === 'multi');
-      if (this.llmMode === 'gigachat' || this.llmMode === 'deepseek') {
+      this._callbacks.syncMultiAgent(false);
+      if (this.llmMode !== 'off') {
         this._callbacks.setProvider(this.llmMode, false);
       }
     },
@@ -344,10 +329,7 @@
 
     _updateStatus: function() {
       if (!this._statusEl) return;
-      if (this.llmMode === 'multi') {
-        var active = this.getMultiActiveProviders();
-        this._statusEl.textContent = 'Multi-agent · LLM: ' + (active.length ? active.join(', ') : 'не выбраны');
-      } else if (this.llmMode === 'gigachat' || this.llmMode === 'deepseek') {
+      if (this.llmMode !== 'off') {
         this._statusEl.textContent = this.llmMode + ' · единый flow profile';
       } else {
         this._statusEl.textContent = 'LLM не выбран';

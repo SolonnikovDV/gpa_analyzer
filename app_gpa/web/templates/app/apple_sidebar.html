@@ -80,8 +80,17 @@
       {% if show_tips %}
       <button type="button" class="apple-sidebar__subitem" data-bs-toggle="modal" data-bs-target="#tipsModal">Подсказки</button>
       {% endif %}
-      <button type="button" class="apple-sidebar__subitem" data-bs-toggle="modal" data-bs-target="#aboutModal">О приложении</button>
       <button type="button" class="apple-sidebar__subitem" data-bs-toggle="modal" data-bs-target="#resetCacheModal">Сброс к базовым</button>
     </div>
   </div>
+
+  <a class="apple-sidebar__item{% if shell_active == 'about' %} is-active{% endif %}" href="{{ url_for('pages.about_page') }}">
+    <span class="apple-sidebar__item-icon apple-sidebar__item-icon--svg" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7h.01"/></svg>
+    </span>
+    <span class="apple-sidebar__item-copy">
+      <span class="apple-sidebar__item-title">О приложении</span>
+      <span class="apple-sidebar__item-subtitle">Версия, автор и лицензия</span>
+    </span>
+  </a>
 </aside>

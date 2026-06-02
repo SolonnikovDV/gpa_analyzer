@@ -27,7 +27,12 @@ class DeepSeekActions:
         model: Optional[str] = None,
         max_tokens: Optional[int] = None,
     ) -> Dict[str, Any]:
-        return chat(messages, api_key=api_key, model=model, max_tokens=max_tokens)
+        return chat(
+            messages,
+            api_key=api_key,
+            model=model,
+            max_tokens=max_tokens,
+        )
 
 
 __all__ = [

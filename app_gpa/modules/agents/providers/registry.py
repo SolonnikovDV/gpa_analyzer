@@ -4,16 +4,10 @@ from typing import List
 
 from ..governance.loader import load_manifest
 from .base import AgentProvider, ProviderInfo
-from .deepseek import DeepSeekProvider
 from .gigachat_provider import GigaChatProvider
-from .groq_provider import GroqProvider
-from .openrouter_provider import OpenRouterProvider
 
 _PROVIDERS = {
     "gigachat": GigaChatProvider(),
-    "deepseek": DeepSeekProvider(),
-    "groq": GroqProvider(),
-    "openrouter": OpenRouterProvider(),
 }
 
 

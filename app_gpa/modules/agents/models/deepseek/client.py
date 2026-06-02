@@ -57,7 +57,12 @@ class DeepSeekClient:
             from openai import OpenAI
         except ImportError as exc:
             raise RuntimeError("Установите openai: pip install openai") from exc
-        return OpenAI(api_key=self.api_key, base_url=self.base_url, timeout=self.timeout)
+        kwargs: Dict[str, Any] = {
+            "api_key": self.api_key,
+            "base_url": self.base_url,
+            "timeout": self.timeout,
+        }
+        return OpenAI(**kwargs)
 
     def complete(
         self,

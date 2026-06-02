@@ -155,6 +155,9 @@ case "${cmd}" in
   compress)
     "${PY}" "${SYNC_PY}" compress "$@"
     ;;
+  materialize)
+    "${PY}" "${SYNC_PY}" materialize "$@"
+    ;;
   validate)
     "${PY}" "${SYNC_PY}" validate "$@"
     ;;
@@ -171,7 +174,7 @@ case "${cmd}" in
     "${PY}" "${SYNC_PY}" user-restore --window "новое" --summary "${*:-New dialog window}"
     ;;
   *)
-    echo "Usage: $0 {compress|validate|doctor|windows|projects|restore|restore-new|up|down|status|...}" >&2
+    echo "Usage: $0 {compress|materialize|validate|doctor|windows|projects|restore|restore-new|up|down|status|...}" >&2
     exit 1
     ;;
 esac

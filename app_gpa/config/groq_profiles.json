@@ -1,0 +1,10 @@
+[
+  {
+    "name": "разработчик",
+    "chat_model": "llama-3.3-70b-versatile",
+    "api_key_hint": "98kQ",
+    "created_at": "2026-06-01T06:29:35Z",
+    "from_env": true,
+    "updated_at": "2026-06-02T05:17:51Z"
+  }
+]

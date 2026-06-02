@@ -389,6 +389,54 @@ html[data-theme="light"] .gpa-home-dock {
   font-size: 0.76rem;
 }
 
+.gpa-wait-panel__trace {
+  margin-top: 0.75rem;
+  text-align: left;
+  max-width: min(90vw, 580px);
+}
+
+.gpa-wait-panel__trace-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gpa-accent-strong, #93c5fd);
+  margin-bottom: 0.35rem;
+}
+
+.gpa-wait-panel__trace-body {
+  max-height: 220px;
+  overflow: auto;
+  padding-right: 0.2rem;
+}
+
+.gpa-wait-panel__trace-row {
+  padding: 0.4rem 0.55rem;
+  margin-bottom: 0.35rem;
+  border-radius: 10px;
+  border: 1px solid rgba(154, 179, 214, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--gpa-text-muted, rgba(226, 232, 240, 0.82));
+  font-size: 0.73rem;
+  line-height: 1.35;
+}
+
+.gpa-wait-panel__trace-row b {
+  color: var(--gpa-text-strong, #f8fafc);
+  font-size: 0.72rem;
+}
+
+.gpa-wait-panel__trace-consensus {
+  margin-top: 0.45rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 10px;
+  border: 1px solid rgba(110, 231, 183, 0.28);
+  background: rgba(16, 185, 129, 0.12);
+  color: #d1fae5;
+  font-size: 0.73rem;
+  line-height: 1.35;
+}
+
 .gpa-wait-anchor {
   position: relative;
   overflow: hidden;
@@ -599,6 +647,20 @@ html[data-theme="light"] .agent-context-bar,
 html[data-theme="light"] .runtime-profile-bar,
 html[data-theme="light"] .gpa-analysis-hero {
   background: rgba(255, 255, 255, 0.88);
+}
+
+html[data-theme="light"] .gpa-wait-panel__trace-row {
+  background: rgba(15, 23, 42, 0.04);
+  color: #334155;
+}
+
+html[data-theme="light"] .gpa-wait-panel__trace-row b {
+  color: #0f172a;
+}
+
+html[data-theme="light"] .gpa-wait-panel__trace-consensus {
+  background: rgba(16, 185, 129, 0.15);
+  color: #065f46;
 }
 
 @media (max-width: 991.98px) {

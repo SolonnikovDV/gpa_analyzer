@@ -48,7 +48,12 @@ class GigaChatProvider:
             text = response.choices[0].message.content if response.choices else ""
             return text, response
 
-        text, raw = _call_giga(_fn, credentials, model, kwargs.get("scope"))
+        text, raw = _call_giga(
+            _fn,
+            credentials,
+            model,
+            kwargs.get("scope"),
+        )
         resolved = _resolved_chat_model(model)
         usage = _usage_dict(raw)
         return ChatResult(text=text or "", provider=self.id, model=resolved, usage=usage, raw=raw)

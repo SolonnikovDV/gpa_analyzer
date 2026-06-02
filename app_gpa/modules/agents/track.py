@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from .agent_prompts import get_prompt
 from .credentials import normalize_provider
@@ -19,6 +19,9 @@ def _orchestrator(
     model_override: Optional[str],
     scope_override: Optional[str],
     multi_agent: Optional[bool],
+    multi_agent_providers: Optional[list[str]],
+    multi_agent_models: Optional[dict[str, str]],
+    event_hook: Optional[Callable[[Dict[str, Any]], None]],
 ) -> AgentOrchestrator:
     return AgentOrchestrator(
         provider=provider,
@@ -27,6 +30,9 @@ def _orchestrator(
         model_override=model_override,
         scope_override=scope_override,
         multi_agent=multi_agent,
+        multi_agent_providers=multi_agent_providers,
+        multi_agent_models=multi_agent_models,
+        event_hook=event_hook,
     )
 
 
@@ -91,6 +97,17 @@ def _generate_via_orchestrator(
         "governance": use_governance,
         "multi_agent": is_multi_agent_enabled(orch.multi_agent),
     }
+    raw_meta = result.raw if isinstance(result.raw, dict) else {}
+    debate_trace = raw_meta.get("debate_trace") if isinstance(raw_meta.get("debate_trace"), list) else []
+    consensus = (raw_meta.get("consensus") or "").strip() if isinstance(raw_meta, dict) else ""
+    if debate_trace:
+        out["debate_trace"] = debate_trace
+    if consensus:
+        out["consensus"] = consensus
+    if raw_meta.get("rounds") is not None:
+        out["debate_rounds"] = int(raw_meta.get("rounds") or 0)
+    if raw_meta.get("stale") is not None:
+        out["debate_stale"] = bool(raw_meta.get("stale"))
     if with_review:
         out.update(
             {
@@ -115,6 +132,9 @@ def generate_sql(
     code_revision_pass: bool = True,
     use_governance: bool = True,
     multi_agent: Optional[bool] = None,
+    multi_agent_providers: Optional[list[str]] = None,
+    multi_agent_models: Optional[dict[str, str]] = None,
+    event_hook: Optional[Callable[[Dict[str, Any]], None]] = None,
 ) -> Dict[str, Any]:
     """Generate SQL/DDL with repo governance and selected provider (always via orchestrator)."""
     pid = normalize_provider(provider)
@@ -126,6 +146,9 @@ def generate_sql(
         model_override=model_override,
         scope_override=scope_override,
         multi_agent=multi_agent,
+        multi_agent_providers=multi_agent_providers,
+        multi_agent_models=multi_agent_models,
+        event_hook=event_hook,
     )
     return _generate_via_orchestrator(
         description,

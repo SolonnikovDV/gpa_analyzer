@@ -1,0 +1,9 @@
+[
+  {
+    "name": "разработчик",
+    "chat_model": "openrouter/free",
+    "api_key_hint": "f3d7",
+    "created_at": "2026-06-01T06:29:35Z",
+    "from_env": true
+  }
+]

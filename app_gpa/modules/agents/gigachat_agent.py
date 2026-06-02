@@ -28,6 +28,7 @@ import os
 import re
 import threading
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from contextlib import contextmanager
 from datetime import datetime as dt, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Union, Tuple
@@ -113,12 +114,9 @@ def validate_credentials(
     if not kw:
         raise ValueError("Не удалось собрать параметры подключения")
     import time
-    last_err = None
     for attempt in range(3):
         try:
-            from gigachat import GigaChat
-
-            with GigaChat(**kw) as giga:
+            with _gigachat_session(kw) as giga:
                 # Принудительно обменять Authorization key на access token (ошибки OAuth — здесь)
                 if hasattr(giga, "get_token"):
                     tok = giga.get_token()
@@ -134,7 +132,6 @@ def validate_credentials(
                 _call_tokens_count_api(giga, ["."], m)
                 return
         except Exception as e:
-            last_err = e
             err_str = str(e).lower()
             is_timeout = "timeout" in err_str or "timed out" in err_str or "handshake" in err_str
             if is_timeout and attempt < 2:
@@ -417,7 +414,7 @@ def count_input_tokens(
     model = (model_override or "").strip() or str(kw.get("model") or DEFAULT_MODEL)
     try:
         from gigachat import GigaChat
-        with GigaChat(**kw) as giga:
+        with _gigachat_session(kw) as giga:
             raw = _call_tokens_count_api(giga, texts, model)
         norm = normalize_tokens_count_response(raw, model_fallback=model)
         norm["ok"] = True
@@ -474,7 +471,7 @@ def get_token_usage(
         kw = _gigachat_client_kwargs(credentials_override=credentials_override, scope_override=scope_override)
         if kw:
             from gigachat import GigaChat
-            with GigaChat(**kw) as giga:
+            with _gigachat_session(kw) as giga:
                 balance = giga.get_balance()
                 total_all, total_chat, by_model = _parse_get_balance_response(balance)
                 balance_by_model = by_model
@@ -647,9 +644,7 @@ def _call_gigachat_chat(
         raise RuntimeError(
             "GigaChat не настроен. Задайте ключ в .env (GIGACHAT_CREDENTIALS) или в форме."
         )
-    from gigachat import GigaChat
-
-    with GigaChat(**kw) as giga:
+    with _gigachat_session(kw) as giga:
         return fn(giga)
 
 
@@ -965,6 +960,15 @@ def _gigachat_client_kwargs(
     return kwargs
 
 
+@contextmanager
+def _gigachat_session(kw: Dict[str, Any]):
+    from gigachat import GigaChat
+
+    opts = dict(kw or {})
+    with GigaChat(**opts) as giga:
+        yield giga
+
+
 def _exception_http_status(exc: BaseException) -> Optional[int]:
     """Пытается извлечь HTTP status из исключения SDK/httpx/requests."""
     seen: set[int] = set()
@@ -1090,7 +1094,7 @@ def _agent_llm_chat_text(
             asyncio.get_event_loop()
         except RuntimeError:
             asyncio.set_event_loop(asyncio.new_event_loop())
-        with GigaChat(**kw) as giga:
+        with _gigachat_session(kw) as giga:
             response = giga.chat(governed)
             _add_usage(getattr(response, "usage", None))
             return response.choices[0].message.content if response.choices else ""
@@ -1354,7 +1358,7 @@ def get_embeddings(
     )
     if not kw:
         raise RuntimeError("GigaChat не настроен. Задайте GIGACHAT_CREDENTIALS.")
-    with GigaChat(**kw) as giga:
+    with _gigachat_session(kw) as giga:
         result = giga.embeddings(texts)
         out = []
         for item in (result.data or []):
@@ -1368,7 +1372,7 @@ def get_models_list(credentials_override: Optional[str] = None) -> List[Dict[str
     if not kw:
         return []
     from gigachat import GigaChat
-    with GigaChat(**kw) as giga:
+    with _gigachat_session(kw) as giga:
         resp = giga.get_models()
         models = []
         for m in (resp.data or []):
@@ -1394,7 +1398,7 @@ def _probe_single_embedding_model(
     try:
         from gigachat import GigaChat
 
-        with GigaChat(**kw) as giga:
+        with _gigachat_session(kw) as giga:
             giga.embeddings(["."])
         return True, None
     except Exception as e:
@@ -1578,7 +1582,7 @@ def synthesize_plan_for_query(
 
             def _call_chat():
                 _ensure_loop()
-                with GigaChat(**kw) as giga:
+                with _gigachat_session(kw) as giga:
                     response = giga.chat(prompt)
                     _add_usage(getattr(response, "usage", None))
                     return response.choices[0].message.content if response.choices else ""
@@ -1788,7 +1792,7 @@ def get_blocks_and_objects_from_ddl(
         if pid == "deepseek":
             yield None
         else:
-            with GigaChat(**kw) as giga:
+            with _gigachat_session(kw) as giga:
                 yield giga
 
     try:

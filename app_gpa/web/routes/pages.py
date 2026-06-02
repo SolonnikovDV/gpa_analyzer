@@ -10,3 +10,9 @@ bp = Blueprint("pages", __name__)
 def home_index():
     """Титульная страница — обзор и быстрый старт."""
     return render_template("home.html")
+
+
+@bp.route("/about")
+def about_page():
+    """Отдельная страница «О приложении»."""
+    return render_template("about.html")

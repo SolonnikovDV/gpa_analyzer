@@ -7,10 +7,13 @@ only; all JSON API endpoints are served from here.
 from __future__ import annotations
 
 import base64
-from typing import Any, Dict, List, Optional
+import json
+import queue
+import threading
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from api.contracts import error_payload, ok_payload
@@ -62,7 +65,6 @@ class GenerateSQLRequest(BaseModel):
     chat_model: Optional[str] = None
     with_review: bool = False
     code_revision_pass: bool = True
-    multi_agent: Optional[bool] = None
 
 
 class GigachatProfileItem(BaseModel):
@@ -73,12 +75,6 @@ class GigachatProfileItem(BaseModel):
     sourceProfile: Optional[str] = None
     chatModel: Optional[str] = None
     embeddingModel: Optional[str] = None
-
-
-class SimpleProfileUpsertRequest(BaseModel):
-    name: str
-    chat_model: str = ""
-    api_key_hint: str = ""
 
 
 class TokensCountRequest(BaseModel):
@@ -100,39 +96,26 @@ class ProbeModelsRequest(BaseModel):
     verify_ssl: Optional[bool] = None
 
 
+class NetworkDebugRequest(BaseModel):
+    provider: Optional[str] = "gigachat"
+    scope: Optional[str] = None
+    verify_ssl: Optional[bool] = True
+    auth_probe: bool = True
+
+
 # ---------------------------------------------------------------------------
 # Provider metadata helpers (used by /providers)
 # ---------------------------------------------------------------------------
 
 _PROVIDER_ENV_KEYS: Dict[str, str] = {
     "gigachat": "GIGACHAT_TOKEN",
-    "deepseek": "DEEPSEEK_TOKEN",
-    "groq": "GROQ_API_KEY",
-    "openrouter": "OPENROUTER_API_KEY",
 }
 
 _PROVIDER_KEY_PLACEHOLDER: Dict[str, str] = {
     "gigachat": "Base64-токен из личного кабинета GigaChat",
-    "deepseek": "sk-… (ключ DeepSeek)",
-    "groq": "gsk_… (ключ Groq)",
-    "openrouter": "sk-or-… (ключ OpenRouter)",
 }
 
-_PROVIDER_DOCS_URL: Dict[str, str] = {
-    "groq": "https://console.groq.com",
-    "openrouter": "https://openrouter.ai/keys",
-    "deepseek": "https://platform.deepseek.com",
-}
-
-
-def _resolve_simple_provider(provider_id: str):
-    """Return ProviderInfo for a simple (non-gigachat) provider, or None."""
-    try:
-        from modules.agents.providers.registry import get_provider
-        info = get_provider(provider_id).info()
-        return info if info.id != "gigachat" else None
-    except Exception:
-        return None
+_PROVIDER_DOCS_URL: Dict[str, str] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -148,8 +131,7 @@ def get_flow_plan(
     selected_provider_ids: Optional[str] = Query(None, description="comma-separated provider ids"),
 ) -> Dict[str, Any]:
     from services.agents.api import get_flow_plan as svc_get_flow_plan
-    ids = [x.strip() for x in (selected_provider_ids or "").split(",") if x.strip()] or None
-    data = svc_get_flow_plan(mode=mode, stack=stack, provider=provider, selected_provider_ids=ids)
+    data = svc_get_flow_plan(mode="single", stack=stack, provider="gigachat", selected_provider_ids=None)
     payload, _ = ok_payload(data=data, **data)
     return payload
 
@@ -158,10 +140,10 @@ def get_flow_plan(
 def post_flow_plan(body: FlowPlanRequest) -> Dict[str, Any]:
     from services.agents.api import get_flow_plan as svc_get_flow_plan
     data = svc_get_flow_plan(
-        mode=body.mode,
+        mode="single",
         stack=body.stack,
-        provider=body.provider,
-        selected_provider_ids=body.selected_provider_ids,
+        provider="gigachat",
+        selected_provider_ids=None,
     )
     payload, _ = ok_payload(data=data, **data)
     return payload
@@ -263,6 +245,17 @@ def post_validate(body: ProfileValidateRequest) -> Dict[str, Any]:
     return post_validate_profile(body)
 
 
+@router.post("/network-debug")
+def post_network_debug(body: NetworkDebugRequest) -> Dict[str, Any]:
+    from services.agents.api import network_debug
+
+    payload_data = body.model_dump()
+    payload_data["provider"] = "gigachat"
+    result = network_debug(payload_data)
+    payload, _ = ok_payload(data=result, **result)
+    return payload
+
+
 # ---------------------------------------------------------------------------
 # Status
 # ---------------------------------------------------------------------------
@@ -348,20 +341,12 @@ def post_probe_models(body: ProbeModelsRequest) -> Dict[str, Any]:
     provider = (body.provider or "gigachat").strip().lower()
 
     if provider != "gigachat":
-        try:
-            from modules.agents.providers.registry import get_provider
-            info = get_provider(provider).info()
-            out = {
-                "ok": True,
-                "provider": provider,
-                "chat_models": getattr(info, "available_chat_models", [info.default_chat_model]),
-                "embedding_models": [],
-            }
-            payload, _ = ok_payload(data=out)
-            return payload
-        except Exception as exc:
-            payload, status = error_payload("agent_probe_models_failed", str(exc), http_status=500)
-            return JSONResponse(content=payload, status_code=status)
+        payload, status = error_payload(
+            "agent_provider_unsupported",
+            "Поддерживается только GigaChat.",
+            http_status=400,
+        )
+        return JSONResponse(content=payload, status_code=status)
 
     creds = (body.credentials or "").strip()
     if not creds and body.client_id and body.client_secret:
@@ -450,70 +435,6 @@ def post_gigachat_profiles(body: List[GigachatProfileItem]) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# Simple provider profiles (deepseek, groq, openrouter, …)
-# ---------------------------------------------------------------------------
-
-
-@router.get("/profiles/{provider_id}")
-def get_simple_profiles(provider_id: str) -> Dict[str, Any]:
-    from web.context import _load_simple_profiles
-    info = _resolve_simple_provider(provider_id)
-    if info is None:
-        payload, status = error_payload(
-            "unknown_provider",
-            f"Провайдер '{provider_id}' не найден или не поддерживается",
-            http_status=404,
-        )
-        return JSONResponse(content=payload, status_code=status)
-    profiles = _load_simple_profiles(provider_id)
-    payload, _ = ok_payload(data=profiles, items=profiles)
-    return payload
-
-
-@router.post("/profiles/{provider_id}")
-def post_simple_profile(provider_id: str, body: SimpleProfileUpsertRequest) -> Dict[str, Any]:
-    from web.context import _simple_profile_upsert
-    info = _resolve_simple_provider(provider_id)
-    if info is None:
-        payload, status = error_payload(
-            "unknown_provider",
-            f"Провайдер '{provider_id}' не найден или не поддерживается",
-            http_status=404,
-        )
-        return JSONResponse(content=payload, status_code=status)
-    name = body.name.strip()
-    if not name:
-        payload, status = error_payload("profile_name_required", "Укажите имя профиля", http_status=400)
-        return JSONResponse(content=payload, status_code=status)
-    chat_model = body.chat_model.strip()
-    allowed = getattr(info, "available_chat_models", [])
-    if allowed and chat_model not in allowed:
-        chat_model = info.default_chat_model
-    profile = _simple_profile_upsert(provider_id, name, chat_model, api_key_hint=body.api_key_hint.strip())
-    payload, _ = ok_payload(data=profile)
-    return payload
-
-
-@router.delete("/profiles/{provider_id}/{name}")
-def delete_simple_profile(provider_id: str, name: str) -> Dict[str, Any]:
-    from web.context import _simple_profile_delete
-    info = _resolve_simple_provider(provider_id)
-    if info is None:
-        payload, status = error_payload(
-            "unknown_provider",
-            f"Провайдер '{provider_id}' не найден или не поддерживается",
-            http_status=404,
-        )
-        return JSONResponse(content=payload, status_code=status)
-    deleted = _simple_profile_delete(provider_id, name)
-    if not deleted:
-        payload, status = error_payload("profile_not_found", f"Профиль '{name}' не найден", http_status=404)
-        return JSONResponse(content=payload, status_code=status)
-    payload, _ = ok_payload(deleted=True)
-    return payload
-
-
-# ---------------------------------------------------------------------------
 # Model options
 # ---------------------------------------------------------------------------
 
@@ -521,7 +442,7 @@ def delete_simple_profile(provider_id: str, name: str) -> Dict[str, Any]:
 @router.get("/model-options")
 def get_model_options(provider: str = Query("gigachat")) -> Dict[str, Any]:
     from modules.agents.providers.registry import get_provider
-    pid = provider.strip().lower()
+    pid = "gigachat"
     info = get_provider(pid).info()
     chat = getattr(info, "available_chat_models", None) or [info.default_chat_model]
     emb = [info.default_embedding_model] if info.default_embedding_model else []
@@ -558,45 +479,22 @@ def get_governance(stack: str = Query("greenplum")) -> Dict[str, Any]:
 @router.post("/generate")
 def post_generate_sql(body: GenerateSQLRequest) -> Dict[str, Any]:
     """Generate SQL/function from natural-language description (canonical FastAPI endpoint)."""
-    creds = (body.credentials or "").strip()
-    if not creds and body.client_id and body.client_secret:
-        creds = base64.b64encode(f"{body.client_id}:{body.client_secret}".encode()).decode()
-
-    if not creds and not body.use_env_credentials:
-        payload, status = error_payload(
-            "agent_credentials_required",
-            "Ключ не передан. Введите ключ в модальном окне «Ввести ключ» и нажмите «Применить».",
-            http_status=503,
-        )
-        return JSONResponse(content=payload, status_code=status)
-
-    if not creds and body.use_env_credentials:
-        from modules.agents.credentials import resolve_credentials, normalize_provider
-        creds = resolve_credentials(normalize_provider(body.provider)) or ""
-
-    if not creds:
-        from modules.agents.credentials import normalize_provider
-        pid = normalize_provider(body.provider)
-        key_hint = _PROVIDER_ENV_KEYS.get(pid, "GIGACHAT_CREDENTIALS")
-        payload, status = error_payload(
-            "agent_credentials_not_found",
-            f"Ключ не найден в .key ({key_hint}). Введите ключ вручную в модальном окне.",
-            http_status=503,
-        )
-        return JSONResponse(content=payload, status_code=status)
+    provider_id = "gigachat"
+    creds, cred_error = _resolve_generate_credentials(body, provider_id=provider_id)
+    if cred_error is not None:
+        return cred_error
 
     try:
         from modules.agents.track import generate_sql as track_generate_sql
         gen = track_generate_sql(
             body.description,
-            provider=body.provider,
+            provider=provider_id,
             stack=body.stack,
             credentials_override=creds or None,
             model_override=body.chat_model,
             scope_override=(body.scope or "").strip() or None,
             with_review=body.with_review,
             code_revision_pass=body.code_revision_pass,
-            multi_agent=body.multi_agent,
         )
         payload, _ = ok_payload(data=gen, **gen)
         return payload
@@ -615,3 +513,99 @@ def post_generate_sql(body: GenerateSQLRequest) -> Dict[str, Any]:
             return JSONResponse(content=payload, status_code=status)
         payload, status = error_payload("agent_generate_failed", err_str, http_status=500)
         return JSONResponse(content=payload, status_code=status)
+
+
+@router.post("/generate-stream", response_model=None)
+def post_generate_sql_stream(body: GenerateSQLRequest) -> Any:
+    """Stream generation events as NDJSON for realtime UI updates."""
+    provider_id = "gigachat"
+    creds, cred_error = _resolve_generate_credentials(body, provider_id=provider_id)
+    if cred_error is not None:
+        return cred_error
+
+    events_q: queue.Queue = queue.Queue()
+    done_sentinel = object()
+
+    def emit(event: str, data: Dict[str, Any]) -> None:
+        events_q.put({"event": event, "data": data})
+
+    def worker() -> None:
+        try:
+            from modules.agents.track import generate_sql as track_generate_sql
+
+            emit("status", {"message": "Генерация запущена"})
+            gen = track_generate_sql(
+                body.description,
+                provider=provider_id,
+                stack=body.stack,
+                credentials_override=creds or None,
+                model_override=body.chat_model,
+                scope_override=(body.scope or "").strip() or None,
+                with_review=body.with_review,
+                code_revision_pass=body.code_revision_pass,
+                event_hook=lambda evt: events_q.put(evt),
+            )
+            emit("done", gen)
+        except Exception as exc:
+            err_str = str(exc)
+            err_lower = err_str.lower()
+            if "429" in err_str or "too many requests" in err_lower:
+                emit("error", {"code": "agent_rate_limited", "error": "Превышен лимит запросов (429)."})
+            elif "timed out" in err_lower or "readtimeout" in err_lower.replace(" ", ""):
+                emit(
+                    "error",
+                    {
+                        "code": "agent_generate_timeout",
+                        "error": "Таймаут ответа LLM. Задайте GIGACHAT_HTTP_TIMEOUT_SEC в .env.",
+                    },
+                )
+            else:
+                emit("error", {"code": "agent_generate_failed", "error": err_str})
+        finally:
+            events_q.put(done_sentinel)
+
+    thread = threading.Thread(target=worker, daemon=True)
+    thread.start()
+
+    def stream_iter():
+        while True:
+            item = events_q.get()
+            if item is done_sentinel:
+                break
+            yield json.dumps(item, ensure_ascii=False) + "\n"
+
+    return StreamingResponse(stream_iter(), media_type="application/x-ndjson; charset=utf-8")
+
+
+def _resolve_generate_credentials(
+    body: GenerateSQLRequest,
+    *,
+    provider_id: str,
+) -> Tuple[str, Optional[JSONResponse]]:
+    creds = (body.credentials or "").strip()
+    if not creds and body.client_id and body.client_secret:
+        creds = base64.b64encode(f"{body.client_id}:{body.client_secret}".encode()).decode()
+
+    if not creds and not body.use_env_credentials:
+        payload, status = error_payload(
+            "agent_credentials_required",
+            "Ключ не передан. Введите ключ в модальном окне «Ввести ключ» и нажмите «Применить».",
+            http_status=503,
+        )
+        return "", JSONResponse(content=payload, status_code=status)
+
+    if not creds and body.use_env_credentials:
+        from modules.agents.credentials import resolve_credentials
+
+        creds = resolve_credentials(provider_id) or ""
+
+    if not creds:
+        key_hint = _PROVIDER_ENV_KEYS.get(provider_id, "GIGACHAT_CREDENTIALS")
+        payload, status = error_payload(
+            "agent_credentials_not_found",
+            f"Ключ не найден в .key ({key_hint}). Введите ключ вручную в модальном окне.",
+            http_status=503,
+        )
+        return "", JSONResponse(content=payload, status_code=status)
+
+    return creds, None

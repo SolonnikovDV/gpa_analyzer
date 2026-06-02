@@ -21,6 +21,11 @@
             '<div class="gpa-wait-panel__orb" aria-hidden="true"></div>' +
             '<div class="gpa-wait-panel__message" data-gpa-wait-message>Ожидание…</div>' +
             '<div class="gpa-wait-panel__sub" data-gpa-wait-sub></div>' +
+            '<div class="gpa-wait-panel__trace" data-gpa-wait-trace style="display:none;">' +
+              '<div class="gpa-wait-panel__trace-title">Ход дебатов ролей</div>' +
+              '<div class="gpa-wait-panel__trace-body" data-gpa-wait-trace-body></div>' +
+              '<div class="gpa-wait-panel__trace-consensus" data-gpa-wait-consensus style="display:none;"></div>' +
+            '</div>' +
           '</div>';
         document.body.appendChild(layer);
       }
@@ -35,10 +40,8 @@
       layer.classList.add('is-visible');
       layer.setAttribute('aria-hidden', 'false');
       layer.dataset.mode = opts.mode || 'default';
-      var msg = layer.querySelector('[data-gpa-wait-message]');
-      var sub = layer.querySelector('[data-gpa-wait-sub]');
-      if (msg) msg.textContent = opts.message || 'Ожидание…';
-      if (sub) sub.textContent = opts.subtitle || '';
+      this.setStatus(opts.message || 'Ожидание…', opts.subtitle || '');
+      this.setTranscript([], '');
       if (opts.anchor) this.anchor(opts.anchor, opts.message, opts.subtitle);
     },
 
@@ -48,7 +51,16 @@
       var layer = this._ensureLayer();
       layer.classList.remove('is-visible');
       layer.setAttribute('aria-hidden', 'true');
+      this.setTranscript([], '');
       this.unanchor();
+    },
+
+    setStatus: function(message, subtitle) {
+      var layer = this._ensureLayer();
+      var msg = layer.querySelector('[data-gpa-wait-message]');
+      var sub = layer.querySelector('[data-gpa-wait-sub]');
+      if (msg && message != null) msg.textContent = String(message);
+      if (sub && subtitle != null) sub.textContent = String(subtitle);
     },
 
     anchor: function(el, message, subtitle) {
@@ -64,6 +76,40 @@
         node.removeAttribute('data-gpa-wait-label');
         node.removeAttribute('data-gpa-wait-sub');
       });
+    },
+
+    setTranscript: function(trace, consensus) {
+      var layer = this._ensureLayer();
+      var wrap = layer.querySelector('[data-gpa-wait-trace]');
+      var body = layer.querySelector('[data-gpa-wait-trace-body]');
+      var cons = layer.querySelector('[data-gpa-wait-consensus]');
+      var rows = Array.isArray(trace) ? trace : [];
+      if (!wrap || !body || !cons) return;
+      if (!rows.length && !(consensus || '').trim()) {
+        wrap.style.display = 'none';
+        body.innerHTML = '';
+        cons.style.display = 'none';
+        cons.textContent = '';
+        return;
+      }
+      wrap.style.display = 'block';
+      body.innerHTML = rows.map(function(r) {
+        var round = r && r.round != null ? String(r.round) : '–';
+        var mode = r && r.mode ? String(r.mode) : 'step';
+        var role = r && r.role_focus ? String(r.role_focus) : 'team';
+        var text = r && r.text ? String(r.text) : '';
+        var textSafe = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        if (textSafe.length > 420) textSafe = textSafe.slice(0, 420) + '...';
+        return '<div class="gpa-wait-panel__trace-row"><b>#' + round + ' · ' + mode + ' · ' + role + '</b><br><span>' + textSafe + '</span></div>';
+      }).join('');
+      var cc = (consensus || '').trim();
+      if (cc) {
+        cons.style.display = 'block';
+        cons.textContent = 'CONSENSUS: ' + cc;
+      } else {
+        cons.style.display = 'none';
+        cons.textContent = '';
+      }
     }
   };
 

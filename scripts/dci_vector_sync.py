@@ -425,7 +425,7 @@ def write_dialog_delta(
     since: str,
 ) -> Path:
     changed = sorted(set(window_delta["new_or_updated"] + project_delta.get("new_or_updated", [])))
-    restore_cmd = f"контекст: восстановить {dialog_window_id}"
+    restore_cmd = f"/custom-rule: dci restore {dialog_window_id}"
     now = utc_now()
     body = f"""# Dialog Delta
 
@@ -1232,6 +1232,68 @@ def parse_open_risk_refs(text: str) -> List[str]:
         if cols and cols[0] not in ("—", "-", "none", ""):
             refs.append(cols[0])
     return refs
+
+
+def materialize_checkpoint_rows(dialog_window_id: str) -> Tuple[int, int]:
+    """Materialize minimal project CP-* entries from open TH-* in active window.
+
+    Returns (created_count, open_threads_count). Idempotent and safe on repeated calls.
+    """
+    index_path = window_index_path(dialog_window_id)
+    if not index_path.is_file() or not PROJECT_CATALOG.is_file():
+        return (0, 0)
+
+    index_text = index_path.read_text(encoding="utf-8")
+    threads = parse_thread_rows(index_text)
+    open_threads = [t for t in threads if t.get("status", "").lower() in ("open", "in_progress")]
+    if not open_threads:
+        return (0, 0)
+
+    catalog_text = PROJECT_CATALOG.read_text(encoding="utf-8")
+    block = re.search(r"(## checkpoint_registry\n+)(\|.*?)(?=\n## |\Z)", catalog_text, re.S)
+    if not block:
+        return (0, len(open_threads))
+
+    table = block.group(2)
+    existing_ids = set(re.findall(r"\|\s*(CP-[A-Z0-9-]+)\s*\|", table))
+    branch = parse_header_field(catalog_text, "master_branch") or MASTER_EV_ID
+    evidence = f".cursor/context/dialogs/{dialog_window_id}/dialog_index.md"
+    created = 0
+    rows_to_add: List[str] = []
+    for th in open_threads:
+        th_id = th["id"]
+        cp_id = f"CP-AUTO-{dialog_window_id}-{th_id}"
+        if cp_id in existing_ids:
+            continue
+        label = f"Materialized checkpoint for {th_id}"
+        status = "in_progress" if th.get("status", "").lower() == "in_progress" else "open"
+        rows_to_add.append(f"| {cp_id} | {label} | {branch} | {status} | {evidence} |")
+        existing_ids.add(cp_id)
+        created += 1
+
+    if rows_to_add:
+        # Remove default placeholder row once we have real CP entries.
+        table = re.sub(r"\n\|\s*—\s*\|\s*none\s*\|\s*—\s*\|\s*—\s*\|\s*—\s*\|", "", table)
+        table = table.rstrip("\n") + "\n" + "\n".join(rows_to_add) + "\n"
+        new_text = catalog_text[: block.start(2)] + table + catalog_text[block.end(2):]
+        PROJECT_CATALOG.write_text(new_text, encoding="utf-8")
+
+    return (created, len(open_threads))
+
+
+def cmd_materialize(dialog_window_id: Optional[str] = None) -> int:
+    """Collect reusable checkpoint data from active window into project catalog."""
+    validate_window_scope("materialize")
+    dw = dialog_window_id or resolve_dialog_window_id()
+    created, open_count = materialize_checkpoint_rows(dw)
+    if open_count == 0:
+        print(f"materialize: no open TH in {dw}; nothing to sync")
+        return 0
+    if created == 0:
+        print(f"materialize: checkpoints already up-to-date ({dw}, open_th={open_count})")
+        return 0
+    print(f"materialize: created {created} checkpoint(s) from {open_count} open TH in {dw}")
+    return 0
 
 
 def resolve_evidence_path(evidence: str) -> Path:
@@ -2104,7 +2166,7 @@ def cmd_restore(dialog_window_id: str, migrate: bool = True) -> int:
     if changed:
         print(f"changed: {', '.join(changed)}")
     print(f"archive_bundle: {window_bundle_path(dw)} (do not load by default)")
-    print("expand: контекст: expand CL-NNN | EV-NNN")
+    print("expand: /custom-rule: dci expand CL-NNN | EV-NNN")
     if summary:
         print(f"summary: {summary}")
     hot_val = hot_open_query(index_text, records)
@@ -2123,10 +2185,15 @@ def cmd_restore(dialog_window_id: str, migrate: bool = True) -> int:
 
 
 def cmd_compress(force: bool = False) -> int:
-    """User command: контекст: сжать — validate, delta, sync, handoff."""
+    """User command: /custom-rule: dci compress — materialize, doctor, validate, sync, handoff."""
     validate_window_scope("compress")
     dw = resolve_dialog_window_id()
     index_path = window_index_path(dw)
+
+    mat_rc = cmd_materialize(dw)
+    if mat_rc != 0 and not force:
+        print("ERROR materialize failed; fix ledger and retry compress", file=sys.stderr)
+        return 1
 
     val_rc = cmd_validate()
     if val_rc == 1 and not force:
@@ -2181,7 +2248,7 @@ def cmd_compress(force: bool = False) -> int:
     ok, _ = db_ping()
     fb = read_fallback(vector_namespace(dw))
     pending = sum(1 for r in fb if not r.get("synced_to_db"))
-    restore_cmd = f"контекст: восстановить {dw}"
+    restore_cmd = f"/custom-rule: dci restore {dw}"
     print(f"compressed: project {project_scope_id()} (EV/CP/catalog) + window {dw}")
     print(f"project: {project_scope_id()}")
     print(f"window: {dw}")
@@ -2204,7 +2271,7 @@ def cmd_compress(force: bool = False) -> int:
 
 
 def cmd_windows() -> int:
-    """User command: контекст: окна — project branch tree + dialog/history windows."""
+    """User command: /custom-rule: dci windows — project branch tree + dialog/history windows."""
     validate_project_scope("windows")
     active = resolve_dialog_window_id()
     locked = read_window_lock()
@@ -2222,12 +2289,12 @@ def cmd_windows() -> int:
     for line in format_dialog_tree(list_dialog_windows(), active):
         print(f"  {line}")
     print("")
-    print("restore: контекст: восстановить <DW-NNN>")
+    print("restore: /custom-rule: dci restore <DW-NNN>")
     return 0
 
 
 def cmd_projects() -> int:
-    """User command: контекст: проекты — multi-project tree with dialog summaries."""
+    """User command: /custom-rule: dci projects — multi-project tree with dialog summaries."""
     current = project_scope_id()
     print(f"current_project: {current}")
     print("")
@@ -2239,12 +2306,12 @@ def cmd_projects() -> int:
         print("")
         print_project_tree(pid, root, "", marker=marker, compact=(pid != current))
     print("")
-    print("switch project: set DCI_PROJECT_ID + open repo; restore window: контекст: восстановить <DW-NNN>")
+    print("switch project: set DCI_PROJECT_ID + open repo; restore window: /custom-rule: dci restore <DW-NNN>")
     return 0
 
 
 def cmd_user_restore(target: str, summary: str = "") -> int:
-    """User command: контекст: восстановить DW-NNN | новое \"summary\"."""
+    """User command: /custom-rule: dci restore DW-NNN | restore-new \"summary\"."""
     validate_project_scope("restore")
     t = target.strip()
     if t.lower() in ("новое", "new", "__new__"):
@@ -2311,6 +2378,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             "restore",
             "window-new",
             "compress",
+            "materialize",
             "windows",
             "projects",
             "validate",
@@ -2358,6 +2426,9 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     if args.command == "compress":
         return cmd_compress(force=args.force)
+
+    if args.command == "materialize":
+        return cmd_materialize(args.window or None)
 
     if args.command == "validate":
         return cmd_validate()

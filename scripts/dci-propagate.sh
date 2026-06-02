@@ -233,17 +233,17 @@ alwaysApply: true
 Use `~/.cursor/rules/team-command-router.mdc` as the authoritative router for this project.
 
 Apply all command workflows from the global router, including:
-- `sql-команда`
-- `b2c-команда`
-- `de-matrix-команда`
-- `web-app-команда`
-- `presentation-команда`
-- `auto-команда`
+- `/custom-rule: team sql`
+- `/custom-rule: team b2c`
+- `/custom-rule: team de-matrix`
+- `/custom-rule: team web-app`
+- `/custom-rule: team presentation`
+- `/custom-rule: team auto`
 
 ## DCI (project-local)
 
 Follow `.cursor/rules/dialog-context-index.mdc` and `.cursor/skills/dialog-context-index/SKILL.md`.
-Shell: `bash scripts/dci-vector.sh` (compress, windows, restore, projects, validate).
+Shell: `bash scripts/dci-vector.sh` (compress, materialize, doctor, windows, restore, projects, validate).
 
 ## TIG (project-local)
 
@@ -257,6 +257,7 @@ propagate_rules_and_tig() {
   local target="$1"
   local rules=(
     dialog-context-index.mdc
+    dci-working-dir-guard.mdc
     tig-preflight-enforced.mdc
     tig-snapshot.mdc
     presentation-team-methodology.mdc
@@ -291,6 +292,22 @@ sync_global_router() {
   else
     cp -f "${SOURCE}/.cursor/rules/team-command-router.mdc" "${global}"
     echo "Updated global router: ${global}"
+  fi
+}
+
+sync_global_dci_guard() {
+  # Global working-dir guard fires on контекст:* even in worktrees lacking the
+  # project DCI rule — prevents improvisation when DCI is not deployed.
+  local src="${SOURCE}/.cursor/rules/dci-working-dir-guard.mdc"
+  local global="${HOME}/.cursor/rules/dci-working-dir-guard.mdc"
+  [[ -f "${src}" ]] || src="${global}"
+  [[ -f "${src}" ]] || { echo "WARN: no dci-working-dir-guard.mdc source"; return 0; }
+  mkdir -p "$(dirname "${global}")"
+  if [[ "${DRY}" == "1" ]]; then
+    echo "DRY copy ${src} -> ${global}"
+  else
+    cp -f "${src}" "${global}"
+    echo "Updated global DCI guard: ${global}"
   fi
 }
 
@@ -366,4 +383,5 @@ done
 
 write_projects_registry
 sync_global_router
+sync_global_dci_guard
 echo "Done."

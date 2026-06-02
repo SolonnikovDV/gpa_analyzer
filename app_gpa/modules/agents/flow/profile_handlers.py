@@ -112,62 +112,8 @@ class GigaChatProfileHandler(_BaseProfileHandler):
             )
 
 
-class DeepSeekProfileHandler(_BaseProfileHandler):
-    provider_id = "deepseek"
-
-    def field_schema(self) -> Dict[str, Any]:
-        from ..models.deepseek import FREE_CHAT_MODELS
-
-        return {
-            "provider_id": self.provider_id,
-            "fields": [
-                {"id": "profile_name", "type": "text", "label": "Имя профиля"},
-                {"id": "credentials", "type": "password", "label": "API Key"},
-                {
-                    "id": "chat_model",
-                    "type": "select",
-                    "label": "Chat-модель",
-                    "options": FREE_CHAT_MODELS,
-                    "option_labels": {
-                        "deepseek-chat": "deepseek-chat (обычный режим)",
-                        "deepseek-reasoner": "deepseek-reasoner (thinking mode, до 10 мин)",
-                    },
-                },
-            ],
-            "supports_embeddings": False,
-            "supports_env_token": True,
-        }
-
-    def validate(self, payload: ProfilePayload) -> ProfileValidateResult:
-        creds = self._resolve_creds(payload)
-        if not creds:
-            return ProfileValidateResult(
-                ok=False,
-                provider_id=self.provider_id,
-                error="API Key не задан (.key DEEPSEEK_TOKEN, env или форма)",
-                from_env=payload.use_env_credentials,
-            )
-        try:
-            from ..models.deepseek import validate as _validate
-
-            _validate(creds, model=payload.chat_model)
-            return ProfileValidateResult(
-                ok=True,
-                provider_id=self.provider_id,
-                from_env=payload.use_env_credentials,
-            )
-        except Exception as e:
-            return ProfileValidateResult(
-                ok=False,
-                provider_id=self.provider_id,
-                error=str(e).strip() or type(e).__name__,
-                from_env=payload.use_env_credentials,
-            )
-
-
 _HANDLERS: Dict[str, ProfileHandler] = {
     "gigachat": GigaChatProfileHandler(),
-    "deepseek": DeepSeekProfileHandler(),
 }
 
 

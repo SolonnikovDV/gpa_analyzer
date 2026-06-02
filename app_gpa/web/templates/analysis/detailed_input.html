@@ -73,7 +73,6 @@
             <input type="hidden" name="agent_chat_model" id="form_agent_chat_model" value="">
             <input type="hidden" name="agent_embedding_model" id="form_agent_embedding_model" value="">
             <input type="hidden" name="agent_provider" id="form_agent_provider" value="gigachat">
-            <input type="hidden" name="agent_multi_agent" id="form_agent_multi_agent" value="">
             <input type="hidden" name="pure_agent_mode" id="form_pure_agent_mode" value="">
             <input class="form-check-input d-none" type="checkbox" name="plan_from_agent" id="plan_agent" value="on" checked>
             <input class="form-check-input d-none" type="checkbox" name="use_db_connection" id="use_db" value="on" checked>
@@ -709,11 +708,9 @@
   if (window.GpaAgentSession) GpaAgentSession.migrateFromLocalStorage();
   try {
     var _sProv = sessionStorage.getItem('gpa_agent_provider') || localStorage.getItem('gpa_agent_provider');
-    var _sMa = sessionStorage.getItem('gpa_agent_multi_agent');
     var _sChat = sessionStorage.getItem('gpa_agent_chat_model') || localStorage.getItem('gpa_agent_chat_model');
     var _sEmb = sessionStorage.getItem('gpa_agent_embedding_model') || localStorage.getItem('gpa_agent_embedding_model');
     if (_sProv) window.agentSelectedProvider = _sProv;
-    if (_sMa === '1') window.agentMultiAgentEnabled = true;
     if (_sChat) window.agentSelectedChatModel = _sChat;
     if (_sEmb) window.agentSelectedEmbeddingModel = _sEmb;
   } catch (e) {}
@@ -723,7 +720,7 @@
     GpaAgentSession.save(Object.assign({
       profileName: GpaAgentSession.getProfileName(),
       provider: window.agentSelectedProvider || 'gigachat',
-      multiAgent: !!window.agentMultiAgentEnabled,
+      multiAgent: false,
       scope: window.agentScopeInMemory || 'GIGACHAT_API_PERS',
       chatModel: window.agentSelectedChatModel || '',
       embModel: window.agentSelectedEmbeddingModel || '',
@@ -734,25 +731,23 @@
 
   function syncFormAgentProvider() {
     var fp = document.getElementById('form_agent_provider');
-    var fm = document.getElementById('form_agent_multi_agent');
     if (fp) fp.value = window.agentSelectedProvider || 'gigachat';
-    if (fm) fm.value = window.agentMultiAgentEnabled ? '1' : '';
   }
 
   function syncAgentMultiAgentCheckbox() {
     var cb = document.getElementById('agentMultiAgentCheck');
     if (cb) {
-      cb.checked = !!window.agentMultiAgentEnabled;
+      cb.checked = false;
       cb.disabled = true;
+      if (cb.closest('.form-check')) cb.closest('.form-check').style.display = 'none';
     }
     syncFormAgentProvider();
   }
 
   function setAgentMultiAgent(enabled) {
-    window.agentMultiAgentEnabled = !!enabled;
-    try { sessionStorage.setItem('gpa_agent_multi_agent', window.agentMultiAgentEnabled ? '1' : '0'); } catch (e) {}
+    window.agentMultiAgentEnabled = false;
     syncAgentMultiAgentCheckbox();
-    saveAgentSession({ multiAgent: window.agentMultiAgentEnabled });
+    saveAgentSession({ multiAgent: false });
     updateAgentContextMeta();
   }
 
@@ -783,7 +778,6 @@
 
     var provLabel = document.getElementById('agent-provider-label');
     if (provLabel) provLabel.textContent = meta ? meta.label : 'GigaChat';
-
     syncFormAgentProvider();
   }
 
@@ -827,7 +821,6 @@
       var _label = _provMeta ? _provMeta.label : window.agentSelectedProvider;
       parts.push('LLM: ' + _label);
     }
-    if (window.agentMultiAgentEnabled) parts.push('multi-agent');
     meta.textContent = parts.length ? parts.join(' · ') : 'Профиль и модели — в сессии до сброса';
   }
 
@@ -837,7 +830,7 @@
     if (!sess) return Promise.resolve();
     if (sess.scope) window.agentScopeInMemory = sess.scope;
     if (sess.provider) window.agentSelectedProvider = sess.provider;
-    if (sess.multiAgent) window.agentMultiAgentEnabled = !!sess.multiAgent;
+    window.agentMultiAgentEnabled = false;
     if (sess.chatModel) window.agentSelectedChatModel = sess.chatModel;
     if (sess.embModel) window.agentSelectedEmbeddingModel = sess.embModel;
     window.agentSessionProfileName = sess.profileName || GpaAgentSession.getProfileName() || '';
@@ -891,7 +884,7 @@
       if (typeof done === 'function') done();
       return;
     }
-    fetch('{{ url_for("agent.api_agent_model_options") }}?provider=' + encodeURIComponent(prov))
+    fetch('/api/agent/model-options?provider=' + encodeURIComponent(prov))
       .then(function(r) { return r.json(); })
       .then(function(body) {
         var d = (body && body.data !== undefined) ? body.data : body;
@@ -1007,7 +1000,7 @@
         ul.appendChild(li);
       }
 
-      fetch('{{ url_for("agent.api_agent_probe_models") }}', {
+      fetch('/api/agent/probe-models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -1295,7 +1288,7 @@
   async function syncJsonPresetsFromServer() {
     if (!jsonPresetServerAvailable) return false;
     try {
-      var response = await fetch('{{ url_for("runtime.api_runtime_presets") }}');
+      var response = await fetch('/api/runtime-presets');
       if (!response.ok) throw new Error('Preset API unavailable');
       var data = await response.json();
       if (!data || !data.ok || !data.grouped || typeof data.grouped !== 'object') throw new Error('Invalid preset payload');
@@ -1312,7 +1305,7 @@
     if (!jsonPresetServerAvailable) return false;
     try {
       var parts = getPresetScopeParts(scope);
-      var response = await fetch('{{ url_for("runtime.api_runtime_presets") }}', {
+      var response = await fetch('/api/runtime-presets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1335,7 +1328,7 @@
     if (!jsonPresetServerAvailable) return false;
     try {
       var parts = getPresetScopeParts(scope);
-      var response = await fetch('{{ url_for("runtime.api_runtime_presets") }}', {
+      var response = await fetch('/api/runtime-presets', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1420,7 +1413,7 @@
   }
 
   function refreshRuntimeDescriptor() {
-    return fetch('{{ url_for("runtime.api_runtime_descriptor") }}', {
+    return fetch('/api/runtime/descriptor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1810,7 +1803,7 @@
   }
 
   function testDbConnection() {
-    return fetch('{{ url_for("runtime.api_runtime_test") }}', {
+    return fetch('/api/runtime/test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(getDbConnectionPayload())
@@ -1892,7 +1885,7 @@
     }
     var cursor = editor.getCursor();
     var text = editor.getValue();
-    fetch('{{ url_for("sql.api_sql_complete") }}', {
+    fetch('/api/sql/complete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(Object.assign(getSqlValidationRequestPayload(text), {
@@ -1969,7 +1962,7 @@
     setSqlStatus(statusEl, 'checking', getRuntimeUi().status_checking || 'Проверяем синтаксис PostgreSQL...');
     sqlValidationSeq[textarea.id] = (sqlValidationSeq[textarea.id] || 0) + 1;
     var seq = sqlValidationSeq[textarea.id];
-    return fetch('{{ url_for("sql.api_sql_validate") }}', {
+    return fetch('/api/sql/validate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(getSqlValidationRequestPayload(text))
@@ -2127,11 +2120,7 @@
         openAgentSettingsModal(null);
         return;
       }
-      if (GpaAgentSetup.llmMode === 'multi') {
-        var active = GpaAgentSetup.getMultiActiveProviders();
-        if (active.length) GpaAgentSetup.startProfileWizard(active, (GpaAgentSession.read() || {}).multiAgentModels || {});
-        else GpaAgentSetup.openMultiAgentPickModal();
-      } else if (GpaAgentSetup.llmMode === 'gigachat' || GpaAgentSetup.llmMode === 'deepseek') {
+      if (GpaAgentSetup.llmMode && GpaAgentSetup.llmMode !== 'off') {
         GpaAgentSetup.openSingleProfileModal(GpaAgentSetup.llmMode);
       } else {
         openAgentSettingsModal(null);
@@ -2263,7 +2252,7 @@
       opts.method = 'GET';
       opts.urlSuffix = '?provider=' + encodeURIComponent(provider);
     }
-    var url = '{{ url_for("agent.api_agent_token_usage") }}' + (opts.urlSuffix || '');
+    var url = '/api/agent/token_usage' + (opts.urlSuffix || '');
     delete opts.urlSuffix;
     fetch(url, opts)
       .then(function(r) { return r.json(); })
@@ -2296,7 +2285,7 @@
       opts.headers = { 'Content-Type': 'application/json' };
       opts.body = JSON.stringify({ scope: window.agentScopeInMemory || 'GIGACHAT_API_PERS' });
     }
-    return fetch('{{ url_for("agent.api_agent_token_usage") }}', opts).then(function(r) { return r.json(); }).then(function(data) {
+    return fetch('/api/agent/token_usage', opts).then(function(r) { return r.json(); }).then(function(data) {
       var av = data.available;
       if (av !== undefined && av !== null && av <= 0) return false;
       return true;
@@ -2455,29 +2444,32 @@
       }
       var reviewBlock = document.getElementById('agent_review_block');
       if (reviewBlock) { reviewBlock.style.display = 'none'; reviewBlock.innerHTML = ''; }
+      var waitHoldMs = 0;
       try {
-        var payload = {
+        var requestPayload = {
           description: desc,
           with_review: true,
           provider: window.agentSelectedProvider || 'gigachat',
-          multi_agent: !!window.agentMultiAgentEnabled,
+          multi_agent: false,
           stack: (stackSelector && stackSelector.value) || 'greenplum',
           credentials: window.agentCredentialsInMemory || null,
           use_env_credentials: !!window.agentCredentialsFromKey,
           scope: window.agentScopeInMemory || 'GIGACHAT_API_PERS',
           chat_model: window.agentSelectedChatModel || null
         };
-        const r = await fetch('{{ url_for("agent.api_agent_generate") }}', {
+        const r = await fetch('/api/agent/generate-stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(requestPayload)
         });
-        const data = await r.json().catch(() => ({}));
-        var payload = (data && data.data && typeof data.data === 'object') ? Object.assign({}, data, data.data) : data;
-        var sqlText = (payload.sql_or_ddl || '').trim();
-        var contextWarning = !!(payload.warning) || !!(payload.analysis && payload.analysis.context_sufficient === false);
+        var responsePayload = {};
+        var rawData = {};
         if (!r.ok) {
-          if (r.status === 429 || (payload && payload.rate_limit_429)) {
+          rawData = await r.json().catch(() => ({}));
+          responsePayload = (rawData && rawData.data && typeof rawData.data === 'object')
+            ? Object.assign({}, rawData, rawData.data)
+            : rawData;
+          if (r.status === 429 || (responsePayload && responsePayload.rate_limit_429)) {
             window.rateLimit429Count = (window.rateLimit429Count || 0) + 1;
             try { sessionStorage.setItem('gpa_rate_limit_429', String(window.rateLimit429Count)); } catch (e) {}
             var el429 = document.getElementById('token-rate-limit');
@@ -2486,9 +2478,9 @@
               el429.classList.toggle('warn', window.rateLimit429Count > 0);
             }
           }
-          agentGenerateStatus.textContent = payload.error || data.error || 'Ошибка ' + r.status;
+          agentGenerateStatus.textContent = responsePayload.error || rawData.error || 'Ошибка ' + r.status;
           agentGenerateStatus.className = 'ms-2 small text-danger';
-          if ((payload.error || data.error || '').indexOf('ключ') >= 0 || (payload.error || data.error || '').indexOf('токен') >= 0 || r.status === 503) {
+          if ((responsePayload.error || rawData.error || '').indexOf('ключ') >= 0 || (responsePayload.error || rawData.error || '').indexOf('токен') >= 0 || r.status === 503) {
             var keyModal = document.getElementById('agentContextModal');
             if (keyModal && typeof bootstrap !== 'undefined') {
               bootstrap.Modal.getOrCreateInstance(keyModal).show();
@@ -2496,6 +2488,95 @@
           }
           return;
         }
+        var streamTrace = [];
+        var streamConsensus = '';
+        var streamDonePayload = null;
+        var streamErrorText = '';
+        var phaseTitleByMode = {
+          review: 'Review',
+          challenge: 'Challenge',
+          synthesize: 'Synthesize'
+        };
+        if (r.body && typeof r.body.getReader === 'function') {
+          var reader = r.body.getReader();
+          var decoder = new TextDecoder('utf-8');
+          var pending = '';
+          var parseLine = function(line) {
+            if (!line) return;
+            var evt = null;
+            try { evt = JSON.parse(line); } catch (e) { return; }
+            if (!evt || !evt.event) return;
+            if (evt.event === 'status' && evt.data && evt.data.message) {
+              if (window.GpaWait && typeof GpaWait.setStatus === 'function') {
+                GpaWait.setStatus('Генерация SQL…', String(evt.data.message || ''));
+              }
+              return;
+            }
+            if (evt.event === 'round' && evt.data && typeof evt.data === 'object') {
+              streamTrace.push(evt.data);
+              if (window.GpaWait) GpaWait.setTranscript(streamTrace, streamConsensus);
+              var modeKey = String(evt.data.mode || '').toLowerCase();
+              var phaseTitle = phaseTitleByMode[modeKey] || (modeKey ? modeKey : 'Debate');
+              var phaseSubtitle = 'Этап: ' + phaseTitle + ' · Раунд ' + (evt.data.round || streamTrace.length);
+              if (window.GpaWait && typeof GpaWait.setStatus === 'function') {
+                GpaWait.setStatus('Генерация SQL…', phaseSubtitle);
+              }
+              agentGenerateStatus.textContent = 'Генерация… Раунд ' + (evt.data.round || streamTrace.length);
+              agentGenerateStatus.className = 'ms-2 small text-muted';
+              return;
+            }
+            if (evt.event === 'consensus' && evt.data && evt.data.text) {
+              streamConsensus = String(evt.data.text || '');
+              if (window.GpaWait) GpaWait.setTranscript(streamTrace, streamConsensus);
+              if (window.GpaWait && typeof GpaWait.setStatus === 'function') {
+                GpaWait.setStatus('Генерация SQL…', 'Этап: Consensus');
+              }
+              return;
+            }
+            if (evt.event === 'done') {
+              streamDonePayload = evt.data || {};
+              if (window.GpaWait && typeof GpaWait.setStatus === 'function') {
+                GpaWait.setStatus('Генерация SQL…', 'Этап: Завершение');
+              }
+              return;
+            }
+            if (evt.event === 'error') {
+              streamErrorText = (evt.data && evt.data.error) ? String(evt.data.error) : 'Ошибка генерации';
+            }
+          };
+          while (true) {
+            var chunk = await reader.read();
+            if (chunk.done) break;
+            pending += decoder.decode(chunk.value, { stream: true });
+            var lines = pending.split('\n');
+            pending = lines.pop() || '';
+            lines.forEach(parseLine);
+          }
+          if (pending.trim()) parseLine(pending.trim());
+          if (streamErrorText) throw new Error(streamErrorText);
+          responsePayload = streamDonePayload || {};
+        } else {
+          const fallbackResponse = await fetch('/api/agent/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestPayload)
+          });
+          rawData = await fallbackResponse.json().catch(() => ({}));
+          responsePayload = (rawData && rawData.data && typeof rawData.data === 'object')
+            ? Object.assign({}, rawData, rawData.data)
+            : rawData;
+          if (!fallbackResponse.ok) {
+            throw new Error(responsePayload.error || rawData.error || ('Ошибка ' + fallbackResponse.status));
+          }
+        }
+        if (window.GpaWait && (streamTrace.length || (responsePayload && Array.isArray(responsePayload.debate_trace) && responsePayload.debate_trace.length))) {
+          var effectiveTrace = streamTrace.length ? streamTrace : responsePayload.debate_trace;
+          var effectiveConsensus = streamConsensus || responsePayload.consensus || '';
+          GpaWait.setTranscript(effectiveTrace, effectiveConsensus);
+          waitHoldMs = 4200;
+        }
+        var sqlText = (responsePayload.sql_or_ddl || '').trim();
+        var contextWarning = !!(responsePayload.warning) || !!(responsePayload.analysis && responsePayload.analysis.context_sufficient === false);
         if (sqlText) {
           setEditorValue(ddlTextarea, sqlText);
           if (agentScriptTextarea) setEditorValue(agentScriptTextarea, sqlText);
@@ -2515,7 +2596,7 @@
         } else if (contextWarning) {
           if (generatedSqlWindow) generatedSqlWindow.style.display = 'none';
           if (generatedSqlPreview) setEditorValue(generatedSqlPreview, '');
-          agentGenerateStatus.textContent = payload.warning || 'Не удалось получить SQL. Уточните описание.';
+          agentGenerateStatus.textContent = responsePayload.warning || 'Не удалось получить SQL. Уточните описание.';
           agentGenerateStatus.className = 'ms-2 small text-warning';
         } else {
           agentGenerateStatus.textContent = 'Пустой ответ от агента.';
@@ -2523,20 +2604,20 @@
         }
         if (reviewBlock) {
           var parts = [];
-          if (payload.warning) {
-            parts.push('<div class="text-warning mb-1">⚠️ ' + (payload.warning).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>');
-          } else if (payload.analysis && payload.analysis.context_sufficient === false) {
+          if (responsePayload.warning) {
+            parts.push('<div class="text-warning mb-1">⚠️ ' + (responsePayload.warning).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>');
+          } else if (responsePayload.analysis && responsePayload.analysis.context_sufficient === false) {
             parts.push('<div class="text-warning mb-1">⚠️ Контекст может быть неполным — проверьте SQL перед расчётом.</div>');
           }
-          if (payload.analysis && payload.analysis.intent) {
-            var a = payload.analysis;
+          if (responsePayload.analysis && responsePayload.analysis.intent) {
+            var a = responsePayload.analysis;
             var line = 'Намерение: ' + (a.intent === 'function' ? 'функция' : 'запрос');
             if (a.signature_params && a.signature_params.length) line += '; параметры: ' + a.signature_params.join(', ');
             if (a.return_type) line += '; возврат: ' + a.return_type;
             parts.push('<div class="text-muted">' + line.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>');
           }
-          if (payload.code_revision_ran) {
-            if (payload.revision_applied) {
+          if (responsePayload.code_revision_ran) {
+            if (responsePayload.revision_applied) {
               parts.push('<div class="text-muted small">Вторая проходка (ревизия): код скорректирован по правилам цепочки данных и согласованности.</div>');
             } else {
               parts.push('<div class="text-muted small">Ревизия выполнена; явных правок не потребовалось.</div>');
@@ -2550,7 +2631,12 @@
         agentGenerateStatus.className = 'ms-2 small text-danger';
       } finally {
         btnGenerateQuery.disabled = false;
-        if (window.GpaWait) GpaWait.hide();
+        if (window.GpaWait) {
+          if (waitHoldMs > 0) {
+            await new Promise(function(resolve) { setTimeout(resolve, waitHoldMs); });
+          }
+          GpaWait.hide();
+        }
       }
     });
   }
@@ -2569,7 +2655,7 @@
 
   // Профили (Client ID + Scope): agent_profiles.json в проекте — можно редактировать вручную
   function loadAgentMatches() {
-    return fetch('{{ url_for("agent.api_agent_profiles_get") }}')
+    return fetch('/api/agent/profiles')
       .then(function(r) { return r.json(); })
       .then(function(body) {
         // Contract-safe API: { ok, data: [...], items: [...] }; раньше мог приходить сырой массив
@@ -2583,7 +2669,7 @@
       .catch(function() { return []; });
   }
   function saveAgentMatches(matches) {
-    return fetch('{{ url_for("agent.api_agent_profiles_post") }}', {
+    return fetch('/api/agent/profiles', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(matches)
@@ -2722,22 +2808,10 @@
   }
   function _updateEnvTokenMsg(msgEl, provider, envKey) {
     if (!msgEl) return;
-    fetch('{{ url_for("agent.api_agent_env_token_status") }}?provider=' + encodeURIComponent(provider))
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        msgEl.style.display = 'block';
-        if (data && data.hasToken) {
-          msgEl.className = 'mb-2 alert alert-info py-2 small';
-          msgEl.innerHTML = 'Найден <code>' + envKey + '</code> в <code>.key</code>. Нажмите «Применить» без ввода ключа.';
-        } else {
-          msgEl.className = 'mb-2 alert alert-secondary py-2 small';
-          msgEl.innerHTML = 'Токен не задан в <code>.key</code>. Введите API Key выше.';
-        }
-      }).catch(function() {
-        msgEl.style.display = 'block';
-        msgEl.className = 'mb-2 alert alert-warning py-2 small';
-        msgEl.innerHTML = 'Не удалось проверить .key. Введите ключ вручную.';
-      });
+    msgEl.style.display = 'block';
+    msgEl.className = 'mb-2 alert alert-secondary py-2 small';
+    msgEl.innerHTML = 'Проверка подключения выполняется только по кнопке «Применить контекст». '
+      + 'Можно ввести API Key вручную или хранить его в <code>.key</code>/<code>.env</code>.';
   }
 
   /* ── Active simple provider shortcuts ───────────────────────────── */
@@ -2780,7 +2854,112 @@
     var scopeSelect = document.getElementById('agentScopeSelect');
     var msg = document.getElementById('agentCredentialsMessage');
     var btnApply = document.getElementById('agentCredentialsApply');
+    var btnApplyState = document.getElementById('agentCredentialsApplyState');
+    var tokenSourceBadge = document.getElementById('agentTokenSourceBadge');
+    var APPLY_TIMEOUT_MS = 30000;
     if (!modal || !btnApply) return;
+
+    function _lastProfileStorageKey(providerId) {
+      return 'gpa_agent_last_profile_name:' + String(providerId || 'gigachat').toLowerCase();
+    }
+
+    function _readLastProfileName(providerId) {
+      var key = _lastProfileStorageKey(providerId);
+      try {
+        var byProvider = (sessionStorage.getItem(key) || localStorage.getItem(key) || '').trim();
+        if (byProvider) return byProvider;
+        return (sessionStorage.getItem('gpa_agent_last_profile_name') || localStorage.getItem('gpa_agent_last_profile_name') || '').trim();
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function _writeLastProfileName(providerId, profileName) {
+      var name = (profileName || '').trim();
+      if (!name) return;
+      try {
+        var key = _lastProfileStorageKey(providerId);
+        sessionStorage.setItem(key, name);
+      } catch (e) {}
+    }
+
+    function _escapeHtml(raw) {
+      return String(raw || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function _tokenSourceLabel(source, keyName) {
+      var keySafe = _escapeHtml((keyName || '').toString().trim());
+      if (source === 'manual_input' || source === 'override') {
+        return 'ручной ввод';
+      }
+      if (source === 'env_file') {
+        return '.env' + (keySafe ? ': <code>' + keySafe + '</code>' : '');
+      }
+      if (source === 'key_file') {
+        return '.key' + (keySafe ? ': <code>' + keySafe + '</code>' : '');
+      }
+      if (source === 'os_env') {
+        return 'переменная окружения' + (keySafe ? ': <code>' + keySafe + '</code>' : '');
+      }
+      if (source === 'derived_client_secret') {
+        return '<code>GIGACHAT_CLIENT_ID/GIGACHAT_CLIENT_SECRET</code>';
+      }
+      return 'не определён';
+    }
+
+    function _tokenSourceBadgeClass(source) {
+      if (source === 'manual_input' || source === 'override') return 'agent-token-source-badge--manual';
+      if (source === 'env_file') return 'agent-token-source-badge--env';
+      if (source === 'key_file') return 'agent-token-source-badge--key';
+      if (source === 'os_env') return 'agent-token-source-badge--os';
+      if (source === 'derived_client_secret') return 'agent-token-source-badge--derived';
+      return '';
+    }
+
+    function setTokenSourceBadge(source, keyName) {
+      if (!tokenSourceBadge) return;
+      var label = _tokenSourceLabel(source, keyName);
+      if (!label || label === 'не определён') {
+        tokenSourceBadge.style.display = 'none';
+        tokenSourceBadge.className = 'agent-token-source-badge';
+        tokenSourceBadge.textContent = '';
+        return;
+      }
+      tokenSourceBadge.className = 'agent-token-source-badge';
+      var cls = _tokenSourceBadgeClass(source);
+      if (cls) tokenSourceBadge.classList.add(cls);
+      tokenSourceBadge.textContent = 'Источник: ' + label.replace(/<[^>]+>/g, '');
+      tokenSourceBadge.style.display = 'inline-flex';
+    }
+
+    function setApplyBusy(isBusy, label) {
+      btnApply.disabled = !!isBusy;
+      if (!btnApplyState) return;
+      if (isBusy) {
+        var text = label || 'Проверяем подключение...';
+        btnApplyState.innerHTML = '<span class="spinner-border spinner-border-sm me-1 align-middle" role="status" aria-hidden="true"></span><span class="align-middle">' + text + '</span>';
+        btnApplyState.style.display = 'inline';
+      } else {
+        btnApplyState.innerHTML = '';
+        btnApplyState.style.display = 'none';
+      }
+    }
+
+    async function fetchWithTimeout(url, options, timeoutMs) {
+      var controller = new AbortController();
+      var timerId = setTimeout(function() { controller.abort(); }, timeoutMs || APPLY_TIMEOUT_MS);
+      try {
+        var opts = Object.assign({}, options || {}, { signal: controller.signal });
+        return await fetch(url, opts);
+      } finally {
+        clearTimeout(timerId);
+      }
+    }
 
     function refreshMatchSelect(done) {
       loadAgentMatches().then(function(matches) {
@@ -2815,24 +2994,10 @@
         msgEl.innerHTML = '';
         return;
       }
-      fetch('{{ url_for("agent.api_agent_env_token_status") }}?provider=' + encodeURIComponent(window.agentSelectedProvider || 'gigachat'))
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          var hasToken = !!(data && data.hasToken);
-          msgEl.style.display = 'block';
-          if (hasToken) {
-            msgEl.className = 'mb-2 alert alert-info py-2 small';
-            msgEl.innerHTML = 'Профиль «разработчик»: токен берётся из .key в корне проекта. Нажмите «Применить» для проверки.';
-          } else {
-            msgEl.className = 'mb-2 alert alert-warning py-2 small';
-            msgEl.innerHTML = 'Токен не задан в .key. Создайте файл .key в корне проекта (первая строка — токен). Либо выберите другой профиль и введите токен вручную.';
-          }
-        })
-        .catch(function() {
-          msgEl.style.display = 'block';
-          msgEl.className = 'mb-2 alert alert-warning py-2 small';
-          msgEl.innerHTML = 'Не удалось проверить .key. Выберите другой профиль или введите токен вручную.';
-        });
+      msgEl.style.display = 'block';
+      msgEl.className = 'mb-2 alert alert-info py-2 small';
+      msgEl.innerHTML = 'Профиль «разработчик»: токен ожидается из .key/.env. '
+        + 'Фактическая проверка выполняется только после нажатия «Применить контекст».';
     }
 
     var providerSelect = document.getElementById('agentProviderSelect');
@@ -2845,7 +3010,22 @@
           setAgentProvider(providerSelect.value, true);
           updateCredentialsEmptyState();
           var meta = _getProviderMeta(providerSelect.value);
-          if (meta && meta.is_simple) { refreshSimpleMatchSelect(); updateSimpleEnvTokenMessage(); }
+          if (meta && meta.is_simple) {
+            refreshSimpleMatchSelect(function(profiles) {
+              var lastName = _readLastProfileName(meta.id);
+              if (!lastName) return;
+              var sel = document.getElementById('agentSimpleMatchSelect');
+              if (!sel) return;
+              for (var i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === lastName) {
+                  sel.value = lastName;
+                  selectSimpleMatch(lastName, profiles || []);
+                  break;
+                }
+              }
+            });
+            updateSimpleEnvTokenMessage();
+          }
         });
       }
     });
@@ -2861,6 +3041,7 @@
         if (!v) return;
         var meta = _activeSimpleMeta();
         if (!meta || !meta.is_simple) return;
+        _writeLastProfileName(meta.id, v);
         _loadSimpleProfiles(meta.profiles_url).then(function(profiles) { selectSimpleMatch(v, profiles); });
       });
     }
@@ -2876,6 +3057,7 @@
               var prof = matches.find(function(x) { return x.name === v; });
               applyModelsToSelectsFromProfile(prof);
               updateEnvTokenMessage(v, matches);
+              _writeLastProfileName(window.agentSelectedProvider || 'gigachat', v);
             });
           } else {
             if (clientIdInput) clientIdInput.value = '';
@@ -2891,6 +3073,8 @@
     /* ── Single show.bs.modal handler — registry first, then UI ─────── */
     modal.addEventListener('show.bs.modal', function() {
       syncAgentMultiAgentCheckbox();
+      setApplyBusy(false, '');
+      setTokenSourceBadge('', '');
       if (msg) { msg.innerHTML = ''; msg.style.display = 'none'; }
 
       loadProviderRegistry(function() {
@@ -2899,11 +3083,8 @@
         if (providerSelect) providerSelect.value = _activeProv;
         updateAgentProviderUi();
 
-        /* 2. Restore last used profile name from session */
-        var _lastProf = '';
-        try { _lastProf = (sessionStorage.getItem('gpa_agent_last_profile_name') || localStorage.getItem('gpa_agent_last_profile_name') || '').trim(); } catch (e) {}
-
         var meta = _getProviderMeta(_activeProv);
+        var _lastProf = _readLastProfileName(_activeProv);
         if (meta && meta.is_simple) {
           /* Simple provider: load profiles and auto-select last profile */
           refreshSimpleMatchSelect(function(profiles) {
@@ -2989,6 +3170,10 @@
       var _applyProv = (window.agentSelectedProvider || '').toLowerCase();
       var _applyMeta = _getProviderMeta(_applyProv);
       var isSimpleProv = !!(_applyMeta && _applyMeta.is_simple);
+      var _envKeyHint = (_applyMeta && _applyMeta.env_key) ? _applyMeta.env_key : (isSimpleProv ? 'API_KEY' : 'GIGACHAT_TOKEN');
+      var _providerLabel = (_applyMeta && _applyMeta.label) ? _applyMeta.label : (_applyProv || 'gigachat');
+      var sourceInfo = { source: 'manual_input', key: 'manual_input' };
+      setTokenSourceBadge(sourceInfo.source, sourceInfo.key);
 
       var activeCredInput = isSimpleProv ? document.getElementById('agentSimpleCredentialsInput') : input;
       var activeChatEl    = isSimpleProv ? document.getElementById('agentSimpleChatModel') : null;
@@ -2998,6 +3183,8 @@
       var token = (activeCredInput && activeCredInput.value || '').trim();
       var clientId = (clientIdInput && clientIdInput.value || '').trim();
       var scope = (scopeSelect && scopeSelect.value) || 'GIGACHAT_API_PERS';
+      var verifySslEl = document.getElementById('agentVerifySslCheck');
+      var verifySsl = verifySslEl ? verifySslEl.checked : true;
 
       var name = isSimpleProv ? '' : (matchNameInput && matchNameInput.value || '').trim();
       var simpleProfileName = isSimpleProv ? (activeProfileNameInput && activeProfileNameInput.value || '').trim() : '';
@@ -3011,51 +3198,69 @@
       var useEnvToken = isSimpleProv ? !token : !!(selectedProfile && selectedProfile.tokenFromEnv);
 
       if (useEnvToken) {
-        var statusRes = await fetch('{{ url_for("agent.api_agent_env_token_status") }}?provider=' + encodeURIComponent(window.agentSelectedProvider || 'gigachat'));
+        var statusRes = await fetch('/api/agent/env-token-status?provider=' + encodeURIComponent(_applyProv || 'gigachat'));
         var statusData = await statusRes.json().catch(function() { return {}; });
+        sourceInfo = {
+          source: (statusData && statusData.source) || 'none',
+          key: (statusData && statusData.key) || _envKeyHint
+        };
+        setTokenSourceBadge(sourceInfo.source, sourceInfo.key);
         if (!(statusData && statusData.hasToken)) {
           if (msg) {
-            msg.innerHTML = '<strong>Токен не задан в .key.</strong> Создайте файл .key в корне проекта (первая строка — токен base64). Либо выберите другой профиль и введите токен вручную.';
+            msg.innerHTML = '<strong>Токен не задан.</strong> Для <strong>' + (_providerLabel).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</strong> задайте <code>' + _envKeyHint + '</code> в <code>.key</code> или <code>.env</code>, либо введите ключ вручную.';
             msg.className = 'mt-3 alert alert-warning py-3 mb-0'; msg.style.display = 'block';
             msg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }
           return;
         }
-        btnApply.disabled = true;
+        setApplyBusy(true, 'Проверяем токен из .key/.env...');
         if (msg) {
-          msg.innerHTML = 'Проверка токена из .env…';
+          msg.innerHTML = 'Проверка токена…<br><span class="small">Источник: ' + _tokenSourceLabel(sourceInfo.source, sourceInfo.key) + '</span>';
           msg.className = 'mt-3 alert alert-secondary py-3 mb-0'; msg.style.display = 'block';
         }
         try {
-          var valRes = await fetch('{{ url_for("agent.api_agent_validate_env") }}', {
+          var valRes = await fetchWithTimeout('/api/agent/validate-env', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ scope: scope, provider: window.agentSelectedProvider || 'gigachat' })
-          });
+            body: JSON.stringify({
+              scope: scope,
+              provider: _applyProv || 'gigachat',
+              verify_ssl: !!verifySsl,
+              chat_model: (activeChatEl && activeChatEl.value || '').trim()
+            })
+          }, APPLY_TIMEOUT_MS);
           var valData = await valRes.json().catch(function() { return {}; });
+          if (valData && valData.source) {
+            sourceInfo.source = valData.source;
+            sourceInfo.key = valData.key || sourceInfo.key;
+            setTokenSourceBadge(sourceInfo.source, sourceInfo.key);
+          }
           if (!valRes.ok || !(valData && valData.valid)) {
             if (msg) {
-              var errText = (valData && valData.error) || 'Неверный токен в .key';
-              msg.innerHTML = '<strong>Проверка не пройдена.</strong><br>' + (errText).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '<br><span class="small">Проверьте содержимое .key или .env.</span>';
+              var errText = (valData && valData.error) || ('Ключ не прошёл проверку для ' + _providerLabel);
+              msg.innerHTML = '<strong>Проверка не пройдена.</strong><br>' + (errText).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '<br><span class="small">Источник: ' + _tokenSourceLabel(sourceInfo.source, sourceInfo.key) + '</span><br><span class="small">Проверьте <code>' + _envKeyHint + '</code> в <code>.key</code> или <code>.env</code>.</span>';
               msg.className = 'mt-3 alert alert-danger py-3 mb-0'; msg.style.display = 'block';
               msg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
-            btnApply.disabled = false;
+            setApplyBusy(false, '');
             return;
           }
         } catch (e) {
           if (msg) {
-            msg.innerHTML = '<strong>Ошибка.</strong> ' + ((e && e.message) ? String(e.message) : 'Не удалось проверить токен из .key.');
+            var errMsgEnv = (e && e.name === 'AbortError')
+              ? 'Таймаут проверки. Сервер не ответил за 30 секунд.'
+              : ((e && e.message) ? String(e.message) : 'Не удалось проверить токен из .key/.env.');
+            msg.innerHTML = '<strong>Ошибка.</strong> ' + errMsgEnv + '<br><span class="small">Источник: ' + _tokenSourceLabel(sourceInfo.source, sourceInfo.key) + '</span>';
             msg.className = 'mt-3 alert alert-danger py-3 mb-0'; msg.style.display = 'block';
           }
-          btnApply.disabled = false;
+          setApplyBusy(false, '');
           return;
         }
         window.agentCredentialsInMemory = null;
         window.agentCredentialsFromKey = true;
         window.agentScopeInMemory = scope;
         if (msg) {
-          msg.innerHTML = '<strong>Проверка пройдена. Токен из .key.</strong>';
+          msg.innerHTML = '<strong>Проверка пройдена.</strong><br><span class="small">Источник: ' + _tokenSourceLabel(sourceInfo.source, sourceInfo.key) + '</span>';
           msg.className = 'mt-3 alert alert-success py-3 mb-0'; msg.style.display = 'block';
         }
         if (isSimpleProv && activeChatEl) {
@@ -3079,8 +3284,9 @@
           ? (simpleProfileName || selectedProfileName || _applyProv)
           : (matchSelect && matchSelect.value || '').trim();
         try { if (pnameEnv && window.GpaAgentSession) GpaAgentSession.setProfileName(pnameEnv); } catch (e) {}
+        _writeLastProfileName(_applyProv || 'gigachat', pnameEnv);
         saveAgentSession({ profileName: pnameEnv, fromKey: true, authenticated: true });
-        btnApply.disabled = false;
+        setApplyBusy(false, '');
         var saveEnvPromise = isSimpleProv
           ? addOrUpdateSimpleProfile(pnameEnv, chatMEnv).catch(function() {})
           : saveProfileModelsOnly(pnameEnv, chatMEnv, embMEnv).catch(function() {});
@@ -3109,24 +3315,23 @@
         }
         return;
       }
-      btnApply.disabled = true;
+      setApplyBusy(true, 'Проверяем подключение...');
+      setTokenSourceBadge(sourceInfo.source, sourceInfo.key);
       if (msg) {
-        msg.innerHTML = 'Проверка подключения к API…';
+        msg.innerHTML = 'Проверка подключения к API…<br><span class="small">Источник: ручной ввод</span>';
         msg.className = 'mt-3 alert alert-secondary py-3 mb-0'; msg.style.display = 'block';
       }
-      var verifySslEl = document.getElementById('agentVerifySslCheck');
-      var verifySsl = verifySslEl ? verifySslEl.checked : true;
       try {
-        var r = await fetch('{{ url_for("agent.api_agent_validate") }}', {
+        var r = await fetchWithTimeout('/api/agent/validate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             credentials: token,
             scope: scope,
             verify_ssl: verifySsl,
-            provider: window.agentSelectedProvider || 'gigachat'
+            provider: _applyProv || 'gigachat'
           })
-        });
+        }, APPLY_TIMEOUT_MS);
         var data = await r.json().catch(function() { return {}; });
         if (!r.ok || !(data && data.valid)) {
           if (msg) {
@@ -3135,21 +3340,23 @@
             msg.className = 'mt-3 alert alert-danger py-3 mb-0'; msg.style.display = 'block';
             msg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }
-          btnApply.disabled = false;
+          setApplyBusy(false, '');
           return;
         }
       } catch (e) {
         if (msg) {
-          var errDetail = (e && e.message) ? String(e.message) : 'Ошибка сети или сервера';
-          msg.innerHTML = '<strong>Проверка не пройдена.</strong><br>' + (errDetail).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '<br><span class="small">Внесите исправления и нажмите «Применить» снова. Профиль не создаётся.</span>';
+          var errDetail = (e && e.name === 'AbortError')
+            ? 'Таймаут проверки. Сервер не ответил за 30 секунд.'
+            : ((e && e.message) ? String(e.message) : 'Ошибка сети или сервера');
+          msg.innerHTML = '<strong>Проверка не пройдена.</strong><br>' + (errDetail).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '<br><span class="small">Источник: ручной ввод</span><br><span class="small">Внесите исправления и нажмите «Применить» снова. Профиль не создаётся.</span>';
           msg.className = 'mt-3 alert alert-danger py-3 mb-0'; msg.style.display = 'block';
           msg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-        btnApply.disabled = false;
+        setApplyBusy(false, '');
         return;
       }
       if (msg) {
-        var txt = '<strong>Проверка пройдена. Подключение установлено.</strong>';
+        var txt = '<strong>Проверка пройдена. Подключение установлено.</strong><br><span class="small">Источник: ручной ввод</span>';
         if (!isSimpleProv && data && data.verify_ssl_used === false) {
           txt += '<br><span class="small">Использовано подключение без проверки SSL. Добавьте GIGACHAT_VERIFY_SSL_CERTS=false в .env для постоянного применения.</span>';
         }
@@ -3181,6 +3388,7 @@
       try {
         if (lpTok && window.GpaAgentSession) GpaAgentSession.setProfileName(lpTok.trim());
       } catch (e) {}
+      _writeLastProfileName(_applyProv || 'gigachat', lpTok);
       saveAgentSession({ profileName: lpTok, fromKey: false, authenticated: true });
       if (isSimpleProv) {
         var nameToSave = simpleProfileName || selectedProfileName;
@@ -3197,7 +3405,7 @@
       updateTokenStrip();
       if (agentGenerateStatus) agentGenerateStatus.textContent = '';
       if (input) input.value = '';
-      btnApply.disabled = false;
+      setApplyBusy(false, '');
       setTimeout(function() {
         if (msg) { msg.innerHTML = ''; msg.className = 'mt-3'; msg.style.display = 'none'; }
         if (window.GpaAgentSetup) GpaAgentSetup.onProfileAppliedSuccess();
@@ -3559,8 +3767,9 @@
         return GpaAgentSetup.init({
           isAgentScenario: isAgentLlmScenario,
           setProvider: function(p, reload) { setAgentProvider(p, reload); },
-          syncMultiAgent: setAgentMultiAgent,
-          openProfileModal: function() {
+          syncMultiAgent: function() { setAgentMultiAgent(false); },
+          openProfileModal: function(providerId) {
+            if (providerId) setAgentProvider(providerId, false);
             ensureAgentModelOptionsLoaded(function() {
               applyModelsToSelectsFromProfile(null);
               updateAgentProviderUi();

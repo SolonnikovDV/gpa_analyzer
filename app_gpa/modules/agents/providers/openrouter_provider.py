@@ -29,7 +29,10 @@ class OpenRouterProvider:
     def validate(self, credentials: str, **kwargs: Any) -> None:
         from ..models.openrouter import validate as _validate
 
-        model = kwargs.get("model") or self.info().default_chat_model
+        info = self.info()
+        model = (kwargs.get("model") or info.default_chat_model or "").strip()
+        if model and model not in (info.available_chat_models or []):
+            model = info.default_chat_model
         _validate(credentials, model=model)
 
     def chat(
@@ -46,8 +49,15 @@ class OpenRouterProvider:
 
         oai_messages = [{"role": m.role, "content": m.content} for m in messages]
         resolved_model = (model or self.info().default_chat_model).strip()
+        info = self.info()
+        if resolved_model and resolved_model not in (info.available_chat_models or []):
+            resolved_model = info.default_chat_model
 
-        result = _chat(oai_messages, api_key=credentials, model=resolved_model)
+        result = _chat(
+            oai_messages,
+            api_key=credentials,
+            model=resolved_model,
+        )
 
         usage = result.get("usage", {})
         try:

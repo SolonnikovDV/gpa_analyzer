@@ -19,6 +19,7 @@ sha_file() {
 
 REQUIRED_RULES=(
   dialog-context-index.mdc
+  dci-working-dir-guard.mdc
   tig-preflight-enforced.mdc
   tig-snapshot.mdc
 )
@@ -61,6 +62,102 @@ check_rule_contract() {
   else
     fail "${pid}-dci-skill-contract" "DCI skill missing Token read budget or Latency"
   fi
+  if grep -q "Working directory resolution" "${dci}" && grep -q "materialize" "${dci}"; then
+    pass "${pid}-dci-workdir-contract"
+  else
+    fail "${pid}-dci-workdir-contract" "dialog-context-index missing Working dir / materialize-compress contract"
+  fi
+  local guard="${path}/.cursor/rules/dci-working-dir-guard.mdc"
+  if [[ -f "${guard}" ]] && grep -q "DCI not deployed" "${guard}"; then
+    pass "${pid}-dci-guard-present"
+  else
+    fail "${pid}-dci-guard-present" "dci-working-dir-guard.mdc missing or invalid"
+  fi
+}
+
+check_custom_rule_contract() {
+  local pid="$1" path="$2"
+  local dci="${path}/.cursor/rules/dialog-context-index.mdc"
+  local guard="${path}/.cursor/rules/dci-working-dir-guard.mdc"
+  local router="${path}/.cursor/rules/team-command-router.mdc"
+
+  # Legacy triggers must be fully removed from authoritative rules.
+  if grep -nE "(контекст:|команда:|эволюция:|/team )" "${dci}" "${guard}" "${router}" >/dev/null 2>&1; then
+    fail "${pid}-legacy-trigger-ban" "legacy triggers found in DCI/guard/router"
+  else
+    pass "${pid}-legacy-trigger-ban"
+  fi
+
+  # Mandatory keys for deterministic routing.
+  local required=(
+    "/custom-rule: dci compress"
+    "/custom-rule: dci materialize"
+    "/custom-rule: dci windows"
+    "/custom-rule: dci projects"
+    "/custom-rule: dci restore DW-NNN"
+    "/custom-rule: team sql"
+    "/custom-rule: team b2c"
+    "/custom-rule: team de-matrix"
+    "/custom-rule: team web-app"
+    "/custom-rule: team presentation"
+    "/custom-rule: team auto"
+    "/custom-rule: team reset"
+    "/custom-rule: evo report"
+    "/custom-rule: evo diff"
+    "/custom-rule: evo branch-status"
+    "/custom-rule: evo regress"
+  )
+  local missing=()
+  for k in "${required[@]}"; do
+    if ! grep -nF "${k}" "${dci}" "${guard}" "${router}" >/dev/null 2>&1; then
+      missing+=("${k}")
+    fi
+  done
+  if [[ "${#missing[@]}" -eq 0 ]]; then
+    pass "${pid}-custom-rule-required-keys"
+  else
+    fail "${pid}-custom-rule-required-keys" "missing keys: ${missing[*]}"
+  fi
+
+  # Reserved slash commands must not be hijacked by rule keys.
+  if grep -nE "/custom-rule:[[:space:]]*(plan|agent|ask|debug|mode|memory)\\b" "${dci}" "${guard}" "${router}" >/dev/null 2>&1; then
+    fail "${pid}-custom-rule-reserved-conflict" "reserved slash-key conflict detected"
+  else
+    pass "${pid}-custom-rule-reserved-conflict"
+  fi
+
+  # Authoritative DCI map should have unique one-key-one-action rows.
+  local map_rows map_actions uniq_actions
+  map_rows="$(
+    awk '
+      /Token map/ {in_map=1; next}
+      /Single source of truth/ {in_map=0}
+      in_map && $0 ~ /^\| `[^`]+` \|/ {print}
+    ' "${guard}" | wc -l | tr -d ' '
+  )"
+  map_actions="$(
+    awk -F'\\|' '
+      /Token map/ {in_map=1; next}
+      /Single source of truth/ {in_map=0}
+      in_map && $0 ~ /^\| `[^`]+` \|/ {
+        a=$3; gsub(/^[[:space:]]+|[[:space:]]+$/,"",a); print a
+      }
+    ' "${guard}" | wc -l | tr -d ' '
+  )"
+  uniq_actions="$(
+    awk -F'\\|' '
+      /Token map/ {in_map=1; next}
+      /Single source of truth/ {in_map=0}
+      in_map && $0 ~ /^\| `[^`]+` \|/ {
+        a=$3; gsub(/^[[:space:]]+|[[:space:]]+$/,"",a); print a
+      }
+    ' "${guard}" | sort -u | wc -l | tr -d ' '
+  )"
+  if [[ "${map_rows}" -eq 8 ]] && [[ "${map_actions}" -eq "${uniq_actions}" ]]; then
+    pass "${pid}-custom-rule-unique-map"
+  else
+    fail "${pid}-custom-rule-unique-map" "guard token map invalid (rows=${map_rows}, unique_actions=${uniq_actions})"
+  fi
 }
 
 check_router() {
@@ -88,6 +185,11 @@ for rule in "${REQUIRED_RULES[@]}"; do
   [[ -f "${SOURCE}/.cursor/rules/${rule}" ]] || fail "source-${rule}" "missing in source"
 done
 
+# global guard fires on контекст:* even in worktrees without project rules
+check_same_sha "global-dci-guard" \
+  "${SOURCE}/.cursor/rules/dci-working-dir-guard.mdc" \
+  "${HOME}/.cursor/rules/dci-working-dir-guard.mdc"
+
 while IFS= read -r line; do
   [[ "${line}" =~ ^# ]] && continue
   [[ -z "${line}" ]] && continue
@@ -112,6 +214,7 @@ while IFS= read -r line; do
       "${path}/${script}"
   done
   check_rule_contract "${pid}" "${path}"
+  check_custom_rule_contract "${pid}" "${path}"
   check_router "${pid}" "${path}"
 done < "${REG}"
 

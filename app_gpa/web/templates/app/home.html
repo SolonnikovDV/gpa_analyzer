@@ -50,7 +50,7 @@
             <p class="gpa-home-hero__lead">Три шага: подготовка SQL и доступов → сценарий таблиц → сводка, блоки, антипаттерны и JSON-отчёт.</p>
             <div class="gpa-home-hero__actions">
               <a class="btn btn-primary btn-lg gpa-home-cta" href="{{ url_for('analysis.detailed_index') }}">Начать анализ</a>
-              <button type="button" class="btn btn-outline-secondary btn-lg" data-bs-toggle="modal" data-bs-target="#aboutModal">О приложении</button>
+              <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('pages.about_page') }}">О приложении</a>
             </div>
           </div>
         </div>
@@ -127,12 +127,12 @@
             </span>
             <span class="gpa-home-dock__label">Анализ</span>
           </a>
-          <button type="button" class="gpa-home-dock__item border-0 bg-transparent" data-bs-toggle="modal" data-bs-target="#aboutModal" title="О приложении">
+          <a class="gpa-home-dock__item" href="{{ url_for('pages.about_page') }}" title="О приложении">
             <span class="gpa-home-dock__icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7h.01"/></svg>
             </span>
             <span class="gpa-home-dock__label">О нас</span>
-          </button>
+          </a>
           <button type="button" class="gpa-home-dock__item border-0 bg-transparent theme-toggle" data-theme-toggle aria-label="Переключить тему" title="Тема">
             <span class="gpa-home-dock__icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 3a6 6 0 100 12 6 6 0 000-12z"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
@@ -147,7 +147,6 @@
   </main>
 </div>
 
-{% include 'about_modal.html' %}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

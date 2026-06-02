@@ -132,7 +132,6 @@ class GigaChatClient:
 
     def __enter__(self):
         from gigachat import GigaChat  # type: ignore[import]
-
         self._giga = GigaChat(**self._kwargs).__enter__()
         return self._giga
 
@@ -143,7 +142,6 @@ class GigaChatClient:
             except Exception:
                 pass
             self._giga = None
-
     # ------------------------------------------------------------------
     # Convenience
     # ------------------------------------------------------------------
@@ -184,3 +182,5 @@ class GigaChatClient:
             "timeout": _http_timeout(),
             **kw,
         }
+
+

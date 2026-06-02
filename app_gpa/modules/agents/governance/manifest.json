@@ -69,7 +69,7 @@
     }
   },
   "multi_agent": {
-    "enabled": false,
+    "enabled": true,
     "max_debate_rounds": 3,
     "max_reviewers_per_round": 2,
     "cycle_guard_ms": 120000,
