@@ -12,6 +12,11 @@
 6. [Maintenance Rules](maintenance.md)
 7. [Migration Registry](migration_registry.md)
 8. [Glossary](glossary/terms.md)
+9. [UX Audit Log](ux/ux_audit_log.md)
+10. [UX Focus Group Round 1](ux/focus_group_round1.md)
+11. [UX Focus Group Round 2](ux/focus_group_round2.md)
+12. [UX Design Consistency Checklist](ux/design_consistency_checklist.md)
+13. [UX Final Consensus Report](ux/final_consensus_report.md)
 
 ## Scope
 

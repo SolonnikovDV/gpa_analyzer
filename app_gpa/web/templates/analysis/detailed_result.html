@@ -1141,7 +1141,7 @@
               try {
                 const mtEscaped = escapeHtml(mt);
                 const reEscaped = mtEscaped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
-                sqlHtml = sqlHtml.replace(new RegExp(reEscaped, 'gi'), m => `<mark class="bg-warning text-dark">${m}</mark>`);
+                sqlHtml = sqlHtml.replace(new RegExp(reEscaped, 'gi'), m => `<mark class="sql-risk-highlight">${m}</mark>`);
               } catch (e) {}
             }
           });
@@ -1153,7 +1153,7 @@
               </div>
               <div class="card-body py-2 small">
                 <strong>Текст блока:</strong>
-                <pre class="bg-light p-2 rounded mt-1 mb-2 small" style="white-space: pre-wrap; word-break: break-word;">${sqlHtml}</pre>
+                <pre class="analysis-sql-snippet p-2 rounded mt-1 mb-2 small" style="white-space: pre-wrap; word-break: break-word;">${sqlHtml}</pre>
                 <strong>Антипаттерны:</strong>
                 <ul class="mb-2">${apItems}</ul>
                 ${blockHedge ? '<strong>Рекомендации для блока:</strong><ul>' + blockHedge + '</ul>' : ''}
