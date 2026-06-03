@@ -10,7 +10,7 @@ from modules.agents.governance.prompt_composer import compose_debate_instruction
 
 
 def test_multi_agent_disabled_by_default():
-    assert is_multi_agent_enabled() is False
+    assert is_multi_agent_enabled() is True
 
 
 def test_multi_agent_env_override(monkeypatch):

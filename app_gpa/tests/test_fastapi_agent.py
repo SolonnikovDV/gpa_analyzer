@@ -32,12 +32,15 @@ def test_flow_plan_multi(api_client):
     )
     body = r.json()
     assert body["ok"] is True
-    assert body["mode"] == "multi"
-    assert len(body["slots"]) == 2
+    # Hard-mode runtime normalizes to single provider flow.
+    assert body["mode"] == "single"
+    assert len(body["slots"]) == 1
+    assert body["slots"][0]["provider_id"] == "gigachat"
 
 
 def test_providers_list(api_client):
     r = api_client.get("/agent/providers")
     assert r.status_code == 200
-    assert r.json()["ok"] is True
-    assert "providers" in r.json()
+    body = r.json()
+    assert body["ok"] is True
+    assert "providers" in body["data"]

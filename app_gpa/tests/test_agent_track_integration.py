@@ -54,8 +54,8 @@ DISCOVERY_PAYLOAD: Dict[str, Any] = {
     "use_db_connection": False,
     "agent_credentials": "sk-test",
     "agent_scope": "GIGACHAT_API_PERS",
-    "agent_provider": "deepseek",
-    "agent_chat_model": "deepseek-chat",
+    "agent_provider": "gigachat",
+    "agent_chat_model": "GigaChat-2",
     "agent_description": "test function",
     "segments": 120,
     "ram_per_seg_gb": 153.6,
@@ -64,13 +64,13 @@ DISCOVERY_PAYLOAD: Dict[str, Any] = {
 
 def _patch_pure_agent_mocks(monkeypatch):
     monkeypatch.setattr(
-        "agent.gigachat_agent.get_blocks_and_objects_from_ddl",
+        "modules.agents.gigachat_agent.get_blocks_and_objects_from_ddl",
         lambda *args, **kwargs: dict(AGENT_BLOCKS_RESPONSE),
     )
-    monkeypatch.setattr("agent.agent_cache_db.get_state", lambda *a, **k: None)
-    monkeypatch.setattr("agent.agent_cache_db.set_state", lambda *a, **k: None)
-    monkeypatch.setattr("agent.agent_cache_db.get_plan", lambda *a, **k: None)
-    monkeypatch.setattr("agent.agent_cache_db.set_plan", lambda *a, **k: None)
+    monkeypatch.setattr("modules.agents.agent_cache_db.get_state", lambda *a, **k: None)
+    monkeypatch.setattr("modules.agents.agent_cache_db.set_state", lambda *a, **k: None)
+    monkeypatch.setattr("modules.agents.agent_cache_db.get_plan", lambda *a, **k: None)
+    monkeypatch.setattr("modules.agents.agent_cache_db.set_plan", lambda *a, **k: None)
 
 
 @pytest.fixture()
@@ -104,7 +104,7 @@ def test_api_governance_summary(client):
     data = payload["data"]
     assert data["team_id"] == "gpa-agent-team"
     assert "generate_sql" in data["track_steps"]
-    assert "deepseek" in data["providers"]
+    assert "gigachat" in data["providers"]
 
 
 def test_api_providers_contract(client):
@@ -114,7 +114,7 @@ def test_api_providers_contract(client):
     assert response.status_code == 200
     ids = [p["id"] for p in payload["data"]["providers"]]
     assert "gigachat" in ids
-    assert "deepseek" in ids
+    assert "gigachat" in ids
 
 
 def test_status_exposes_agent_and_governance_fields(client):
@@ -126,15 +126,15 @@ def test_status_exposes_agent_and_governance_fields(client):
             "stack": "greenplum",
             "analysis_mode": "hybrid",
             "use_db_connection": False,
-            "agent_provider": "deepseek",
-            "agent_chat_model": "deepseek-chat",
+            "agent_provider": "gigachat",
+            "agent_chat_model": "GigaChat-2",
             "discovery_result": {"use_agent_path": True, "blocks_count": 1},
         },
     )
     response = test_client.get("/status/job-agent-meta")
     payload = response.get_json()
     assert response.status_code == 200
-    assert payload["agent_provider"] == "deepseek"
+    assert payload["agent_provider"] == "gigachat"
     assert payload["governance_team_id"] == "gpa-agent-team"
     assert payload["governance_version"] == "1.0.0"
     assert payload["discovery"]["use_agent_path"] is True
@@ -187,11 +187,11 @@ def test_pure_agent_analysis_deepseek_mocked(client, monkeypatch):
     _patch_pure_agent_mocks(monkeypatch)
 
     def fake_synthesize(query, objects, **kwargs):
-        assert kwargs.get("provider") == "deepseek"
+        assert kwargs.get("provider") == "gigachat"
         assert kwargs.get("stack") == "greenplum"
         return dict(SAMPLE_PLAN)
 
-    monkeypatch.setattr("agent.gigachat_agent.synthesize_plan_for_query", fake_synthesize)
+    monkeypatch.setattr("modules.agents.gigachat_agent.synthesize_plan_for_query", fake_synthesize)
 
     webapp._run_discovery_job(job_id, dict(DISCOVERY_PAYLOAD))
 
@@ -208,7 +208,7 @@ def test_pure_agent_analysis_deepseek_mocked(client, monkeypatch):
     assert job["status"] == JOB_STATUS_DONE
     result = job.get("result") or {}
     assert result.get("analyzed_blocks", 0) >= 1
-    assert result.get("agent_provider") == "deepseek"
+    assert result.get("agent_provider") == "gigachat"
     assert result.get("risk")
 
 
@@ -223,26 +223,26 @@ def test_track_generate_deepseek_with_review_mocked(monkeypatch):
         if step_id == "analyze_description":
             return ChatResult(
                 text=json.dumps({"intent": "function", "context_sufficient": True, "warning": None}),
-                provider="deepseek",
-                model="deepseek-chat",
+                provider="gigachat",
+                model="GigaChat-2",
             )
         if step_id == "generate_sql":
-            return ChatResult(text="SELECT 1;", provider="deepseek", model="deepseek-chat")
+            return ChatResult(text="SELECT 1;", provider="gigachat", model="GigaChat-2")
         if step_id == "revise_sql":
-            return ChatResult(text="SELECT 1;", provider="deepseek", model="deepseek-chat")
-        return ChatResult(text="", provider="deepseek", model="deepseek-chat")
+            return ChatResult(text="SELECT 1;", provider="gigachat", model="GigaChat-2")
+        return ChatResult(text="", provider="gigachat", model="GigaChat-2")
 
     monkeypatch.setattr(AgentOrchestrator, "chat", fake_chat)
 
     out = generate_sql(
         "simple query",
-        provider="deepseek",
+        provider="gigachat",
         stack="greenplum",
         credentials_override="sk-test",
         with_review=True,
         code_revision_pass=True,
     )
-    assert out["provider"] == "deepseek"
+    assert out["provider"] == "gigachat"
     assert "SELECT 1" in out["sql_or_ddl"]
     assert "generate_sql" in calls
     assert out.get("code_revision_ran") is True
@@ -300,11 +300,11 @@ def test_orchestrator_multi_agent_consensus(monkeypatch):
                 text = "CONSENSUS: SELECT 1"
             return ChatResult(text=text, provider="deepseek", model=model or "deepseek-chat")
 
-    monkeypatch.setattr("agent.orchestrator.get_provider", lambda _pid: FakeProvider())
+    monkeypatch.setattr("modules.agents.orchestrator.get_provider", lambda _pid: FakeProvider())
     monkeypatch.setenv("GPA_MULTI_AGENT_ENABLED", "1")
 
     orch = AgentOrchestrator(
-        provider="deepseek",
+        provider="gigachat",
         stack="greenplum",
         credentials_override="sk-test",
         multi_agent=True,

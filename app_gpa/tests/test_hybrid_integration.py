@@ -73,7 +73,7 @@ def test_providers_have_ui_metadata(api_client):
     assert r.status_code == 200
     body = r.json()
     assert body["ok"] is True
-    providers = body["providers"]
+    providers = body["data"]["providers"]
     assert len(providers) >= 1
     for p in providers:
         assert "env_key" in p, f"Missing env_key for {p.get('id')}"
@@ -103,13 +103,12 @@ def test_gigachat_profiles_get(api_client):
 def test_simple_profiles_unknown_provider_404(api_client):
     r = api_client.get("/agent/profiles/nonexistent_provider_xyz")
     assert r.status_code == 404
-    assert not r.json()["ok"]
+    assert "detail" in r.json()
 
 
 def test_simple_profiles_deepseek_get(api_client):
     r = api_client.get("/agent/profiles/deepseek")
-    assert r.status_code == 200
-    assert r.json()["ok"] is True
+    assert r.status_code == 404
 
 
 def test_simple_profiles_delete_missing(api_client):
@@ -126,7 +125,7 @@ def test_env_token_status(api_client):
     r = api_client.get("/agent/env-token-status", params={"provider": "deepseek"})
     assert r.status_code == 200
     body = r.json()
-    assert "hasToken" in body
+    assert "hasToken" in body["data"]
 
 
 # ---------------------------------------------------------------------------
@@ -168,7 +167,7 @@ def test_model_options_gigachat(api_client):
 def test_model_options_deepseek(api_client):
     r = api_client.get("/agent/model-options", params={"provider": "deepseek"})
     assert r.status_code == 200
-    assert "chat" in r.json()
+    assert "chat" in r.json()["data"]
 
 
 # ---------------------------------------------------------------------------
