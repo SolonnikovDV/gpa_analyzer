@@ -1,8 +1,14 @@
 from types import SimpleNamespace
 
 import pytest
+pytest.importorskip("fastapi", reason="fastapi not installed; skipping webapp integration tests", exc_type=ImportError)
+
+from fastapi import FastAPI
+from fastapi.middleware.wsgi import WSGIMiddleware
+from fastapi.testclient import TestClient
 
 import webapp
+from api.app_factory import create_api_app
 from modules.analysis.job_contracts import JOB_STATUS_DONE, JOB_STATUS_TABLES_DISCOVERED
 from modules.analysis.job_service import JobService
 from modules.analysis.job_store import SQLiteJobStore
@@ -20,8 +26,10 @@ def client(monkeypatch, tmp_path):
     monkeypatch.setattr(webapp, "_performance_monitors", {})
     monkeypatch.setattr(webapp, "_persistence", SimpleNamespace(db_path=str(tmp_path / "health.sqlite3")))
 
-    webapp.app.config["TESTING"] = True
-    with webapp.app.test_client() as test_client:
+    root = FastAPI(title="GPA Test", docs_url="/api/docs", openapi_url="/api/openapi.json")
+    root.mount("/api", create_api_app())
+    root.mount("/", WSGIMiddleware(webapp.app))
+    with TestClient(root) as test_client:
         yield test_client, job_service
 
 

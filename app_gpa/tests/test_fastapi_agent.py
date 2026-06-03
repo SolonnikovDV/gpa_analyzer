@@ -3,7 +3,11 @@ from __future__ import annotations
 
 import pytest
 
-pytest.importorskip("fastapi", reason="fastapi not installed; skipping FastAPI tests")
+pytest.importorskip(
+    "fastapi",
+    reason="fastapi not installed; skipping FastAPI tests",
+    exc_type=ImportError,
+)
 
 from fastapi.testclient import TestClient
 
@@ -28,7 +32,7 @@ def test_flow_plan_single_gigachat(api_client):
 def test_flow_plan_multi(api_client):
     r = api_client.get(
         "/agent/flow/plan",
-        params={"mode": "multi", "selected_provider_ids": "gigachat,deepseek"},
+        params={"mode": "multi", "selected_provider_ids": "gigachat"},
     )
     body = r.json()
     assert body["ok"] is True

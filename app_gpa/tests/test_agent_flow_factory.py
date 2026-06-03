@@ -6,23 +6,21 @@ from modules.agents.flow.profile_handlers import get_profile_handler
 
 
 def test_single_flow_same_steps_for_providers():
-    for pid in ("gigachat", "deepseek"):
-        plan = build_flow_plan(mode="single", stack="greenplum", provider=pid)
-        d = flow_plan_to_dict(plan)
-        assert d["mode"] == "single"
-        kinds = [s["kind"] for s in d["steps"]]
-        assert kinds.count("profile") == 1
-        assert kinds[-1] == "ready"
-        # Unsupported providers are normalized to gigachat in hard mode.
-        assert d["slots"][0]["provider_id"] == "gigachat"
-        assert "profile_schema" in d["slots"][0]
+    plan = build_flow_plan(mode="single", stack="greenplum", provider="gigachat")
+    d = flow_plan_to_dict(plan)
+    assert d["mode"] == "single"
+    kinds = [s["kind"] for s in d["steps"]]
+    assert kinds.count("profile") == 1
+    assert kinds[-1] == "ready"
+    assert d["slots"][0]["provider_id"] == "gigachat"
+    assert "profile_schema" in d["slots"][0]
 
 
 def test_multi_flow_select_then_profiles():
     plan = build_flow_plan(
         mode="multi",
         stack="greenplum",
-        selected_provider_ids=["gigachat", "deepseek"],
+        selected_provider_ids=["gigachat"],
     )
     d = flow_plan_to_dict(plan)
     assert d["mode"] == "multi"
@@ -34,8 +32,7 @@ def test_multi_flow_select_then_profiles():
 
 
 def test_profile_handlers_share_validate_interface():
-    for pid in ("gigachat", "deepseek"):
-        h = get_profile_handler(pid)
-        schema = h.field_schema()
-        assert schema["provider_id"] == "gigachat"
-        assert isinstance(schema["fields"], list)
+    h = get_profile_handler("gigachat")
+    schema = h.field_schema()
+    assert schema["provider_id"] == "gigachat"
+    assert isinstance(schema["fields"], list)

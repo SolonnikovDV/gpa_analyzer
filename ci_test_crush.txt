@@ -1,0 +1,92 @@
+2s
+Run python -m pytest -q --tb=short
+.F...........FF.....................................F................... [ 75%]
+.............FFFF....F..                                                 [100%]
+=================================== FAILURES ===================================
+________________________ test_resolve_deepseek_from_env ________________________
+tests/test_agent_credentials.py:11: in test_resolve_deepseek_from_env
+    assert resolve_credentials("deepseek") is not None
+E   AssertionError: assert None is not None
+E    +  where None = resolve_credentials('deepseek')
+_________________________ test_api_governance_summary __________________________
+tests/test_agent_track_integration.py:102: in test_api_governance_summary
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+----------------------------- Captured stderr call -----------------------------
+{"event": "http.request.started", "method": "GET", "path": "/api/agent/governance", "remote_addr": "127.0.0.1", "request_id": "***", "timestamp": "2026-06-03T09:30:21.562426+00:00"}
+{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/api/agent/governance", "request_id": "***", "status_code": 404, "timestamp": "2026-06-03T09:30:21.563238+00:00"}
+_________________________ test_api_providers_contract __________________________
+tests/test_agent_track_integration.py:114: in test_api_providers_contract
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+----------------------------- Captured stderr call -----------------------------
+{"event": "http.request.started", "method": "GET", "path": "/api/agent/providers", "remote_addr": "127.0.0.1", "request_id": "***", "timestamp": "2026-06-03T09:30:21.576622+00:00"}
+{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/api/agent/providers", "request_id": "***", "status_code": 404, "timestamp": "2026-06-03T09:30:21.576898+00:00"}
+____________________________ test_env_token_status _____________________________
+tests/test_hybrid_integration.py:128: in test_env_token_status
+    assert "hasToken" in body["data"]
+E   KeyError: 'data'
+----------------------------- Captured stderr call -----------------------------
+{"duration_ms": 1, "event": "http.request.completed", "framework": "fastapi", "method": "GET", "path": "/agent/env-token-status", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T09:30:22.216611+00:00"}
+_______________ test_runtime_descriptor_returns_unified_contract _______________
+tests/test_webapp_integration.py:34: in test_runtime_descriptor_returns_unified_contract
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+----------------------------- Captured stderr call -----------------------------
+{"event": "http.request.started", "method": "POST", "path": "/api/runtime/descriptor", "remote_addr": "127.0.0.1", "request_id": "***", "timestamp": "2026-06-03T09:30:22.304605+00:00"}
+{"duration_ms": 0, "event": "http.request.completed", "method": "POST", "path": "/api/runtime/descriptor", "request_id": "***", "status_code": 404, "timestamp": "2026-06-03T09:30:22.304970+00:00"}
+________________________ test_runtime_presets_crud_flow ________________________
+tests/test_webapp_integration.py:49: in test_runtime_presets_crud_flow
+    assert create_response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+----------------------------- Captured stderr call -----------------------------
+{"event": "http.request.started", "method": "POST", "path": "/api/runtime-presets", "remote_addr": "127.0.0.1", "request_id": "***", "timestamp": "2026-06-03T09:30:22.318606+00:00"}
+{"duration_ms": 0, "event": "http.request.completed", "method": "POST", "path": "/api/runtime-presets", "request_id": "***", "status_code": 404, "timestamp": "2026-06-03T09:30:22.318881+00:00"}
+_________ test_runtime_presets_validation_error_uses_standard_contract _________
+tests/test_webapp_integration.py:75: in test_runtime_presets_validation_error_uses_standard_contract
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+----------------------------- Captured stderr call -----------------------------
+{"event": "http.request.started", "method": "POST", "path": "/api/runtime-presets", "remote_addr": "127.0.0.1", "request_id": "***", "timestamp": "2026-06-03T09:30:22.332450+00:00"}
+{"duration_ms": 0, "event": "http.request.completed", "method": "POST", "path": "/api/runtime-presets", "request_id": "***", "status_code": 404, "timestamp": "2026-06-03T09:30:22.332722+00:00"}
+_______________ test_runtime_test_for_spark_returns_ok_contract ________________
+tests/test_webapp_integration.py:86: in test_runtime_test_for_spark_returns_ok_contract
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+----------------------------- Captured stderr call -----------------------------
+{"event": "http.request.started", "method": "POST", "path": "/api/runtime/test", "remote_addr": "127.0.0.1", "request_id": "***", "timestamp": "2026-06-03T09:30:22.345864+00:00"}
+{"duration_ms": 0, "event": "http.request.completed", "method": "POST", "path": "/api/runtime/test", "request_id": "***", "status_code": 404, "timestamp": "2026-06-03T09:30:22.346103+00:00"}
+________________ test_request_id_is_exposed_in_response_headers ________________
+tests/test_webapp_integration.py:183: in test_request_id_is_exposed_in_response_headers
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+----------------------------- Captured stderr call -----------------------------
+{"event": "http.request.started", "method": "GET", "path": "/api/cache/baseline", "remote_addr": "127.0.0.1", "request_id": "req-123", "timestamp": "2026-06-03T09:30:22.404910+00:00"}
+{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/api/cache/baseline", "request_id": "req-123", "status_code": 404, "timestamp": "2026-06-03T09:30:22.405165+00:00"}
+=========================== short test summary info ============================
+FAILED tests/test_agent_credentials.py::test_resolve_deepseek_from_env - AssertionError: assert None is not None
+ +  where None = resolve_credentials('deepseek')
+FAILED tests/test_agent_track_integration.py::test_api_governance_summary - assert 404 == 200
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+FAILED tests/test_agent_track_integration.py::test_api_providers_contract - assert 404 == 200
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+FAILED tests/test_hybrid_integration.py::test_env_token_status - KeyError: 'data'
+FAILED tests/test_webapp_integration.py::test_runtime_descriptor_returns_unified_contract - assert 404 == 200
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+FAILED tests/test_webapp_integration.py::test_runtime_presets_crud_flow - assert 404 == 200
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+FAILED tests/test_webapp_integration.py::test_runtime_presets_validation_error_uses_standard_contract - assert 404 == 400
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+FAILED tests/test_webapp_integration.py::test_runtime_test_for_spark_returns_ok_contract - assert 404 == 200
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+FAILED tests/test_webapp_integration.py::test_request_id_is_exposed_in_response_headers - assert 404 == 200
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+9 failed, 87 passed in 1.88s
+Error: Process completed with exit code 1.

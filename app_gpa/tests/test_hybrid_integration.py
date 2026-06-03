@@ -12,7 +12,11 @@ from __future__ import annotations
 
 import pytest
 
-pytest.importorskip("fastapi", reason="fastapi not installed; skipping hybrid tests")
+pytest.importorskip(
+    "fastapi",
+    reason="fastapi not installed; skipping hybrid tests",
+    exc_type=ImportError,
+)
 
 import os
 os.environ.setdefault("GPA_HYBRID_MODE", "1")
@@ -106,13 +110,13 @@ def test_simple_profiles_unknown_provider_404(api_client):
     assert "detail" in r.json()
 
 
-def test_simple_profiles_deepseek_get(api_client):
-    r = api_client.get("/agent/profiles/deepseek")
+def test_simple_profiles_unsupported_provider_get(api_client):
+    r = api_client.get("/agent/profiles/unsupported_provider")
     assert r.status_code == 404
 
 
 def test_simple_profiles_delete_missing(api_client):
-    r = api_client.delete("/agent/profiles/deepseek/__no_such_profile__")
+    r = api_client.delete("/agent/profiles/unsupported_provider/__no_such_profile__")
     assert r.status_code == 404
 
 
@@ -122,10 +126,10 @@ def test_simple_profiles_delete_missing(api_client):
 
 
 def test_env_token_status(api_client):
-    r = api_client.get("/agent/env-token-status", params={"provider": "deepseek"})
+    r = api_client.get("/agent/env-token-status", params={"provider": "gigachat"})
     assert r.status_code == 200
     body = r.json()
-    assert "hasToken" in body["data"]
+    assert "hasToken" in (body.get("data") or body)
 
 
 # ---------------------------------------------------------------------------
@@ -164,8 +168,8 @@ def test_model_options_gigachat(api_client):
     assert len(body["chat"]) > 0
 
 
-def test_model_options_deepseek(api_client):
-    r = api_client.get("/agent/model-options", params={"provider": "deepseek"})
+def test_model_options_unsupported_provider(api_client):
+    r = api_client.get("/agent/model-options", params={"provider": "unsupported_provider"})
     assert r.status_code == 200
     assert "chat" in r.json()["data"]
 

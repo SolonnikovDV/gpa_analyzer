@@ -7,8 +7,14 @@ from types import SimpleNamespace
 from typing import Any, Dict, List
 
 import pytest
+pytest.importorskip("fastapi", reason="fastapi not installed; skipping integration API tests", exc_type=ImportError)
+
+from fastapi import FastAPI
+from fastapi.middleware.wsgi import WSGIMiddleware
+from fastapi.testclient import TestClient
 
 import webapp
+from api.app_factory import create_api_app
 from modules.agents.providers.base import ChatMessage, ChatResult, ProviderInfo
 from modules.analysis.analysis_orchestrator import AnalysisOrchestrator
 from modules.analysis.job_contracts import JOB_STATUS_DONE, JOB_STATUS_TABLES_DISCOVERED
@@ -90,8 +96,10 @@ def client(monkeypatch, tmp_path):
     )
     monkeypatch.setattr(webapp, "_persistence", SimpleNamespace(db_path=str(tmp_path / "health.sqlite3")))
 
-    webapp.app.config["TESTING"] = True
-    with webapp.app.test_client() as test_client:
+    root = FastAPI(title="GPA Test", docs_url="/api/docs", openapi_url="/api/openapi.json")
+    root.mount("/api", create_api_app())
+    root.mount("/", WSGIMiddleware(webapp.app))
+    with TestClient(root) as test_client:
         yield test_client, job_service
 
 
@@ -140,9 +148,9 @@ def test_status_exposes_agent_and_governance_fields(client):
     assert payload["discovery"]["use_agent_path"] is True
 
 
-def test_pure_agent_discovery_deepseek_mocked(client, monkeypatch):
+def test_pure_agent_discovery_gigachat_mocked(client, monkeypatch):
     _, job_service = client
-    job_id = "disc-deepseek-1"
+    job_id = "disc-gigachat-1"
     job_service.create_job(
         job_id,
         {
@@ -166,10 +174,10 @@ def test_pure_agent_discovery_deepseek_mocked(client, monkeypatch):
     assert "public.t1" in (discovery.get("discovered_tables") or {})
 
 
-def test_pure_agent_analysis_deepseek_mocked(client, monkeypatch):
+def test_pure_agent_analysis_gigachat_mocked(client, monkeypatch):
     """E2E шаг 3: discovery → analysis с agent plan (DeepSeek mocked)."""
     _, job_service = client
-    job_id = "analysis-deepseek-1"
+    job_id = "analysis-gigachat-1"
     job_service.create_job(
         job_id,
         {
@@ -212,7 +220,7 @@ def test_pure_agent_analysis_deepseek_mocked(client, monkeypatch):
     assert result.get("risk")
 
 
-def test_track_generate_deepseek_with_review_mocked(monkeypatch):
+def test_track_generate_gigachat_with_review_mocked(monkeypatch):
     from modules.agents.orchestrator import AgentOrchestrator
     from modules.agents.track import generate_sql
 
@@ -279,13 +287,13 @@ def test_orchestrator_multi_agent_consensus(monkeypatch):
     round_idx = {"n": 0}
 
     class FakeProvider:
-        id = "deepseek"
+        id = "gigachat"
 
         def info(self):
             return ProviderInfo(
-                id="deepseek",
-                label="DeepSeek",
-                default_chat_model="deepseek-chat",
+                id="gigachat",
+                label="GigaChat",
+                default_chat_model="GigaChat-2",
                 supports_embeddings=False,
             )
 
@@ -298,7 +306,7 @@ def test_orchestrator_multi_agent_consensus(monkeypatch):
                 text = f"Round {round_idx['n']}: needs review"
             else:
                 text = "CONSENSUS: SELECT 1"
-            return ChatResult(text=text, provider="deepseek", model=model or "deepseek-chat")
+            return ChatResult(text=text, provider="gigachat", model=model or "GigaChat-2")
 
     monkeypatch.setattr("modules.agents.orchestrator.get_provider", lambda _pid: FakeProvider())
     monkeypatch.setenv("GPA_MULTI_AGENT_ENABLED", "1")

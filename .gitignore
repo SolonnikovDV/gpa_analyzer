@@ -74,3 +74,8 @@ test_query
 # --- TIG generated artifacts (local only) ---
 tig_delta.md
 tig_snapshot.md
+tig_app_ru.py
+
+
+# --- Rukes and context ---
+README_CUSTOM_RULES.md

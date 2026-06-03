@@ -29,4 +29,4 @@ def test_role_brief_exists():
 def test_governance_public_summary():
     s = governance_public_summary("greenplum")
     assert s["team_id"] == "gpa-agent-team"
-    assert "deepseek" in s["providers"]
+    assert "gigachat" in s["providers"]
