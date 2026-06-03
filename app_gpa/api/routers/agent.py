@@ -6,6 +6,7 @@ only; all JSON API endpoints are served from here.
 """
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import queue
@@ -530,7 +531,16 @@ def post_generate_sql_stream(body: GenerateSQLRequest) -> Any:
         events_q.put({"event": event, "data": data})
 
     def worker() -> None:
+        thread_loop: Optional[asyncio.AbstractEventLoop] = None
         try:
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                # Streaming worker runs in a plain thread; bootstrap loop for SDK paths
+                # that still expect a current event loop.
+                thread_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(thread_loop)
+
             from modules.agents.track import generate_sql as track_generate_sql
 
             emit("status", {"message": "Генерация запущена"})
@@ -562,6 +572,12 @@ def post_generate_sql_stream(body: GenerateSQLRequest) -> Any:
             else:
                 emit("error", {"code": "agent_generate_failed", "error": err_str})
         finally:
+            if thread_loop is not None:
+                try:
+                    thread_loop.close()
+                except Exception:
+                    pass
+                asyncio.set_event_loop(None)
             events_q.put(done_sentinel)
 
     thread = threading.Thread(target=worker, daemon=True)

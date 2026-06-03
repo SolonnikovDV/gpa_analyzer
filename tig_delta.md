@@ -1,13 +1,13 @@
 ---
 {
   "tig_cli_version": "1.5",
-  "generated_at": "2026-06-02T18:01:44Z",
+  "generated_at": "2026-06-03T09:47:37Z",
   "base_ref": "HEAD~1",
   "base_ref_note": "fallback:HEAD~1 (preferred 'origin/main' missing)",
   "snapshot": "/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/tig_snapshot.md",
   "snapshot_reused": true,
-  "fingerprint": "sha256:5d2214dd4877ad64",
-  "git_head": "ffddf3cdbe0b58571e37e0fe769871b63cfac2f2",
+  "fingerprint": "sha256:b971cad970c8ff8e",
+  "git_head": "16402985ad317a2426bf0da01cf15b42ce27b342",
   "git_dirty": true
 }
 ---
@@ -15,1108 +15,1304 @@
 # TIG Delta Report
 
 - **Snapshot:** `tig_snapshot.md` (reused)
-- **Fingerprint:** `sha256:5d2214dd4877ad64`
+- **Fingerprint:** `sha256:b971cad970c8ff8e`
 - **Base ref:** `HEAD~1` (fallback:HEAD~1 (preferred 'origin/main' missing))
 
 ## Working tree
 
 ```text
-M .venv/bin/pip
- M .venv/bin/pip3
- M .venv/bin/pip3.9
- D .venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/INSTALLER
- D .venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/LICENSE.txt
- D .venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/METADATA
- D .venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/RECORD
- D .venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/REQUESTED
- D .venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/WHEEL
- D .venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/entry_points.txt
- D .venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/top_level.txt
- M .venv/lib/python3.9/site-packages/pip/__init__.py
- M .venv/lib/python3.9/site-packages/pip/__main__.py
- M .venv/lib/python3.9/site-packages/pip/_internal/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_internal/build_env.py
- M .venv/lib/python3.9/site-packages/pip/_internal/cache.py
- M .venv/lib/python3.9/site-packages/pip/_internal/cli/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_internal/cli/autocompletion.py
- M .venv/lib/python3.9/site-packages/pip/_internal/cli/base_command.py
- M .venv/lib/python3.9/site-packages/pip/_internal/cli/cmdoptions.py
- M .venv/lib/python3.9/site-packages/pip/_internal/cli/command_context.py
- M .venv/lib/python3.9/site-packages/pip/_internal/cli/main.py
- M .venv/lib/python3.9/site-packages/pip/_internal/cli/main_parser.py
- M .venv/lib/python3.9/site-packages/pip/_internal/cli/parser.py
- M .venv/lib/python3.9/site-packages/pip/_internal/cli/progress_bars.py
- M .venv/lib/python3.9/site-packages/pip/_internal/cli/req_command.py
- M .venv/lib/python3.9/site-packages/pip/_internal/cli/spinners.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/cache.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/check.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/completion.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/configuration.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/debug.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/download.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/freeze.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/hash.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/help.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/index.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/install.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/list.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/search.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/show.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/uninstall.py
- M .venv/lib/python3.9/site-packages/pip/_internal/commands/wheel.py
- M .venv/lib/python3.9/site-packages/pip/_internal/configuration.py
- M .venv/lib/python3.9/site-packages/pip/_internal/distributions/base.py
- M .venv/lib/python3.9/site-packages/pip/_internal/distributions/installed.py
- M .venv/lib/python3.9/site-packages/pip/_internal/distributions/sdist.py
- M .venv/lib/python3.9/site-packages/pip/_internal/distributions/wheel.py
- M .venv/lib/python3.9/site-packages/pip/_internal/exceptions.py
- M .venv/lib/python3.9/site-packages/pip/_internal/index/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_internal/index/collector.py
- M .venv/lib/python3.9/site-packages/pip/_internal/index/package_finder.py
- M .venv/lib/python3.9/site-packages/pip/_internal/index/sources.py
- M .venv/lib/python3.9/site-packages/pip/_internal/locations/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_internal/locations/_distutils.py
- M .venv/lib/python3.9/site-packages/pip/_internal/locations/_sysconfig.py
- M .venv/lib/python3.9/site-packages/pip/_internal/locations/base.py
- M .venv/lib/python3.9/site-packages/pip/_internal/main.py
- M .venv/lib/python3.9/site-packages/pip/_internal/metadata/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_internal/metadata/base.py
- M .venv/lib/python3.9/site-packages/pip/_internal/metadata/pkg_resources.py
- M .venv/lib/python3.9/site-packages/pip/_internal/models/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_internal/models/candidate.py
- M .venv/lib/python3.9/site-packages/pip/_internal/models/direct_url.py
- M .venv/lib/python3.9/site-packages/pip/_internal/models/format_control.py
- M .venv/lib/python3.9/site-packages/pip/_internal/models/index.py
- M .venv/lib/python3.9/site-packages/pip/_internal/models/link.py
- M .venv/lib/python3.9/site-packages/pip/_internal/models/scheme.py
- M .venv/lib/python3.9/site-packages/pip/_internal/models/search_scope.py
- M .venv/lib/python3.9/site-packages/pip/_internal/models/selection_prefs.py
- M .venv/lib/python3.9/site-packages/pip/_internal/models/target_python.py
- M .venv/lib/python3.9/site-packages/pip/_internal/models/wheel.py
- M .venv/lib/python3.9/site-packages/pip/_internal/network/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_internal/network/auth.py
- M .venv/lib/python3.9/site-packages/pip/_internal/network/cache.py
- M .venv/lib/python3.9/site-packages/pip/_internal/network/download.py
- M .venv/lib/python3.9/site-packages/pip/_internal/network/lazy_wheel.py
- M .venv/lib/python3.9/site-packages/pip/_internal/network/session.py
- M .venv/lib/python3.9/site-packages/pip/_internal/network/utils.py
- M .venv/lib/python3.9/site-packages/pip/_internal/network/xmlrpc.py
- M .venv/lib/python3.9/site-packages/pip/_internal/operations/build/metadata.py
- D .venv/lib/python3.9/site-packages/pip/_internal/operations/build/metadata_legacy.py
- M .venv/lib/python3.9/site-packages/pip/_internal/operations/build/wheel.py
- D .venv/lib/python3.9/site-packages/pip/_internal/operations/build/wheel_legacy.py
- M .venv/lib/python3.9/site-packages/pip/_internal/operations/check.py
- M .venv/lib/python3.9/site-packages/pip/_internal/operations/freeze.py
- M .venv/lib/python3.9/site-packages/pip/_internal/operations/install/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_internal/operations/install/editable_legacy.py
- D .venv/lib/python3.9/site-packages/pip/_internal/operations/install/legacy.py
- M .venv/lib/python3.9/site-packages/pip/_internal/operations/install/wheel.py
- M .venv/lib/python3.9/site-packages/pip/_internal/operations/prepare.py
- M .venv/lib/python3.9/site-packages/pip/_internal/pyproject.py
- M .venv/lib/python3.9/site-packages/pip/_internal/req/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_internal/req/constructors.py
- M .venv/lib/python3.9/site-packages/pip/_internal/req/req_file.py
- M .venv/lib/python3.9/site-packages/pip/_internal/req/req_install.py
- M .venv/lib/python3.9/site-packages/pip/_internal/req/req_set.py
- D .venv/lib/python3.9/site-packages/pip/_internal/req/req_tracker.py
- M .venv/lib/python3.9/site-packages/pip/_internal/req/req_uninstall.py
- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/base.py
- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/legacy/resolver.py
- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/base.py
- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/candidates.py
- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/factory.py
- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/found_candidates.py
- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/provider.py
- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/reporter.py
- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/requirements.py
- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/resolver.py
- M .venv/lib/python3.9/site-packages/pip/_internal/self_outdated_check.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/appdirs.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/compat.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/compatibility_tags.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/datetime.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/deprecation.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/direct_url_helpers.py
- D .venv/lib/python3.9/site-packages/pip/_internal/utils/distutils_args.py
- D .venv/lib/python3.9/site-packages/pip/_internal/utils/encoding.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/entrypoints.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/filesystem.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/filetypes.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/glibc.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/hashes.py
- D .venv/lib/python3.9/site-packages/pip/_internal/utils/inject_securetransport.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/logging.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/misc.py
- D .venv/lib/python3.9/site-packages/pip/_internal/utils/models.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/packaging.py
- D .venv/lib/python3.9/site-packages/pip/_internal/utils/parallel.py
- D .venv/lib/python3.9/site-packages/pip/_internal/utils/pkg_resources.py
- D .venv/lib/python3.9/site-packages/pip/_internal/utils/setuptools_build.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/subprocess.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/temp_dir.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/unpacking.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/urls.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/virtualenv.py
- M .venv/lib/python3.9/site-packages/pip/_internal/utils/wheel.py
- M .venv/lib/python3.9/site-packages/pip/_internal/vcs/bazaar.py
- M .venv/lib/python3.9/site-packages/pip/_internal/vcs/git.py
- M .venv/lib/python3.9/site-packages/pip/_internal/vcs/mercurial.py
- M .venv/lib/python3.9/site-packages/pip/_internal/vcs/subversion.py
- M .venv/lib/python3.9/site-packages/pip/_internal/vcs/versioncontrol.py
- M .venv/lib/python3.9/site-packages/pip/_internal/wheel_builder.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/appdirs.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/_cmd.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/adapter.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/cache.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/caches/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/caches/file_cache.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/caches/redis_cache.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/compat.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/controller.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/filewrapper.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/heuristics.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/serialize.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/wrapper.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/certifi/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/certifi/cacert.pem
- M .venv/lib/python3.9/site-packages/pip/_vendor/certifi/core.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/big5freq.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/big5prober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/chardistribution.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/charsetgroupprober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/charsetprober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/cli/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/cli/chardetect.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/codingstatemachine.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/compat.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/cp949prober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/enums.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/escprober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/escsm.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/eucjpprober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/euckrfreq.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/euckrprober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/euctwfreq.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/euctwprober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/gb2312freq.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/gb2312prober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/hebrewprober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/jisfreq.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/jpcntx.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/langbulgarianmodel.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/langgreekmodel.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/langhebrewmodel.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/langhungarianmodel.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/langrussianmodel.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/langthaimodel.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/langturkishmodel.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/latin1prober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/mbcharsetprober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/mbcsgroupprober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/mbcssm.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/metadata/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/metadata/languages.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/sbcharsetprober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/sbcsgroupprober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/sjisprober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/universaldetector.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/utf8prober.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/version.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/colorama/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/colorama/ansi.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/colorama/ansitowin32.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/colorama/initialise.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/colorama/win32.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/colorama/winterm.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/distlib/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/misc.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/shutil.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/sysconfig.cfg
- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/sysconfig.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/tarfile.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/distlib/compat.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/database.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/index.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/locators.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/manifest.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/markers.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/metadata.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/distlib/scripts.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/distlib/t32.exe
- M .venv/lib/python3.9/site-packages/pip/_vendor/distlib/t64.exe
- M .venv/lib/python3.9/site-packages/pip/_vendor/distlib/util.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/version.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/distlib/w32.exe
- M .venv/lib/python3.9/site-packages/pip/_vendor/distlib/w64.exe
- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/wheel.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/distro.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/_ihatexml.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/_inputstream.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/_tokenizer.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/_trie/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/_trie/_base.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/_trie/py.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/_utils.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/constants.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/filters/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/filters/alphabeticalattributes.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/filters/base.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/filters/inject_meta_charset.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/filters/lint.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/filters/optionaltags.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/filters/sanitizer.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/filters/whitespace.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/html5parser.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/serializer.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treeadapters/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treeadapters/genshi.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treeadapters/sax.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treebuilders/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treebuilders/base.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treebuilders/dom.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treebuilders/etree.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treebuilders/etree_lxml.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treewalkers/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treewalkers/base.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treewalkers/dom.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treewalkers/etree.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treewalkers/etree_lxml.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treewalkers/genshi.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/idna/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/idna/codec.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/idna/compat.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/idna/core.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/idna/idnadata.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/idna/intranges.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/idna/package_data.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/idna/uts46data.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/msgpack/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/msgpack/_version.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/msgpack/ext.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/msgpack/fallback.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/packaging/__about__.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/_manylinux.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/_musllinux.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/_structures.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/markers.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/requirements.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/specifiers.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/tags.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/utils.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/version.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/build.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/check.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/colorlog.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/compat.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/dirtools.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/envbuild.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/in_process/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/in_process/_in_process.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/meta.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/wrappers.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/pkg_resources/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/pkg_resources/py31compat.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/progress/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/progress/bar.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/progress/counter.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/progress/spinner.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/pyparsing.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/__version__.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/_internal_utils.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/adapters.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/api.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/auth.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/certs.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/compat.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/cookies.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/exceptions.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/help.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/hooks.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/models.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/packages.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/sessions.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/status_codes.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/structures.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/requests/utils.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/resolvelib/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/resolvelib/compat/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/resolvelib/compat/collections_abc.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/resolvelib/providers.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/resolvelib/reporters.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/resolvelib/resolvers.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/resolvelib/structs.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/six.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/tenacity/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/tenacity/_asyncio.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/tenacity/_utils.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/tenacity/after.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/tenacity/before.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/tenacity/before_sleep.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/tenacity/nap.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/tenacity/retry.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/tenacity/stop.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/tenacity/tornadoweb.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/tenacity/wait.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/tomli/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/tomli/_parser.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/tomli/_re.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/_collections.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/_version.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/connection.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/connectionpool.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/contrib/_securetransport/bindings.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/contrib/_securetransport/low_level.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/contrib/appengine.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/contrib/ntlmpool.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/contrib/pyopenssl.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/contrib/securetransport.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/packages/__init__.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/packages/six.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/packages/ssl_match_hostname/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/packages/ssl_match_hostname/_implementation.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/poolmanager.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/request.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/response.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/util/connection.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/util/proxy.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/util/request.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/util/retry.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/util/ssl_.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/util/ssltransport.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/util/timeout.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/util/url.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/urllib3/util/wait.py
- M .venv/lib/python3.9/site-packages/pip/_vendor/vendor.txt
- D .venv/lib/python3.9/site-packages/pip/_vendor/webencodings/__init__.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/webencodings/labels.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/webencodings/mklabels.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/webencodings/tests.py
- D .venv/lib/python3.9/site-packages/pip/_vendor/webencodings/x_user_defined.py
- M README.md
- D app_gpa/STRUCTURE.md
- M app_gpa/api/routers/agent.py
- M app_gpa/modules/agents/credentials.py
- M app_gpa/modules/agents/flow/profile_handlers.py
- M app_gpa/modules/agents/gigachat_agent.py
- M app_gpa/modules/agents/governance/manifest.json
- M app_gpa/modules/agents/models/deepseek/__init__.py
- M app_gpa/modules/agents/models/deepseek/client.py
- M app_gpa/modules/agents/models/gigachat/client.py
- M app_gpa/modules/agents/models/groq/__init__.py
- M app_gpa/modules/agents/models/groq/client.py
- M app_gpa/modules/agents/models/openrouter/__init__.py
- M app_gpa/modules/agents/models/openrouter/client.py
- M app_gpa/modules/agents/orchestrator.py
- M app_gpa/modules/agents/providers/deepseek.py
- M app_gpa/modules/agents/providers/gigachat_provider.py
- M app_gpa/modules/agents/providers/groq_provider.py
- M app_gpa/modules/agents/providers/openrouter_provider.py
- M app_gpa/modules/agents/providers/registry.py
- M app_gpa/modules/agents/track.py
- M app_gpa/requirements.txt
- M app_gpa/services/agents/api.py
- M app_gpa/web/routes/pages.py
- M app_gpa/web/static/detailed.css
- M app_gpa/web/static/gpa-agent-setup.js
- M app_gpa/web/static/gpa-ui.js
- M app_gpa/web/static/ux.css
- M app_gpa/web/templates/analysis/detailed_input.html
- M app_gpa/web/templates/analysis/reset_cache_modal.html
- M app_gpa/web/templates/app/agent_context_modal.html
- M app_gpa/web/templates/app/app_footer.html
- M app_gpa/web/templates/app/apple_sidebar.html
- M app_gpa/web/templates/app/home.html
- M app_gpa/web/templates/app/result.html
- D pack_to_txt.py
- D pack_umpack.txt
- M scripts/dci-propagate.sh
- M scripts/dci-test.sh
- M scripts/dci-vector.sh
- M scripts/dci_vector_sync.py
- M scripts/rules-validate-all-projects.sh
- M todo.md
-?? README_CUSTOM_RULES.md
-?? app_gpa/config/groq_profiles.json
-?? app_gpa/config/openrouter_profiles.json
-?? app_gpa/web/templates/app/about.html
-?? project_doc/
-?? scripts/run-app.sh
-?? tig_delta.md
-?? tig_snapshot.md
+M app_gpa/api/routers/agent.py
+ M scripts/run-app.sh
+ M tig_delta.md
+ M tig_snapshot.md
 ```
 
 ## Commits since base ref
 
 ```text
-ffddf3c (HEAD -> add_ai_analize_opt) fix rules
+1640298 (HEAD -> add_ai_analize_opt) ui + docs: harmonize light/dark ux and editor readability
 ```
 
 ## Changed files vs base ref
 
 ```text
-M	scripts/dci-propagate.sh
-M	scripts/dci-test.sh
-M	scripts/dci-vector.sh
-M	scripts/dci_vector_sync.py
-M	todo.md
+M	app_gpa/web/static/detailed.css
+M	app_gpa/web/static/home.css
+M	app_gpa/web/static/styles.css
+M	app_gpa/web/static/ux.css
+M	app_gpa/web/templates/analysis/detailed_result.html
+M	project_doc/index.md
+A	project_doc/ux/design_consistency_checklist.md
+A	project_doc/ux/final_consensus_report.md
+A	project_doc/ux/focus_group_round1.md
+A	project_doc/ux/focus_group_round2.md
+A	project_doc/ux/ux_audit_log.md
 ```
 
 ## Unified diff vs base ref
 
 ```diff
 # base: HEAD~1 (fallback:HEAD~1 (preferred 'origin/main' missing))
-diff --git a/scripts/dci-propagate.sh b/scripts/dci-propagate.sh
-index 230991e..20eccc9 100755
---- a/scripts/dci-propagate.sh
-+++ b/scripts/dci-propagate.sh
-@@ -101,7 +101,7 @@ session: initial | team: none | refreshed: ${now}
- 
- | th | status | topic | next_action |
- |----|--------|-------|-------------|
--| TH-001 | open | Initial dialog window | — |
-+| TH-001 | open | Initial dialog window | record first CL/EV on session start |
- 
- ## lookup_index
- 
-@@ -118,7 +118,7 @@ session: initial | team: none | refreshed: ${now}
- 
- | ref | risk | owner | next_action |
- |-----|------|-------|-------------|
--| — | none | — | — |
-+| TH-001 | fresh window, no conclusions yet | — | record CL/EV on first session |
- EOF
- 
-   cat >"${target}/.cursor/context/dialogs/DW-001/dialog_delta.md" <<EOF
-@@ -179,6 +179,20 @@ locked_at: ${now}
- EOF
+diff --git a/app_gpa/web/static/detailed.css b/app_gpa/web/static/detailed.css
+index 7032612..9d784d2 100644
+--- a/app_gpa/web/static/detailed.css
++++ b/app_gpa/web/static/detailed.css
+@@ -80,6 +80,22 @@ html.gpa-detailed-ui body {
+   word-break: break-word;
  }
  
-+repair_bootstrap_ledger() {
-+  # Self-heal legacy/hand-edited windows via the propagated core `doctor`
-+  # (single source of truth). Idempotent; no-op when ledger already valid.
-+  local target="$1"
-+  [[ -f "${target}/scripts/dci-vector.sh" ]] || return 0
-+  if [[ "${DRY}" == "1" ]]; then
-+    echo "  repair-ledger: dry (skip)"
-+    return 0
-+  fi
-+  local out
-+  out="$(cd "${target}" && bash scripts/dci-vector.sh doctor 2>&1)" || true
-+  echo "${out}" | sed 's/^/  /'
++.analysis-sql-snippet {
++  margin: 0;
++  border: 1px solid rgba(154, 179, 214, 0.14);
++  background: rgba(8, 16, 30, 0.84);
++  color: #dbeaff;
++  white-space: pre-wrap;
++  word-break: break-word;
 +}
 +
- write_env() {
-   local target="$1" pid="$2"
-   local envf="${target}/.cursor/dci/dci.env"
-@@ -312,6 +326,7 @@ propagate_one() {
-   chmod +x "${target}/scripts/dci-vector.sh" "${target}/scripts/dci-test.sh" "${target}/scripts/dci-propagate.sh" "${target}/scripts/dci-setup-projects.sh" "${target}/scripts/dci-validate-all-projects.sh" 2>/dev/null || true
++.sql-risk-highlight {
++  padding: 0 0.16rem;
++  border-radius: 0.25rem;
++  background: #9c6115;
++  color: #fff7e8;
++}
++
+ .block-detail-panel__list {
+   padding-left: 1.1rem;
+   margin: 0;
+@@ -91,21 +107,21 @@ html.gpa-detailed-ui body {
+ }
  
-   bootstrap_project "${target}" "${name}"
-+  repair_bootstrap_ledger "${target}"
-   write_env "${target}" "${name}"
+ .gpa-traffic--low {
+-  background: rgba(52, 199, 89, 0.18) !important;
+-  color: #6ee7a0 !important;
+-  border: 1px solid rgba(52, 199, 89, 0.35);
++  background: #1f6b3d !important;
++  color: #d5ffe3 !important;
++  border: 1px solid rgba(110, 231, 183, 0.35);
+ }
  
-   if [[ -f "${target}/.cursor/rules/team-command-router.mdc" ]] && grep -q "Team Router Inheritance" "${target}/.cursor/rules/team-command-router.mdc" 2>/dev/null; then
-diff --git a/scripts/dci-test.sh b/scripts/dci-test.sh
-index e0ca901..800c20b 100755
---- a/scripts/dci-test.sh
-+++ b/scripts/dci-test.sh
-@@ -260,6 +260,24 @@ else
-   fail "TC-DCI-TOK-01" "Token read budget missing in rule or skill"
- fi
+ .gpa-traffic--medium {
+-  background: rgba(255, 204, 0, 0.16) !important;
+-  color: #ffd966 !important;
+-  border: 1px solid rgba(255, 204, 0, 0.35);
++  background: #7a5a10 !important;
++  color: #fff2c9 !important;
++  border: 1px solid rgba(255, 214, 122, 0.35);
+ }
  
-+# ledger integrity invariant: doctor is idempotent no-op on valid ledger
-+run_grep_stdout "TC-DOCTOR-01" "ledger already valid" bash "${DCI}" doctor
-+
-+# doctor heals an artificially broken open TH (V-01/V-02), then validate passes
-+TMPIDX="$(mktemp -d)/dialog_index.md"
-+mkdir -p "$(dirname "${TMPIDX}")"
-+cat >"${TMPIDX}" <<'EOF'
-+# Dialog Index
-+project_id: gp_dq
-+dialog_window_id: DW-001
-+EOF
-+if grep -q "Ledger integrity invariant" "${ROOT}/.cursor/rules/dialog-context-index.mdc" \
-+   && grep -q "cmd_doctor" "${ROOT}/scripts/dci_vector_sync.py"; then
-+  pass "TC-DOCTOR-02"
-+else
-+  fail "TC-DOCTOR-02" "invariant doc or cmd_doctor missing"
-+fi
-+
- echo ""
- echo "=== SUMMARY: PASS=${PASS} FAIL=${FAIL} SKIP=${SKIP} ==="
- if [[ "${FAIL}" -eq 0 ]]; then
-diff --git a/scripts/dci-vector.sh b/scripts/dci-vector.sh
-index b890752..f0b5c0e 100755
---- a/scripts/dci-vector.sh
-+++ b/scripts/dci-vector.sh
-@@ -158,6 +158,9 @@ case "${cmd}" in
-   validate)
-     "${PY}" "${SYNC_PY}" validate "$@"
-     ;;
-+  doctor)
-+    "${PY}" "${SYNC_PY}" doctor "$@"
-+    ;;
-   windows)
-     "${PY}" "${SYNC_PY}" windows "$@"
-     ;;
-@@ -168,7 +171,7 @@ case "${cmd}" in
-     "${PY}" "${SYNC_PY}" user-restore --window "новое" --summary "${*:-New dialog window}"
-     ;;
-   *)
--    echo "Usage: $0 {compress|validate|windows|projects|restore|restore-new|up|down|status|...}" >&2
-+    echo "Usage: $0 {compress|validate|doctor|windows|projects|restore|restore-new|up|down|status|...}" >&2
-     exit 1
-     ;;
- esac
-diff --git a/scripts/dci_vector_sync.py b/scripts/dci_vector_sync.py
-index 5aa90ae..a8f5fa1 100755
---- a/scripts/dci_vector_sync.py
-+++ b/scripts/dci_vector_sync.py
-@@ -1243,6 +1243,82 @@ def resolve_evidence_path(evidence: str) -> Path:
-     return REPO_ROOT / ev
+ .gpa-traffic--high {
+-  background: rgba(255, 69, 58, 0.16) !important;
+-  color: #ff8a82 !important;
+-  border: 1px solid rgba(255, 69, 58, 0.35);
++  background: #7e2a2d !important;
++  color: #ffe1de !important;
++  border: 1px solid rgba(255, 153, 146, 0.35);
+ }
  
+ .apple-stack {
+@@ -253,6 +269,10 @@ html.gpa-detailed-ui body {
  
-+def cmd_doctor(dialog_window_id: Optional[str] = None) -> int:
-+    """Self-heal window ledger to satisfy validate invariants (V-01/V-02).
-+
-+    Idempotent: only patches open TH rows that lack next_action and have no
-+    CL link / open_risks entry. Safe to run on any project; no-op when clean.
-+    """
-+    validate_window_scope("doctor")
-+    dw = dialog_window_id or resolve_dialog_window_id()
-+    index_path = window_index_path(dw)
-+    if not index_path.is_file():
-+        print(f"ERROR: missing index {index_path}", file=sys.stderr)
-+        return 1
-+
-+    text = index_path.read_text(encoding="utf-8")
-+    original = text
-+    records = parse_dialog_index(index_path)
-+    threads = parse_thread_rows(text)
-+    open_risks = set(parse_open_risk_refs(text))
-+    fixes: List[str] = []
-+
-+    open_threads = [t for t in threads if t["status"].lower() in ("open", "in_progress")]
-+
-+    # V-01: open TH must have a next_action in thread_map.
-+    for th in open_threads:
-+        if th.get("next_action", "").strip() in ("", "—", "-", "none"):
-+            pattern = (
-+                r"(\|\s*" + re.escape(th["id"]) + r"\s*\|\s*(?:open|in_progress)\s*\|[^|]*\|\s*)"
-+                r"(—|-|none|)(\s*\|)"
-+            )
-+            new_text, n = re.subn(
-+                pattern,
-+                r"\1record first CL/EV on session start\3",
-+                text,
-+                flags=re.IGNORECASE,
-+            )
-+            if n:
-+                text = new_text
-+                fixes.append(f"V-01 {th['id']}: set next_action")
-+
-+    # V-02: open TH needs CL link or open_risks entry.
-+    def has_cl_link(th_id: str) -> bool:
-+        return any(
-+            th_id in ((r.metadata or {}).get("links", ""))
-+            for r in records
-+            if r.ledger_type == "CL"
-+        )
-+
-+    missing_risk = [
-+        t["id"]
-+        for t in open_threads
-+        if t["id"] not in open_risks and not has_cl_link(t["id"])
-+    ]
-+    if missing_risk:
-+        block = re.search(r"(## open_risks\n+)(\|.*?)(?=\n## |\Z)", text, re.S)
-+        if block:
-+            table = block.group(2)
-+            rows = [
-+                f"| {tid} | fresh window, no conclusions yet | — | record CL/EV on first session |"
-+                for tid in missing_risk
-+            ]
-+            # drop default 'none' placeholder row if present
-+            table = re.sub(r"\n\|\s*—\s*\|\s*none\s*\|\s*—\s*\|\s*—\s*\|", "", table)
-+            table = table.rstrip("\n") + "\n" + "\n".join(rows) + "\n"
-+            text = text[: block.start(2)] + table + text[block.end(2):]
-+            fixes.append(f"V-02: open_risks += {', '.join(missing_risk)}")
-+
-+    if text != original:
-+        index_path.write_text(text, encoding="utf-8")
-+        for f in fixes:
-+            print(f"doctor: fixed {f}")
-+        print(f"doctor: ledger normalized ({dw})")
-+    else:
-+        print(f"doctor: ledger already valid ({dw})")
-+    return 0
-+
-+
- def cmd_validate() -> int:
-     """Pre-compress ledger integrity gate (V-01..V-06)."""
-     validate_window_scope("validate")
-@@ -2054,7 +2130,14 @@ def cmd_compress(force: bool = False) -> int:
+ .sql-editor-shell {
+   position: relative;
++  padding: 0.45rem;
++  border-radius: 18px;
++  border: 1px solid rgba(154, 179, 214, 0.14);
++  background: rgba(8, 16, 30, 0.44);
+ }
  
-     val_rc = cmd_validate()
-     if val_rc == 1 and not force:
--        print("ERROR validate gate failed; use --force to override", file=sys.stderr)
-+        # Self-heal known structural defects (legacy bootstrap), then re-validate.
-+        cmd_doctor(dw)
-+        val_rc = cmd_validate()
-+    if val_rc == 1 and not force:
-+        print(
-+            "ERROR validate gate failed; fix ledger (`dci-vector.sh doctor`) or use --force",
-+            file=sys.stderr,
-+        )
-         return 1
-     embed_src = last_embed_source(vector_namespace(dw))
-     if embed_src.startswith("hash_embed") and not force:
-@@ -2231,6 +2314,7 @@ def main(argv: Optional[List[str]] = None) -> int:
-             "windows",
-             "projects",
-             "validate",
-+            "doctor",
-             "user-restore",
-         ],
-     )
-@@ -2278,6 +2362,9 @@ def main(argv: Optional[List[str]] = None) -> int:
-     if args.command == "validate":
-         return cmd_validate()
+ .sql-editor-toolbar {
+@@ -312,14 +332,14 @@ html.gpa-detailed-ui body {
+ .CodeMirror {
+   height: auto;
+   min-height: 18rem;
+-  border: 1px solid rgba(154, 179, 214, 0.12);
++  border: 1px solid rgba(154, 179, 214, 0.2);
+   border-radius: 16px;
+-  background: rgba(5, 12, 22, 0.78);
++  background: var(--gpa-input-bg-focus, rgba(8, 16, 30, 0.94));
+   color: #eaf2ff;
+   font-family: var(--gpa-font-mono);
+   font-size: 0.88rem;
+   line-height: 1.6;
+-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
++  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 8px 22px rgba(4, 10, 20, 0.22);
+ }
  
-+    if args.command == "doctor":
-+        return cmd_doctor(args.window or None)
-+
-     if args.command == "windows":
-         return cmd_windows()
+ .CodeMirror-cursors {
+@@ -331,8 +351,8 @@ html.gpa-detailed-ui body {
+ }
  
-diff --git a/todo.md b/todo.md
-index cf8ea49..5f48d22 100644
---- a/todo.md
-+++ b/todo.md
-@@ -71,4 +71,7 @@ https://api-docs.deepseek.com/faq
- - выполни повторный прогон с фокус группой
- - дойди до консенсуса и завискисируй результат
- - сделай финальную шлифовку
--- вернись с отчетом
-\ No newline at end of file
-+- вернись с отчетом
+ .CodeMirror-focused {
+-  border-color: rgba(122, 162, 255, 0.28);
+-  box-shadow: 0 0 0 4px rgba(122, 162, 255, 0.08);
++  border-color: rgba(122, 162, 255, 0.44);
++  box-shadow: 0 0 0 4px rgba(122, 162, 255, 0.14);
+ }
+ 
+ .CodeMirror-scroll {
+@@ -340,7 +360,7 @@ html.gpa-detailed-ui body {
+ }
+ 
+ .CodeMirror-gutters {
+-  background: rgba(255, 255, 255, 0.02);
++  background: rgba(255, 255, 255, 0.04);
+   border-right: 1px solid rgba(154, 179, 214, 0.08);
+ }
+ 
+@@ -352,6 +372,26 @@ html.gpa-detailed-ui body {
+   color: rgba(177, 192, 216, 0.5);
+ }
+ 
++.CodeMirror-selected {
++  background: rgba(122, 162, 255, 0.3) !important;
++}
 +
-+Failed to apply worktree to current branch: Не удается записать файл "/PycharmProjects/overhead_analyzer/app_gpa/tests/test_json_escape_repair.py" (Unknown (FileSystemError): Error: EROFS: read-only file system, mkdir '/PycharmProjects')
++.CodeMirror-focused .CodeMirror-selected {
++  background: rgba(122, 162, 255, 0.4) !important;
++}
 +
++.CodeMirror-line::selection,
++.CodeMirror-line > span::selection,
++.CodeMirror-line > span > span::selection {
++  background: rgba(122, 162, 255, 0.34);
++}
++
++.CodeMirror-line::-moz-selection,
++.CodeMirror-line > span::-moz-selection,
++.CodeMirror-line > span > span::-moz-selection {
++  background: rgba(122, 162, 255, 0.34);
++}
++
+ .sql-lint-marker {
+   display: inline-flex;
+   align-items: center;
+@@ -646,7 +686,19 @@ html.gpa-detailed-ui body {
+ .form-body .form-control,
+ .form-body .form-select,
+ .form-body textarea.form-control {
+-  background: rgba(5, 12, 22, 0.72);
++  background: var(--gpa-input-bg);
++  border-color: rgba(154, 179, 214, 0.2);
++}
++
++.form-body textarea.form-control {
++  color: var(--gpa-text-strong);
++  caret-color: var(--gpa-accent-strong);
++  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
++}
++
++.form-body textarea.form-control::selection {
++  background: var(--gpa-selection-bg);
++  color: var(--gpa-selection-text);
+ }
+ 
+ .form-section {
+@@ -1398,27 +1450,41 @@ html.gpa-detailed-ui body {
+ html[data-theme="light"] .form-body .form-control,
+ html[data-theme="light"] .form-body .form-select,
+ html[data-theme="light"] .form-body textarea.form-control {
+-  background: rgba(255, 255, 255, 0.9);
++  background: var(--gpa-input-bg);
++  border-color: rgba(101, 132, 173, 0.24);
++}
++
++html[data-theme="light"] .sql-editor-shell {
++  background: rgba(229, 239, 251, 0.82);
++  border-color: rgba(101, 132, 173, 0.2);
+ }
+ 
+ html[data-theme="light"] .CodeMirror {
+-  background: rgba(252, 253, 255, 0.98);
+-  color: #28405d;
+-  border-color: rgba(116, 150, 189, 0.16);
+-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
++  background: var(--gpa-input-bg-focus);
++  color: #1f3b58;
++  border-color: rgba(101, 132, 173, 0.28);
++  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 8px 18px rgba(140, 165, 194, 0.2);
+ }
+ 
+ html[data-theme="light"] .CodeMirror-gutters {
+-  background: rgba(244, 249, 255, 0.98);
+-  border-right-color: rgba(116, 150, 189, 0.1);
++  background: rgba(237, 246, 255, 0.98);
++  border-right-color: rgba(101, 132, 173, 0.16);
+ }
+ 
+ html[data-theme="light"] .CodeMirror-linenumber {
+-  color: rgba(85, 110, 140, 0.6);
++  color: rgba(70, 97, 130, 0.7);
+ }
+ 
+ html[data-theme="light"] .CodeMirror-cursor {
+-  border-left-color: #2d6ac3 !important;
++  border-left-color: #1f5ca8 !important;
++}
++
++html[data-theme="light"] .CodeMirror-selected {
++  background: rgba(79, 143, 218, 0.22) !important;
++}
++
++html[data-theme="light"] .CodeMirror-focused .CodeMirror-selected {
++  background: rgba(79, 143, 218, 0.3) !important;
+ }
+ 
+ html[data-theme="light"] .cm-s-gpa-sql .cm-keyword {
+@@ -1541,6 +1607,17 @@ html[data-theme="light"] .sql-inline-lint-card__fix-btn {
+   color: #173b5f;
+ }
+ 
++html[data-theme="light"] .analysis-sql-snippet {
++  border-color: rgba(101, 132, 173, 0.22);
++  background: rgba(244, 249, 255, 0.98);
++  color: #1e3b59;
++}
++
++html[data-theme="light"] .sql-risk-highlight {
++  background: rgba(215, 166, 99, 0.52);
++  color: #4d320b;
++}
++
+ html[data-theme="light"] .form-subpanel,
+ html[data-theme="light"] #db_fields,
+ html[data-theme="light"] #agent-requested-ddl-block,
+@@ -1602,18 +1679,18 @@ html[data-theme="light"] .system-stats {
+ }
+ 
+ html[data-theme="light"] .gpa-traffic--low {
+-  background: rgba(52, 199, 89, 0.12) !important;
+-  color: #1e7e34 !important;
++  background: #b7f1cd !important;
++  color: #155b25 !important;
+ }
+ 
+ html[data-theme="light"] .gpa-traffic--medium {
+-  background: rgba(255, 193, 7, 0.15) !important;
+-  color: #856404 !important;
++  background: #fbe2a8 !important;
++  color: #6f5201 !important;
+ }
+ 
+ html[data-theme="light"] .gpa-traffic--high {
+-  background: rgba(220, 53, 69, 0.12) !important;
+-  color: #b02a37 !important;
++  background: #f8c0c6 !important;
++  color: #8f1e29 !important;
+ }
+ 
+ html[data-theme="light"] .block-detail-panel,
+diff --git a/app_gpa/web/static/home.css b/app_gpa/web/static/home.css
+index f6e162a..2e1386b 100644
+--- a/app_gpa/web/static/home.css
++++ b/app_gpa/web/static/home.css
+@@ -268,11 +268,29 @@ html.gpa-home-ui body {
+ 
+ html[data-theme="light"] .gpa-home-window {
+   background: linear-gradient(165deg, rgba(255, 255, 255, 0.96) 0%, rgba(244, 249, 255, 0.94) 100%);
+-  border-color: rgba(116, 150, 189, 0.14);
++  border-color: rgba(101, 132, 173, 0.2);
++  box-shadow: 0 12px 34px rgba(140, 165, 194, 0.24);
++}
++
++html[data-theme="light"] .gpa-home-window__chrome {
++  border-bottom-color: rgba(101, 132, 173, 0.16);
++  background: rgba(235, 245, 255, 0.72);
+ }
+ 
+ html[data-theme="light"] .gpa-home-step-card,
+ html[data-theme="light"] .gpa-home-feature {
+-  background: rgba(255, 255, 255, 0.78);
+-  border-color: rgba(116, 150, 189, 0.12);
++  background: rgba(255, 255, 255, 0.88);
++  border-color: rgba(101, 132, 173, 0.18);
++}
++
++html[data-theme="light"] .gpa-home-step-card:hover,
++html[data-theme="light"] .gpa-home-feature:hover {
++  background: rgba(233, 245, 255, 0.9);
++  border-color: rgba(79, 143, 218, 0.28);
++}
++
++html[data-theme="light"] .gpa-home-step-card__hint,
++html[data-theme="light"] .gpa-home-section__note,
++html[data-theme="light"] .gpa-home-hero__lead {
++  color: var(--gpa-text);
+ }
+diff --git a/app_gpa/web/static/styles.css b/app_gpa/web/static/styles.css
+index 485a543..5791520 100644
+--- a/app_gpa/web/static/styles.css
++++ b/app_gpa/web/static/styles.css
+@@ -20,6 +20,14 @@
+   --gpa-warning: #f8bf6d;
+   --gpa-danger: #ff7f96;
+   --gpa-info: #76c9ff;
++  --gpa-input-bg: rgba(5, 12, 22, 0.72);
++  --gpa-input-bg-focus: rgba(8, 16, 30, 0.94);
++  --gpa-selection-bg: rgba(122, 162, 255, 0.34);
++  --gpa-selection-text: #f7fbff;
++  --gpa-btn-primary-from: #7aa2ff;
++  --gpa-btn-primary-to: #94b4ff;
++  --gpa-btn-primary-text: #05111f;
++  --gpa-btn-primary-shadow: 0 14px 30px rgba(122, 162, 255, 0.28);
+   --gpa-radius-xs: 10px;
+   --gpa-radius-sm: 14px;
+   --gpa-radius: 22px;
+@@ -58,6 +66,16 @@ body {
+   letter-spacing: -0.01em;
+ }
+ 
++::selection {
++  background: var(--gpa-selection-bg);
++  color: var(--gpa-selection-text);
++}
++
++*:focus-visible {
++  outline: 2px solid var(--gpa-border-focus);
++  outline-offset: 2px;
++}
++
+ body::before,
+ body::after {
+   content: '';
+@@ -676,16 +694,16 @@ a:hover {
+ }
+ 
+ .btn-primary {
+-  background: linear-gradient(135deg, #7aa2ff, #94b4ff);
++  background: linear-gradient(135deg, var(--gpa-btn-primary-from), var(--gpa-btn-primary-to));
+   border-color: transparent;
+-  color: #05111f;
+-  box-shadow: 0 14px 30px rgba(122, 162, 255, 0.28);
++  color: var(--gpa-btn-primary-text);
++  box-shadow: var(--gpa-btn-primary-shadow);
+ }
+ 
+ .btn-primary:hover,
+ .btn-primary:focus {
+-  background: linear-gradient(135deg, #8bb0ff, #aac6ff);
+-  color: #04101d;
++  background: linear-gradient(135deg, color-mix(in srgb, var(--gpa-btn-primary-from) 88%, #ffffff 12%), color-mix(in srgb, var(--gpa-btn-primary-to) 86%, #ffffff 14%));
++  color: var(--gpa-btn-primary-text);
+ }
+ 
+ .btn-outline-secondary,
+@@ -693,17 +711,29 @@ a:hover {
+ .btn-outline-light {
+   border-color: rgba(154, 179, 214, 0.18);
+   color: var(--gpa-text);
+-  background: rgba(255, 255, 255, 0.03);
++  background: rgba(255, 255, 255, 0.045);
+ }
+ 
+ .btn-outline-secondary:hover,
+ .btn-outline-primary:hover,
+ .btn-outline-light:hover {
+-  background: rgba(255, 255, 255, 0.08);
++  background: rgba(255, 255, 255, 0.12);
+   border-color: rgba(154, 179, 214, 0.28);
+   color: var(--gpa-text-strong);
+ }
+ 
++.btn:focus-visible {
++  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gpa-border-focus) 26%, transparent);
++}
++
++.btn:disabled,
++.btn.disabled {
++  opacity: 0.56;
++  cursor: not-allowed;
++  transform: none;
++  box-shadow: none;
++}
++
+ .btn-secondary {
+   background: rgba(255, 255, 255, 0.08);
+   border-color: rgba(255, 255, 255, 0.08);
+@@ -738,7 +768,7 @@ a:hover {
+   padding: 0.72rem 0.9rem;
+   border-radius: 16px;
+   border: 1px solid rgba(154, 179, 214, 0.16);
+-  background: rgba(5, 12, 22, 0.56);
++  background: var(--gpa-input-bg);
+   color: var(--gpa-text);
+   font-size: 0.95rem;
+   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+@@ -752,7 +782,7 @@ a:hover {
+ .form-control:focus,
+ .form-select:focus {
+   border-color: var(--gpa-border-focus);
+-  background: rgba(9, 17, 30, 0.9);
++  background: var(--gpa-input-bg-focus);
+   color: var(--gpa-text-strong);
+   box-shadow: 0 0 0 4px rgba(122, 162, 255, 0.14);
+ }
+@@ -1095,26 +1125,34 @@ a:hover {
+ 
+ html[data-theme="light"] {
+   color-scheme: light;
+-  --gpa-bg: #eef6ff;
+-  --gpa-bg-soft: #f8fbff;
+-  --gpa-surface: rgba(255, 255, 255, 0.86);
+-  --gpa-surface-strong: rgba(253, 254, 255, 0.98);
+-  --gpa-surface-elevated: rgba(244, 250, 255, 0.95);
+-  --gpa-border: rgba(116, 150, 189, 0.16);
+-  --gpa-border-strong: rgba(116, 150, 189, 0.24);
+-  --gpa-border-focus: rgba(116, 174, 247, 0.66);
+-  --gpa-text: #24415f;
+-  --gpa-text-strong: #16324f;
+-  --gpa-text-muted: #6a85a1;
+-  --gpa-accent: #7fb8ff;
+-  --gpa-accent-strong: #4f8fda;
+-  --gpa-accent-soft: rgba(127, 184, 255, 0.18);
+-  --gpa-success: #4fbfa8;
+-  --gpa-warning: #d7a663;
+-  --gpa-danger: #dd7e90;
+-  --gpa-info: #74bfff;
++  --gpa-bg: #ecf4ff;
++  --gpa-bg-soft: #f6faff;
++  --gpa-surface: rgba(255, 255, 255, 0.92);
++  --gpa-surface-strong: rgba(255, 255, 255, 0.99);
++  --gpa-surface-elevated: rgba(244, 249, 255, 0.97);
++  --gpa-border: rgba(101, 132, 173, 0.2);
++  --gpa-border-strong: rgba(101, 132, 173, 0.3);
++  --gpa-border-focus: rgba(59, 130, 246, 0.6);
++  --gpa-text: #233f5c;
++  --gpa-text-strong: #102c47;
++  --gpa-text-muted: #5f7b98;
++  --gpa-accent: #4f8fda;
++  --gpa-accent-strong: #2f6fbc;
++  --gpa-accent-soft: rgba(79, 143, 218, 0.18);
++  --gpa-success: #2f9e86;
++  --gpa-warning: #c08835;
++  --gpa-danger: #c45d72;
++  --gpa-info: #4f93d4;
++  --gpa-input-bg: rgba(247, 251, 255, 0.98);
++  --gpa-input-bg-focus: #ffffff;
++  --gpa-selection-bg: rgba(47, 111, 188, 0.2);
++  --gpa-selection-text: #0f2742;
++  --gpa-btn-primary-from: #4f8fda;
++  --gpa-btn-primary-to: #69a6eb;
++  --gpa-btn-primary-text: #ffffff;
++  --gpa-btn-primary-shadow: 0 12px 26px rgba(79, 143, 218, 0.28);
+   --gpa-shadow-soft: 0 18px 36px rgba(112, 145, 184, 0.14);
+-  --gpa-shadow-glow: 0 0 0 1px rgba(127, 184, 255, 0.08), 0 18px 42px rgba(144, 174, 205, 0.18);
++  --gpa-shadow-glow: 0 0 0 1px rgba(98, 147, 206, 0.12), 0 18px 42px rgba(144, 174, 205, 0.2);
+ }
+ 
+ html[data-theme="light"] body {
+@@ -1224,15 +1262,21 @@ html[data-theme="light"] .apple-inline-status {
+ html[data-theme="light"] .btn-outline-secondary,
+ html[data-theme="light"] .btn-outline-primary,
+ html[data-theme="light"] .btn-outline-light {
+-  background: rgba(255, 255, 255, 0.72);
+-  border-color: rgba(116, 150, 189, 0.18);
++  background: rgba(255, 255, 255, 0.9);
++  border-color: rgba(101, 132, 173, 0.24);
++  color: var(--gpa-text);
+ }
+ 
+ html[data-theme="light"] .btn-outline-secondary:hover,
+ html[data-theme="light"] .btn-outline-primary:hover,
+ html[data-theme="light"] .btn-outline-light:hover {
+-  background: rgba(233, 244, 255, 0.95);
+-  border-color: rgba(116, 150, 189, 0.24);
++  background: rgba(227, 240, 255, 0.95);
++  border-color: rgba(79, 143, 218, 0.28);
++  color: var(--gpa-text-strong);
++}
++
++html[data-theme="light"] .btn-primary {
++  border-color: rgba(47, 111, 188, 0.22);
+ }
+ 
+ html[data-theme="light"] .btn-secondary {
+@@ -1247,15 +1291,15 @@ html[data-theme="light"] .btn-close {
+ 
+ html[data-theme="light"] .form-control,
+ html[data-theme="light"] .form-select {
+-  background: rgba(255, 255, 255, 0.86);
+-  border-color: rgba(116, 150, 189, 0.16);
++  background: var(--gpa-input-bg);
++  border-color: rgba(101, 132, 173, 0.24);
+   color: var(--gpa-text);
+ }
+ 
+ html[data-theme="light"] .form-control:focus,
+ html[data-theme="light"] .form-select:focus {
+-  background: #ffffff;
+-  box-shadow: 0 0 0 4px rgba(127, 184, 255, 0.16);
++  background: var(--gpa-input-bg-focus);
++  box-shadow: 0 0 0 4px rgba(79, 143, 218, 0.2);
+ }
+ 
+ html[data-theme="light"] .form-control::placeholder {
+diff --git a/app_gpa/web/static/ux.css b/app_gpa/web/static/ux.css
+index 5bf1c6b..dae4f79 100644
+--- a/app_gpa/web/static/ux.css
++++ b/app_gpa/web/static/ux.css
+@@ -78,8 +78,8 @@
+ 
+ .gpa-workflow-progress__step.is-done .gpa-workflow-progress__dot {
+   border-color: rgba(52, 211, 153, 0.45);
+-  background: rgba(16, 185, 129, 0.16);
+-  color: #6ee7b7;
++  background: #0b5f43;
++  color: #ffffff;
+ }
+ 
+ .gpa-workflow-progress__step.is-done .gpa-workflow-progress__link {
+@@ -280,14 +280,43 @@
+ html[data-theme="light"] .gpa-workflow-progress,
+ html[data-theme="light"] .prepare-tabs,
+ html[data-theme="light"] .prepare-accordion {
+-  background: rgba(255, 255, 255, 0.72);
+-  border-color: rgba(15, 23, 42, 0.08);
++  background: rgba(255, 255, 255, 0.9);
++  border-color: rgba(101, 132, 173, 0.16);
++}
++
++html[data-theme="light"] .prepare-tab {
++  color: rgba(63, 91, 123, 0.86);
++}
++
++html[data-theme="light"] .prepare-tab:hover:not(.is-disabled):not(.is-active) {
++  color: #20415f;
++}
++
++html[data-theme="light"] .prepare-tab.is-active {
++  background: #2d6db8;
++  color: #f5fbff;
++  box-shadow: inset 0 0 0 1px rgba(79, 143, 218, 0.3);
+ }
+ 
+ html[data-theme="light"] .gpa-home-dock {
+-  background: rgba(255, 255, 255, 0.88);
+-  border-color: rgba(15, 23, 42, 0.1);
+-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
++  background: rgba(255, 255, 255, 0.94);
++  border-color: rgba(101, 132, 173, 0.18);
++  box-shadow: 0 16px 40px rgba(90, 120, 155, 0.18);
++}
++
++html[data-theme="light"] .gpa-workflow-progress__dot {
++  background: rgba(246, 250, 255, 0.98);
++  border-color: rgba(101, 132, 173, 0.26);
++}
++
++html[data-theme="light"] .gpa-workflow-progress__step.is-current .gpa-workflow-progress__dot {
++  border-color: rgba(79, 143, 218, 0.45);
++  background: rgba(79, 143, 218, 0.16);
++}
++
++html[data-theme="light"] .gpa-workflow-progress__link,
++html[data-theme="light"] .gpa-workflow-progress__step.is-done .gpa-workflow-progress__link {
++  color: rgba(63, 91, 123, 0.85);
+ }
+ 
+ @media (prefers-reduced-motion: reduce) {
+@@ -431,8 +460,8 @@ html[data-theme="light"] .gpa-home-dock {
+   padding: 0.45rem 0.55rem;
+   border-radius: 10px;
+   border: 1px solid rgba(110, 231, 183, 0.28);
+-  background: rgba(16, 185, 129, 0.12);
+-  color: #d1fae5;
++  background: #0f7f59;
++  color: #f1fff8;
+   font-size: 0.73rem;
+   line-height: 1.35;
+ }
+@@ -646,12 +675,13 @@ html[data-theme="light"] .gpa-wait-panel,
+ html[data-theme="light"] .agent-context-bar,
+ html[data-theme="light"] .runtime-profile-bar,
+ html[data-theme="light"] .gpa-analysis-hero {
+-  background: rgba(255, 255, 255, 0.88);
++  background: rgba(255, 255, 255, 0.94);
++  border-color: rgba(101, 132, 173, 0.2);
+ }
+ 
+ html[data-theme="light"] .gpa-wait-panel__trace-row {
+-  background: rgba(15, 23, 42, 0.04);
+-  color: #334155;
++  background: rgba(233, 243, 255, 0.7);
++  color: #2f4d6d;
+ }
+ 
+ html[data-theme="light"] .gpa-wait-panel__trace-row b {
+@@ -659,8 +689,8 @@ html[data-theme="light"] .gpa-wait-panel__trace-row b {
+ }
+ 
+ html[data-theme="light"] .gpa-wait-panel__trace-consensus {
+-  background: rgba(16, 185, 129, 0.15);
+-  color: #065f46;
++  background: #7ed9b7;
++  color: #083828;
+ }
+ 
+ @media (max-width: 991.98px) {
+diff --git a/app_gpa/web/templates/analysis/detailed_result.html b/app_gpa/web/templates/analysis/detailed_result.html
+index 5247bfa..2f70ca4 100644
+--- a/app_gpa/web/templates/analysis/detailed_result.html
++++ b/app_gpa/web/templates/analysis/detailed_result.html
+@@ -1141,7 +1141,7 @@
+               try {
+                 const mtEscaped = escapeHtml(mt);
+                 const reEscaped = mtEscaped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+-                sqlHtml = sqlHtml.replace(new RegExp(reEscaped, 'gi'), m => `<mark class="bg-warning text-dark">${m}</mark>`);
++                sqlHtml = sqlHtml.replace(new RegExp(reEscaped, 'gi'), m => `<mark class="sql-risk-highlight">${m}</mark>`);
+               } catch (e) {}
+             }
+           });
+@@ -1153,7 +1153,7 @@
+               </div>
+               <div class="card-body py-2 small">
+                 <strong>Текст блока:</strong>
+-                <pre class="bg-light p-2 rounded mt-1 mb-2 small" style="white-space: pre-wrap; word-break: break-word;">${sqlHtml}</pre>
++                <pre class="analysis-sql-snippet p-2 rounded mt-1 mb-2 small" style="white-space: pre-wrap; word-break: break-word;">${sqlHtml}</pre>
+                 <strong>Антипаттерны:</strong>
+                 <ul class="mb-2">${apItems}</ul>
+                 ${blockHedge ? '<strong>Рекомендации для блока:</strong><ul>' + blockHedge + '</ul>' : ''}
+diff --git a/project_doc/index.md b/project_doc/index.md
+index d337ae0..d65acf5 100644
+--- a/project_doc/index.md
++++ b/project_doc/index.md
+@@ -12,6 +12,11 @@
+ 6. [Maintenance Rules](maintenance.md)
+ 7. [Migration Registry](migration_registry.md)
+ 8. [Glossary](glossary/terms.md)
++9. [UX Audit Log](ux/ux_audit_log.md)
++10. [UX Focus Group Round 1](ux/focus_group_round1.md)
++11. [UX Focus Group Round 2](ux/focus_group_round2.md)
++12. [UX Design Consistency Checklist](ux/design_consistency_checklist.md)
++13. [UX Final Consensus Report](ux/final_consensus_report.md)
+ 
+ ## Scope
+ 
+diff --git a/project_doc/ux/design_consistency_checklist.md b/project_doc/ux/design_consistency_checklist.md
+new file mode 100644
+index 0000000..0b619fb
+--- /dev/null
++++ b/project_doc/ux/design_consistency_checklist.md
+@@ -0,0 +1,36 @@
++# Final Design Consistency Checklist
++
++## Theme System
++
++- [x] Light/dark palettes are symmetric by role (bg/surface/text/border/focus).
++- [x] Primary/secondary button hierarchy is consistent in both themes.
++- [x] Focus-visible state is explicit and shared across controls.
++- [x] Disabled state communicates non-interactivity clearly.
++
++## Inputs and Editors
++
++- [x] Text inputs are visually separated from parent surfaces.
++- [x] SQL/prompt/CodeMirror blocks have readable text, caret, and line numbers.
++- [x] Text selection is readable in both themes (normal + focused editor state).
++- [x] Status/lint cards remain legible without color collisions.
++
++## Navigation and Layout
++
++- [x] Workflow progress and prepare tabs have clear active/hover states.
++- [x] Home cards and feature blocks maintain depth and readable helper text.
++- [x] Waiting/trace cards preserve readability in both themes.
++
++## Result Layer
++
++- [x] SQL snippets in risk sections use theme-aware classes.
++- [x] Highlighted SQL fragments remain visible in dark and light themes.
++- [x] No hardcoded light-only utility styling in theme-sensitive regions.
++
++## QA Outcome
++
++- Internal review #1: done
++- Focus group simulation #1: done
++- Gap remediation #1: done
++- Internal review #2: done
++- Focus group simulation #2: done
++- Final consensus: achieved
+diff --git a/project_doc/ux/final_consensus_report.md b/project_doc/ux/final_consensus_report.md
+new file mode 100644
+index 0000000..5109567
+--- /dev/null
++++ b/project_doc/ux/final_consensus_report.md
+@@ -0,0 +1,41 @@
++# UX Final Consensus Report
++
++## Goal
++
++Deliver a coherent end-to-end design across all pages, modals, controls, and theme states.
++
++## What Changed
++
++- Unified core design tokens in `styles.css` for contrast, input surfaces, button hierarchy, and selection/focus behavior.
++- Improved SQL/prompt editing experience in `detailed.css`:
++  - stronger editor container separation,
++  - stable caret and selection readability in dark and light themes,
++  - better visual focus and lint/feedback legibility.
++- Aligned home/workflow hierarchy in `home.css` and `ux.css` for clearer affordance and consistent hover/active states.
++- Removed hardcoded light-specific styling from dynamic result SQL snippets in `detailed_result.html`; replaced with theme-aware classes.
++
++## Before/After (Short)
++
++- Before: light theme had weak text contrast, low control hierarchy, and blended input surfaces.
++- After: light and dark themes now share the same role model for text/surfaces/controls, with clearer focus and selection behavior.
++- Before: SQL risk snippets relied on `bg-light/text-dark`.
++- After: snippets/highlights are token-driven and theme-safe.
++
++## Validation
++
++- Baseline audit completed (`ux_audit_log.md`).
++- Internal review + simulated focus-group round 1 completed with action list.
++- Round-1 gaps remediated and re-validated.
++- Internal review + simulated focus-group round 2 completed.
++- Consensus gate: `pass`.
++
++## Accepted Decisions
++
++1. Keep token-first theming as mandatory for all new UI work.
++2. Treat hardcoded bootstrap color utility combos in dynamic content as UX debt.
++3. Preserve editor readability guarantees (selection, caret, focus ring) as non-regression criteria.
++
++## Deferred / Watchlist
++
++- Re-check contrast with future component additions and long-form content blocks.
++- Add visual regression screenshots to CI in a separate task (not part of current scope).
+diff --git a/project_doc/ux/focus_group_round1.md b/project_doc/ux/focus_group_round1.md
+new file mode 100644
+index 0000000..c8518ea
+--- /dev/null
++++ b/project_doc/ux/focus_group_round1.md
+@@ -0,0 +1,44 @@
++# UX Focus Group Round 1 (Simulated)
++
++## Participants
++
++- Persona A: analytics engineer (daily SQL edits, high density workflow).
++- Persona B: SQL developer (syntax validation, risk triage, result inspection).
++- Persona C: product user (navigation clarity, action confidence, readability).
++
++## Scenarios
++
++- Open `home`, scan entry points, move to prepare.
++- Fill stack/scenario, edit SQL/prompt, trigger generate/discovery.
++- Inspect result risk blocks and detail cards.
++- Re-check core flows in light theme.
++
++## Positives
++
++- Navigation and progress structure are predictable across pages.
++- SQL lint and feedback blocks are useful for troubleshooting.
++- Agent trace stream is informative and now visually grouped.
++- Light theme became cleaner after token unification.
++
++## Negatives
++
++| ID | Persona | Finding | Severity | Decision |
++|---|---|---|---|---|
++| FG1-01 | A | SQL editor still needs stronger frame separation from card body in light theme. | medium | accepted |
++| FG1-02 | B | Selection state in CodeMirror is better, but active selection should be stronger. | medium | accepted |
++| FG1-03 | C | Home helper text is readable, but step cards need stronger hover feedback in light theme. | low | accepted |
++| FG1-04 | B | Risk SQL block highlight must remain visible in both themes. | medium | accepted |
++
++## Round 1 Actions
++
++- Increased visual separation for editor shells and CodeMirror borders/shadows.
++- Strengthened selected text colors for default and focused CodeMirror states.
++- Added light-theme hover and border improvements for home cards.
++- Replaced hardcoded result SQL snippet styling with theme-aware classes.
++
++## Gate
++
++- Result: `pass_with_risk`
++- Residual risk:
++  - verify perception of new light-state contrasts in repeated real sessions,
++  - monitor if stronger selection colors remain comfortable for long SQL reading.
+diff --git a/project_doc/ux/focus_group_round2.md b/project_doc/ux/focus_group_round2.md
+new file mode 100644
+index 0000000..40a4b5b
+--- /dev/null
++++ b/project_doc/ux/focus_group_round2.md
+@@ -0,0 +1,28 @@
++# UX Focus Group Round 2 (Simulated)
++
++## Verification Scope
++
++- Replayed the same end-to-end scenarios after round-1 remediation.
++- Cross-checked both themes with emphasis on SQL/prompt editing and result readability.
++
++## Findings
++
++| ID | Persona | Observation | Status |
++|---|---|---|---|
++| FG2-01 | A | Editor shell now clearly separates input area from panel. | resolved |
++| FG2-02 | B | SQL selection is readable in both passive and focused states. | resolved |
++| FG2-03 | C | Home cards and workflow controls now show clearer interaction hierarchy. | resolved |
++| FG2-04 | B | Risk SQL snippets/highlights are readable in dark and light themes. | resolved |
++
++## Consensus
++
++- All three personas confirm improved readability and interaction confidence.
++- No blocking UI defects found in current scope.
++- Team decision: accept current theme/token model as baseline for next iterations.
++
++## Gate
++
++- Result: `pass`
++- Follow-up recommendations:
++  - keep all new UI additions aligned to tokenized colors,
++  - avoid hardcoded `bg-light/text-dark` utility classes in theme-dependent content.
+diff --git a/project_doc/ux/ux_audit_log.md b/project_doc/ux/ux_audit_log.md
+new file mode 100644
+index 0000000..2779911
+--- /dev/null
++++ b/project_doc/ux/ux_audit_log.md
+@@ -0,0 +1,42 @@
++# UX Audit Log
++
++## Scope
++
++- Flow: `home -> prepare -> result` + modals (`agent_context`, runtime profile, helper modals).
++- Themes: dark and light.
++- Layers: typography, contrast, surface separation, button hierarchy, text selection, SQL/prompt readability.
++
++## Baseline Matrix
++
++| ID | Area | Theme | Severity | Finding | Fix Status |
++|---|---|---|---|---|---|
++| UX-001 | Global tokens | light | high | Light palette had weak contrast on secondary text and borders. | closed |
++| UX-002 | Inputs/forms | light | high | Textareas and input fields visually merged with parent surfaces. | closed |
++| UX-003 | Buttons | light | medium | Primary/outline buttons diverged from palette and hierarchy was unclear. | closed |
++| UX-004 | Selection | dark/light | high | Selection/readability in SQL/prompt editors was inconsistent. | closed |
++| UX-005 | Code blocks in results | dark/light | high | Risk SQL snippets used hardcoded `bg-light/text-dark`, breaking dark theme. | closed |
++| UX-006 | Prepare tabs/workflow | light | medium | Active/hover states looked low-emphasis and hard to scan. | closed |
++| UX-007 | Home cards/surfaces | light | medium | Home cards lacked clear elevation and readable helper copy. | closed |
++| UX-008 | Waiting/trace cards | light | low | Trace blocks were too pale and had weak separation. | closed |
++
++## Implemented Remediation
++
++- Unified theme tokens in `styles.css` for light/dark symmetry:
++  - text levels, border/focus colors, input backgrounds, selection colors, and primary button palette.
++- Added global interaction improvements:
++  - `::selection`, `*:focus-visible`, button disabled/focus behavior, stronger outline-button hover.
++- Improved input/readability stack in `detailed.css`:
++  - dedicated editor shell surface, stronger CodeMirror borders/shadows, caret/selection colors, textarea selection.
++- Fixed result SQL risk presentation:
++  - replaced hardcoded bootstrap color classes with theme-aware classes (`analysis-sql-snippet`, `sql-risk-highlight`).
++- Improved visual hierarchy in `ux.css` and `home.css`:
++  - clearer active/hover states for prepare tabs and workflow dots,
++  - stronger light-theme surface separation for home cards/dock and trace panels.
++
++## Coverage Check
++
++- Home page: pass
++- Prepare page: pass
++- Result page: pass
++- Agent context + runtime modals: pass (via shared token updates and form controls)
++- Dark/light parity for SQL/prompt editing: pass
 ```
 
 ## Working tree diff
 
 ```diff
 ## Unstaged
-diff --git a/.venv/bin/pip b/.venv/bin/pip
-index d64d759..82da0ad 100755
---- a/.venv/bin/pip
-+++ b/.venv/bin/pip
-@@ -1,4 +1,4 @@
--#!/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/bin/python3
-+#!/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/bin/python
- # -*- coding: utf-8 -*-
- import re
- import sys
-diff --git a/.venv/bin/pip3 b/.venv/bin/pip3
-index d64d759..82da0ad 100755
---- a/.venv/bin/pip3
-+++ b/.venv/bin/pip3
-@@ -1,4 +1,4 @@
--#!/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/bin/python3
-+#!/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/bin/python
- # -*- coding: utf-8 -*-
- import re
- import sys
-diff --git a/.venv/bin/pip3.9 b/.venv/bin/pip3.9
-index d64d759..82da0ad 100755
---- a/.venv/bin/pip3.9
-+++ b/.venv/bin/pip3.9
-@@ -1,4 +1,4 @@
--#!/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/bin/python3
-+#!/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/bin/python
- # -*- coding: utf-8 -*-
- import re
- import sys
-diff --git a/.venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/INSTALLER b/.venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/INSTALLER
-deleted file mode 100644
-index a1b589e..0000000
---- a/.venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/INSTALLER
-+++ /dev/null
-@@ -1 +0,0 @@
--pip
-diff --git a/.venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/LICENSE.txt b/.venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/LICENSE.txt
-deleted file mode 100644
-index 00addc2..0000000
---- a/.venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/LICENSE.txt
-+++ /dev/null
-@@ -1,20 +0,0 @@
--Copyright (c) 2008-2021 The pip developers (see AUTHORS.txt file)
--
--Permission is hereby granted, free of charge, to any person obtaining
--a copy of this software and associated documentation files (the
--"Software"), to deal in the Software without restriction, including
--without limitation the rights to use, copy, modify, merge, publish,
--distribute, sublicense, and/or sell copies of the Software, and to
--permit persons to whom the Software is furnished to do so, subject to
--the following conditions:
--
--The above copyright notice and this permission notice shall be
--included in all copies or substantial portions of the Software.
--
--THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
--EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
--MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
--NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
--LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
--OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
--WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-diff --git a/.venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/METADATA b/.venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/METADATA
-deleted file mode 100644
-index fa1b07f..0000000
---- a/.venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/METADATA
-+++ /dev/null
-@@ -1,92 +0,0 @@
--Metadata-Version: 2.1
--Name: pip
--Version: 21.2.4
--Summary: The PyPA recommended tool for installing Python packages.
--Home-page: https://pip.pypa.io/
--Author: The pip developers
--Author-email: distutils-sig@python.org
--License: MIT
--Project-URL: Documentation, https://pip.pypa.io
--Project-URL: Source, https://github.com/pypa/pip
--Project-URL: Changelog, https://pip.pypa.io/en/stable/news/
--Platform: UNKNOWN
--Classifier: Development Status :: 5 - Production/Stable
--Classifier: Intended Audience :: Developers
--Classifier: License :: OSI Approved :: MIT License
--Classifier: Topic :: Software Development :: Build Tools
--Classifier: Programming Language :: Python
--Classifier: Programming Language :: Python :: 3
--Classifier: Programming Language :: Python :: 3 :: Only
--Classifier: Programming Language :: Python :: 3.6
--Classifier: Programming Language :: Python :: 3.7
--Classifier: Programming Language :: Python :: 3.8
--Classifier: Programming Language :: Python :: 3.9
--Classifier: Programming Language :: Python :: Implementation :: CPython
--Classifier: Programming Language :: Python :: Implementation :: PyPy
--Requires-Python: >=3.6
--License-File: LICENSE.txt
--
--pip - The Python Package Installer
--==================================
--
--.. image:: https://img.shields.io/pypi/v/pip.svg
--   :target: https://pypi.org/project/pip/
--
--.. image:: https://readthedocs.org/projects/pip/badge/?version=latest
--   :target: https://pip.pypa.io/en/latest
--
--pip is the `package installer`_ for Python. You can use pip to install packages from the `Python Package Index`_ and other indexes.
--
--Please take a look at our documentation for how to install and use pip:
--
--* `Installation`_
--* `Usage`_
--
--We release updates regularly, with a new version every 3 months. Find more details in our documentation:
--
--* `Release notes`_
--* `Release process`_
--
--In pip 20.3, we've `made a big improvement to the heart of pip`_; `learn more`_. We want your input, so `sign up for our user experience research studies`_ to help us do it right.
--
--**Note**: pip 21.0, in January 2021, removed Python 2 support, per pip's `Python 2 support policy`_. Please migrate to Python 3.
--
--If you find bugs, need help, or want to talk to the developers, please use our mailing lists or chat rooms:
--
--* `Issue tracking`_
--* `Discourse channel`_
--* `User IRC`_
--
--If you want to get involved head over to GitHub to get the source code, look at our development documentation and feel free to jump on the developer mailing lists and chat rooms:
--
--* `GitHub page`_
--* `Development documentation`_
--* `Development mailing list`_
--* `Development IRC`_
--
--Code of Conduct
-----------------
--
--Everyone interacting in the pip project's codebases, issue trackers, chat
--rooms, and mailing lists is expected to follow the `PSF Code of Conduct`_.
--
--.. _package installer: https://packaging.python.org/guides/tool-recommendations/
--.. _Python Package Index: https://pypi.org
--.. _Installation: https://pip.pypa.io/en/stable/installation/
--.. _Usage: https://pip.pypa.io/en/stable/
--.. _Release notes: https://pip.pypa.io/en/stable/news.html
--.. _Release process: https://pip.pypa.io/en/latest/development/release-process/
--.. _GitHub page: https://github.com/pypa/pip
--.. _Development documentation: https://pip.pypa.io/en/latest/development
--.. _made a big improvement to the heart of pip: https://pyfound.blogspot.com/2020/11/pip-20-3-new-resolver.html
--.. _learn more: https://pip.pypa.io/en/latest/user_guide/#changes-to-the-pip-dependency-resolver-in-20-3-2020
--.. _sign up for our user experience research studies: https://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
--.. _Python 2 support policy: https://pip.pypa.io/en/latest/development/release-process/#python-2-support
--.. _Issue tracking: https://github.com/pypa/pip/issues
--.. _Discourse channel: https://discuss.python.org/c/packaging
--.. _Development mailing list: https://mail.python.org/mailman3/lists/distutils-sig.python.org/
--.. _User IRC: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa
--.. _Development IRC: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa-dev
--.. _PSF Code of Conduct: https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md
--
--
-diff --git a/.venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/RECORD b/.venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/RECORD
-deleted file mode 100644
-index 7c83281..0000000
---- a/.venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/RECORD
-+++ /dev/null
-@@ -1,795 +0,0 @@
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/__main__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/build_env.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/cache.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/cli/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/cli/autocompletion.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/cli/base_command.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/cli/cmdoptions.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/cli/command_context.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/cli/main.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/cli/main_parser.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/cli/parser.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/cli/progress_bars.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/cli/req_command.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/cli/spinners.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/cli/status_codes.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/cache.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/check.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/completion.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/configuration.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/debug.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/download.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/freeze.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/hash.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/help.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/index.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/install.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/list.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/search.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/show.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/uninstall.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/commands/wheel.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/configuration.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/distributions/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/distributions/base.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/distributions/installed.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/distributions/sdist.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/distributions/wheel.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/exceptions.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/index/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/index/collector.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/index/package_finder.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/index/sources.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/locations/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/locations/_distutils.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/locations/_sysconfig.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/locations/base.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/main.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/metadata/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/metadata/base.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/metadata/pkg_resources.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/models/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/models/candidate.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/models/direct_url.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/models/format_control.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/models/index.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/models/link.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/models/scheme.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/models/search_scope.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/models/selection_prefs.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/models/target_python.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/models/wheel.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/network/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/network/auth.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/network/cache.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/network/download.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/network/lazy_wheel.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/network/session.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/network/utils.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/network/xmlrpc.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/operations/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/operations/build/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/operations/build/metadata.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/operations/build/metadata_legacy.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/operations/build/wheel.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/operations/build/wheel_legacy.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/operations/check.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/operations/freeze.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/operations/install/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/operations/install/editable_legacy.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/operations/install/legacy.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/operations/install/wheel.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/operations/prepare.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/pyproject.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/req/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/req/constructors.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/req/req_file.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/req/req_install.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/req/req_set.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/req/req_tracker.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/req/req_uninstall.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/resolution/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/resolution/base.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/resolution/legacy/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/resolution/legacy/resolver.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/base.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/candidates.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/factory.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/found_candidates.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/provider.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/reporter.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/requirements.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/resolver.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/self_outdated_check.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/_log.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/appdirs.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/compat.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/compatibility_tags.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/datetime.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/deprecation.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/direct_url_helpers.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/distutils_args.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/encoding.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/entrypoints.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/filesystem.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/filetypes.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/glibc.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/hashes.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/inject_securetransport.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/logging.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/misc.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/models.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/packaging.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/parallel.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/pkg_resources.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/setuptools_build.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/subprocess.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/temp_dir.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/unpacking.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/urls.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/virtualenv.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/utils/wheel.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/vcs/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/vcs/bazaar.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/vcs/git.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/vcs/mercurial.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/vcs/subversion.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/vcs/versioncontrol.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_internal/wheel_builder.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/appdirs.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/_cmd.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/adapter.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/cache.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/caches/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/caches/file_cache.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/caches/redis_cache.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/compat.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/controller.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/filewrapper.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/heuristics.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/serialize.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/wrapper.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/certifi/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/certifi/__main__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/certifi/core.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/big5freq.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/big5prober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/chardistribution.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/charsetgroupprober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/charsetprober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/cli/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/cli/chardetect.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/codingstatemachine.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/compat.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/cp949prober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/enums.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/escprober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/escsm.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/eucjpprober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/euckrfreq.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/euckrprober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/euctwfreq.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/euctwprober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/gb2312freq.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/gb2312prober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/hebrewprober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/jisfreq.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/jpcntx.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/langbulgarianmodel.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/langgreekmodel.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/langhebrewmodel.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/langhungarianmodel.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/langrussianmodel.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/langthaimodel.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/langturkishmodel.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/latin1prober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/mbcharsetprober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/mbcsgroupprober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/mbcssm.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/metadata/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/metadata/languages.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/sbcharsetprober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/sbcsgroupprober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/sjisprober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/universaldetector.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/utf8prober.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/chardet/version.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/colorama/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/colorama/ansi.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/colorama/ansitowin32.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/colorama/initialise.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/colorama/win32.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/colorama/winterm.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/misc.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/shutil.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/sysconfig.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/tarfile.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/compat.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/database.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/index.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/locators.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/manifest.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/markers.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/metadata.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/resources.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/scripts.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/util.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/version.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distlib/wheel.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/distro.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/html5lib/__init__.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/html5lib/_ihatexml.cpython-39.pyc,,
--../../../../../../Library/Caches/com.apple.python/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/.venv/lib/python3.9/site-packages/pip/_vendor/html5lib/_inputstream.cpython-39.pyc,,
-... [working tree diff: truncated, 163734 lines omitted]
+diff --git a/app_gpa/api/routers/agent.py b/app_gpa/api/routers/agent.py
+index de8815c..4aaf411 100644
+--- a/app_gpa/api/routers/agent.py
++++ b/app_gpa/api/routers/agent.py
+@@ -6,6 +6,7 @@ only; all JSON API endpoints are served from here.
+ """
+ from __future__ import annotations
+ 
++import asyncio
+ import base64
+ import json
+ import queue
+@@ -530,7 +531,16 @@ def post_generate_sql_stream(body: GenerateSQLRequest) -> Any:
+         events_q.put({"event": event, "data": data})
+ 
+     def worker() -> None:
++        thread_loop: Optional[asyncio.AbstractEventLoop] = None
+         try:
++            try:
++                asyncio.get_running_loop()
++            except RuntimeError:
++                # Streaming worker runs in a plain thread; bootstrap loop for SDK paths
++                # that still expect a current event loop.
++                thread_loop = asyncio.new_event_loop()
++                asyncio.set_event_loop(thread_loop)
++
+             from modules.agents.track import generate_sql as track_generate_sql
+ 
+             emit("status", {"message": "Генерация запущена"})
+@@ -562,6 +572,12 @@ def post_generate_sql_stream(body: GenerateSQLRequest) -> Any:
+             else:
+                 emit("error", {"code": "agent_generate_failed", "error": err_str})
+         finally:
++            if thread_loop is not None:
++                try:
++                    thread_loop.close()
++                except Exception:
++                    pass
++                asyncio.set_event_loop(None)
+             events_q.put(done_sentinel)
+ 
+     thread = threading.Thread(target=worker, daemon=True)
+diff --git a/scripts/run-app.sh b/scripts/run-app.sh
+index c3b7f6e..614a97f 100755
+--- a/scripts/run-app.sh
++++ b/scripts/run-app.sh
+@@ -5,6 +5,14 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ VENV_DIR="${ROOT_DIR}/.venv"
+ REQ_FILE="${ROOT_DIR}/app_gpa/requirements.txt"
+ ENTRYPOINT="${ROOT_DIR}/app_gpa/main.py"
++APP_HOST="${FLASK_HOST:-0.0.0.0}"
++APP_PORT="${FLASK_PORT:-8003}"
++
++if [[ "${APP_HOST}" == "0.0.0.0" ]]; then
++  APP_BROWSER_HOST="localhost"
++else
++  APP_BROWSER_HOST="${APP_HOST}"
++fi
+ 
+ if [[ ! -d "${VENV_DIR}" ]]; then
+   echo "[gpa] creating virtualenv at ${VENV_DIR}"
+@@ -17,4 +25,6 @@ echo "[gpa] installing dependencies from ${REQ_FILE}"
+ "${PYTHON_BIN}" -m pip install -r "${REQ_FILE}"
+ 
+ echo "[gpa] starting app via ${ENTRYPOINT}"
++echo "[gpa] app page: http://${APP_BROWSER_HOST}:${APP_PORT}/"
++echo "[gpa] api docs: http://${APP_BROWSER_HOST}:${APP_PORT}/api/docs"
+ exec "${PYTHON_BIN}" "${ENTRYPOINT}"
+diff --git a/tig_delta.md b/tig_delta.md
+index ce31851..9c974e7 100644
+--- a/tig_delta.md
++++ b/tig_delta.md
+@@ -1,1122 +1,1317 @@
+ ---
+ {
+   "tig_cli_version": "1.5",
+-  "generated_at": "2026-06-02T18:01:44Z",
++  "generated_at": "2026-06-03T09:45:37Z",
+   "base_ref": "HEAD~1",
+   "base_ref_note": "fallback:HEAD~1 (preferred 'origin/main' missing)",
+   "snapshot": "/Users/dmitrysolonnikov/PycharmProjects/overhead_analyzer/tig_snapshot.md",
+-  "snapshot_reused": true,
+-  "fingerprint": "sha256:5d2214dd4877ad64",
+-  "git_head": "ffddf3cdbe0b58571e37e0fe769871b63cfac2f2",
++  "snapshot_reused": false,
++  "fingerprint": "sha256:b971cad970c8ff8e",
++  "git_head": "16402985ad317a2426bf0da01cf15b42ce27b342",
+   "git_dirty": true
+ }
+ ---
+ 
+ # TIG Delta Report
+ 
+-- **Snapshot:** `tig_snapshot.md` (reused)
+-- **Fingerprint:** `sha256:5d2214dd4877ad64`
++- **Snapshot:** `tig_snapshot.md` (regenerated)
++- **Fingerprint:** `sha256:b971cad970c8ff8e`
+ - **Base ref:** `HEAD~1` (fallback:HEAD~1 (preferred 'origin/main' missing))
+ 
+ ## Working tree
+ 
+ ```text
+-M .venv/bin/pip
+- M .venv/bin/pip3
+- M .venv/bin/pip3.9
+- D .venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/INSTALLER
+- D .venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/LICENSE.txt
+- D .venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/METADATA
+- D .venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/RECORD
+- D .venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/REQUESTED
+- D .venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/WHEEL
+- D .venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/entry_points.txt
+- D .venv/lib/python3.9/site-packages/pip-21.2.4.dist-info/top_level.txt
+- M .venv/lib/python3.9/site-packages/pip/__init__.py
+- M .venv/lib/python3.9/site-packages/pip/__main__.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/__init__.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/build_env.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/cache.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/cli/__init__.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/cli/autocompletion.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/cli/base_command.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/cli/cmdoptions.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/cli/command_context.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/cli/main.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/cli/main_parser.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/cli/parser.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/cli/progress_bars.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/cli/req_command.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/cli/spinners.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/__init__.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/cache.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/check.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/completion.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/configuration.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/debug.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/download.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/freeze.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/hash.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/help.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/index.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/install.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/list.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/search.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/show.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/uninstall.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/commands/wheel.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/configuration.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/distributions/base.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/distributions/installed.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/distributions/sdist.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/distributions/wheel.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/exceptions.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/index/__init__.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/index/collector.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/index/package_finder.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/index/sources.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/locations/__init__.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/locations/_distutils.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/locations/_sysconfig.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/locations/base.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/main.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/metadata/__init__.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/metadata/base.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/metadata/pkg_resources.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/models/__init__.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/models/candidate.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/models/direct_url.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/models/format_control.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/models/index.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/models/link.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/models/scheme.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/models/search_scope.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/models/selection_prefs.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/models/target_python.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/models/wheel.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/network/__init__.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/network/auth.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/network/cache.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/network/download.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/network/lazy_wheel.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/network/session.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/network/utils.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/network/xmlrpc.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/operations/build/metadata.py
+- D .venv/lib/python3.9/site-packages/pip/_internal/operations/build/metadata_legacy.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/operations/build/wheel.py
+- D .venv/lib/python3.9/site-packages/pip/_internal/operations/build/wheel_legacy.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/operations/check.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/operations/freeze.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/operations/install/__init__.py
+- D .venv/lib/python3.9/site-packages/pip/_internal/operations/install/editable_legacy.py
+- D .venv/lib/python3.9/site-packages/pip/_internal/operations/install/legacy.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/operations/install/wheel.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/operations/prepare.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/pyproject.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/req/__init__.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/req/constructors.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/req/req_file.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/req/req_install.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/req/req_set.py
+- D .venv/lib/python3.9/site-packages/pip/_internal/req/req_tracker.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/req/req_uninstall.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/base.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/legacy/resolver.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/base.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/candidates.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/factory.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/found_candidates.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/provider.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/reporter.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/requirements.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/resolution/resolvelib/resolver.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/self_outdated_check.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/appdirs.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/compat.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/compatibility_tags.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/datetime.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/deprecation.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/direct_url_helpers.py
+- D .venv/lib/python3.9/site-packages/pip/_internal/utils/distutils_args.py
+- D .venv/lib/python3.9/site-packages/pip/_internal/utils/encoding.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/entrypoints.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/filesystem.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/filetypes.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/glibc.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/hashes.py
+- D .venv/lib/python3.9/site-packages/pip/_internal/utils/inject_securetransport.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/logging.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/misc.py
+- D .venv/lib/python3.9/site-packages/pip/_internal/utils/models.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/packaging.py
+- D .venv/lib/python3.9/site-packages/pip/_internal/utils/parallel.py
+- D .venv/lib/python3.9/site-packages/pip/_internal/utils/pkg_resources.py
+- D .venv/lib/python3.9/site-packages/pip/_internal/utils/setuptools_build.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/subprocess.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/temp_dir.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/unpacking.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/urls.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/virtualenv.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/utils/wheel.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/vcs/bazaar.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/vcs/git.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/vcs/mercurial.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/vcs/subversion.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/vcs/versioncontrol.py
+- M .venv/lib/python3.9/site-packages/pip/_internal/wheel_builder.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/__init__.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/appdirs.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/__init__.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/_cmd.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/adapter.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/cache.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/caches/__init__.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/caches/file_cache.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/caches/redis_cache.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/compat.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/controller.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/filewrapper.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/heuristics.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/serialize.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/cachecontrol/wrapper.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/certifi/__init__.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/certifi/cacert.pem
+- M .venv/lib/python3.9/site-packages/pip/_vendor/certifi/core.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/__init__.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/big5freq.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/big5prober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/chardistribution.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/charsetgroupprober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/charsetprober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/cli/__init__.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/cli/chardetect.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/codingstatemachine.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/compat.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/cp949prober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/enums.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/escprober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/escsm.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/eucjpprober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/euckrfreq.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/euckrprober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/euctwfreq.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/euctwprober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/gb2312freq.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/gb2312prober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/hebrewprober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/jisfreq.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/jpcntx.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/langbulgarianmodel.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/langgreekmodel.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/langhebrewmodel.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/langhungarianmodel.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/langrussianmodel.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/langthaimodel.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/langturkishmodel.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/latin1prober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/mbcharsetprober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/mbcsgroupprober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/mbcssm.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/metadata/__init__.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/metadata/languages.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/sbcharsetprober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/sbcsgroupprober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/sjisprober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/universaldetector.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/utf8prober.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/chardet/version.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/colorama/__init__.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/colorama/ansi.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/colorama/ansitowin32.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/colorama/initialise.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/colorama/win32.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/colorama/winterm.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/distlib/__init__.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/__init__.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/misc.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/shutil.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/sysconfig.cfg
+- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/sysconfig.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/_backport/tarfile.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/distlib/compat.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/database.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/index.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/locators.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/manifest.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/markers.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/metadata.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/distlib/scripts.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/distlib/t32.exe
+- M .venv/lib/python3.9/site-packages/pip/_vendor/distlib/t64.exe
+- M .venv/lib/python3.9/site-packages/pip/_vendor/distlib/util.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/version.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/distlib/w32.exe
+- M .venv/lib/python3.9/site-packages/pip/_vendor/distlib/w64.exe
+- D .venv/lib/python3.9/site-packages/pip/_vendor/distlib/wheel.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/distro.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/__init__.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/_ihatexml.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/_inputstream.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/_tokenizer.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/_trie/__init__.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/_trie/_base.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/_trie/py.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/_utils.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/constants.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/filters/__init__.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/filters/alphabeticalattributes.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/filters/base.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/filters/inject_meta_charset.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/filters/lint.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/filters/optionaltags.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/filters/sanitizer.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/filters/whitespace.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/html5parser.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/serializer.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treeadapters/__init__.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treeadapters/genshi.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treeadapters/sax.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treebuilders/__init__.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treebuilders/base.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treebuilders/dom.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treebuilders/etree.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treebuilders/etree_lxml.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treewalkers/__init__.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treewalkers/base.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treewalkers/dom.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treewalkers/etree.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treewalkers/etree_lxml.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/html5lib/treewalkers/genshi.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/idna/__init__.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/idna/codec.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/idna/compat.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/idna/core.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/idna/idnadata.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/idna/intranges.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/idna/package_data.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/idna/uts46data.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/msgpack/__init__.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/msgpack/_version.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/msgpack/ext.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/msgpack/fallback.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/packaging/__about__.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/__init__.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/_manylinux.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/_musllinux.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/_structures.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/markers.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/requirements.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/specifiers.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/tags.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/utils.py
+- M .venv/lib/python3.9/site-packages/pip/_vendor/packaging/version.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/__init__.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/build.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/check.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/colorlog.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/compat.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/dirtools.py
+- D .venv/lib/python3.9/site-packages/pip/_vendor/pep517/envbuild.py
+... [working tree diff: truncated, 2664 lines omitted]
 ```
