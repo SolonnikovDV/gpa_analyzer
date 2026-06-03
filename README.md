@@ -444,81 +444,98 @@ CI:
 
 ```
 overhead_analyzer/
-├── LICENSE
-├── README.md
+├── .github/workflows/python-tests.yml    # CI: запуск pytest
+├── scripts/
+│   ├── run-app.sh                        # Локальный запуск (venv + зависимости + uvicorn)
+│   └── tig-context.sh                    # Генерация TIG snapshot/delta
+├── project_doc/                          # Архитектурная и UX-документация
 └── app_gpa/
-    ├── webapp.py              # Flask: маршруты, очереди логов, запуск задач
+    ├── main.py                           # ASGI entrypoint: FastAPI (/api/*) + mount Flask UI
+    ├── webapp.py                         # Flask entrypoint (legacy/debug + HTML/SSE)
+    ├── worker.py                         # RQ worker для JOB_RUNNER_BACKEND=queue
     ├── requirements.txt
-    ├── static/
-    │   ├── styles.css         # Общие стили, лог, формы
-    │   └── detailed.css       # Загрузка, системная статистика
-    ├── templates/
-    │   ├── about_modal.html   # О приложении, лицензия MIT
-    │   └── tips_modal.html   # Подсказки по форме
-    ├── agent/
-    │   ├── gigachat_agent.py    # GigaChat: блоки/объекты, синтез планов
-    │   └── agent_prompts.py    # Промпты для агента
-    └── detailed/
-        ├── detailed_analyzer.py  # Ядро: discover_tables, analyze_with_user_sizes
-        ├── block_parser.py       # Разбиение PL/pgSQL на блоки, классификация
-        ├── sql_object_extractor.py  # pglast: извлечение таблиц/представлений из SQL
-        ├── execute_parser.py    # EXECUTE format/USING, SELECT INTO
-        ├── nested_block_extractor.py  # Вложенные SQL-блоки
-        ├── antipattern_detector.py  # Детекция антипаттернов, множители нагрузки
-        ├── load_calculator.py   # Оценка нагрузки по плану (множители узлов)
-        ├── plan_adjuster.py     # Подстановка пользовательских размеров в план
-        ├── temp_table_tracker.py
-        ├── performance_monitor.py  # CPU/память процесса
-        └── templates/
-            ├── detailed_input.html   # Форма DDL, БД
-            ├── table_sizes.html     # Результат discovery, форма размеров и параметров
-            └── detailed_result.html # Лог, сводка, вкладки (таблицы, блоки, топ-3)
+    ├── api/                              # FastAPI: JSON API, middleware, контракты
+    │   ├── app_factory.py
+    │   ├── middleware.py
+    │   └── routers/
+    │       ├── agent.py                 # /api/agent/*
+    │       ├── sql.py                   # /api/sql/*
+    │       ├── runtime.py               # /api/runtime/*
+    │       ├── cache.py                 # /api/cache/*
+    │       └── health.py                # /api/health/*
+    ├── web/                              # Flask UI: страницы, формы, SSE и шаблоны
+    │   ├── factory.py
+    │   ├── context.py
+    │   ├── routes/
+    │   │   ├── analysis.py
+    │   │   ├── agent.py
+    │   │   ├── pages.py
+    │   │   └── *.py
+    │   ├── templates/
+    │   │   ├── analysis/
+    │   │   └── app/
+    │   └── static/
+    │       ├── styles.css
+    │       ├── detailed.css
+    │       ├── ux.css
+    │       └── gpa-ui.js
+    ├── modules/
+    │   ├── analysis/                     # Ядро анализа (парсинг, EXPLAIN, расчёт, lint)
+    │   └── agents/                       # GigaChat-оркестрация, governance, token usage
+    ├── services/                         # Сервисный слой API (agents/cache/runtime/sql)
+    ├── core/                             # bootstrap, settings, пути, compat
+    ├── config/                           # Профили и runtime-конфиги
+    └── tests/                            # Unit + integration + hybrid тесты
 ```
 
 ### Связи объектов (компоненты и зависимости)
 
-Основные модули приложения и их зависимости:
+Основные компоненты и их роли в текущей архитектуре:
 
 ```mermaid
 graph TB
-    subgraph Web["Веб-слой"]
-        webapp[webapp.py]
-        webapp --> discover_route["/detailed/discover"]
-        webapp --> analyze_route["/detailed/analyze"]
-        webapp --> stream_route["/stream/<job_id>"]
-        webapp --> status_route["/status/<job_id>"]
+    subgraph Entry["Entrypoints"]
+        run_app[scripts/run-app.sh]
+        main_app[app_gpa/main.py]
+        flask_app[app_gpa/webapp.py]
     end
 
-    subgraph Analyzer["Ядро анализа"]
-        analyzer[DetailedGreenplumFunctionAnalyzer]
-        analyzer --> discover_tables[discover_tables]
-        analyzer --> analyze_with_sizes[analyze_with_user_sizes]
+    subgraph Api["FastAPI /api/*"]
+        api_factory[api/app_factory.py]
+        api_router[api/routers/*]
+        api_mw[api/middleware.py]
     end
 
-    subgraph Parsing["Парсинг и извлечение"]
-        block_parser[block_parser]
-        sql_extractor[SQLObjectExtractor]
-        execute_parser[ExecuteParser]
-        nested_extractor[NestedBlockExtractor]
-        temp_tracker[TempTableTracker]
-        antipattern[antipattern_detector]
+    subgraph Ui["Flask UI + SSE"]
+        web_factory[web/factory.py]
+        web_routes[web/routes/*]
+        web_ctx[web/context.py]
+        templates[web/templates/*]
     end
 
-    subgraph Calculation["Расчёт нагрузки"]
-        load_calc[load_calculator]
-        plan_adj[plan_adjuster]
+    subgraph Domain["Доменный слой"]
+        services[services/*]
+        analysis_mod[modules/analysis/*]
+        agents_mod[modules/agents/*]
+        core_mod[core/*]
     end
 
-    discover_route --> analyzer
-    analyze_route --> analyzer
-    analyzer --> block_parser
-    analyzer --> sql_extractor
-    analyzer --> execute_parser
-    analyzer --> nested_extractor
-    analyzer --> temp_tracker
-    analyzer --> antipattern
-    analyzer --> load_calc
-    analyzer --> plan_adj
+    run_app --> main_app
+    main_app --> api_factory
+    main_app --> flask_app
+    api_factory --> api_mw
+    api_factory --> api_router
+    flask_app --> web_factory
+    web_factory --> web_routes
+    web_routes --> web_ctx
+    web_routes --> templates
+    api_router --> services
+    web_routes --> services
+    services --> analysis_mod
+    services --> agents_mod
+    api_router --> agents_mod
+    analysis_mod --> core_mod
+    agents_mod --> core_mod
 ```
 
 ### Алгоритм (этапы работы)
@@ -579,100 +596,102 @@ flowchart TD
 
 ### Архитектура (слои приложения)
 
-Распределение по слоям: веб, задачи, ядро анализа, парсеры, расчёт.
+Распределение по слоям в hybrid-режиме: FastAPI API + Flask UI поверх общих модулей.
 
 ```mermaid
 flowchart TB
-    subgraph Layer1["Слой 1: Веб (Flask)"]
-        Routes[Маршруты /, /detailed, /detailed/discover, /detailed/analyze]
-        SSE[SSE /stream, /status, /details]
-        Templates[Jinja2: detailed_input, table_sizes, detailed_result]
+    subgraph Layer1["Слой 1: Entry"]
+        Main["main.py (ASGI root)"]
+        FlaskEntry["webapp.py (Flask app)"]
     end
 
-    subgraph Layer2["Слой 2: Задачи и очереди"]
-        Jobs[_jobs: job_id -> payload, status, analyzer]
-        Logs[_logs: job_id -> Queue строк]
-        Monitor[PerformanceMonitor по job_id]
+    subgraph Layer2["Слой 2: Transport/UI"]
+        FastAPI["api/* (JSON API + middleware)"]
+        FlaskUI["web/routes/* (HTML, forms, SSE)"]
+        Jinja["web/templates/* + web/static/*"]
     end
 
-    subgraph Layer3["Слой 3: Ядро анализа"]
-        AnalyzerCore[DetailedGreenplumFunctionAnalyzer]
-        Config[ClusterConfig: segments, ram_per_seg_gb]
-        Discover[discover_tables]
-        Analyze[analyze_with_user_sizes]
+    subgraph Layer3["Слой 3: Application Services"]
+        SvcAgents["services/agents/api.py"]
+        SvcSQL["services/sql/lint_service.py"]
+        SvcRuntime["services/runtime/service.py"]
+        SvcCache["services/cache/service.py"]
     end
 
-    subgraph Layer4["Слой 4: Парсинг и извлечение"]
-        BlockParser[block_parser: split_plpgsql_blocks, classify_block]
-        SQLObj[SQLObjectExtractor: extract_objects]
-        ExecParser[ExecuteParser: EXECUTE format/USING]
-        Nested[NestedBlockExtractor]
-        TempTrack[TempTableTracker]
-        AntiPattern[antipattern_detector: LATERAL, CROSS JOIN, множители]
+    subgraph Layer4["Слой 4: Domain Modules"]
+        Analysis["modules/analysis/*"]
+        Agents["modules/agents/* (provider hard mode: gigachat)"]
     end
 
-    subgraph Layer5["Слой 5: Расчёт нагрузки"]
-        LoadCalc[load_calculator: compute_block_load, calculate_total_load]
-        PlanAdj[plan_adjuster: apply_user_sizes_to_plan]
+    subgraph Layer5["Слой 5: Core/Infra"]
+        Core["core/settings.py, bootstrap.py, compat.py"]
+        Infra["runtime store, queue backend, SQLite/Redis"]
     end
 
-    Routes --> Jobs
-    SSE --> Logs
-    Templates --> Routes
-    Jobs --> AnalyzerCore
-    AnalyzerCore --> Discover
-    AnalyzerCore --> Analyze
-    Discover --> BlockParser
-    Discover --> SQLObj
-    Discover --> ExecParser
-    Discover --> Nested
-    Discover --> TempTrack
-    Analyze --> AntiPattern
-    Analyze --> LoadCalc
-    Analyze --> PlanAdj
-    Analyze --> BlockParser
-    Analyze --> SQLObj
+    Main --> FastAPI
+    Main --> FlaskEntry
+    FlaskEntry --> FlaskUI
+    FlaskUI --> Jinja
+    FastAPI --> SvcAgents
+    FastAPI --> SvcSQL
+    FastAPI --> SvcRuntime
+    FastAPI --> SvcCache
+    FlaskUI --> SvcAgents
+    FlaskUI --> SvcRuntime
+    SvcAgents --> Agents
+    SvcSQL --> Analysis
+    SvcRuntime --> Analysis
+    SvcCache --> Agents
+    Analysis --> Core
+    Agents --> Core
+    Core --> Infra
 ```
 
 ### Поток данных (от ввода до результата)
 
-Как данные проходят от формы до JSON-результата и UI.
+Как данные проходят в текущем hybrid-потоке (UI + API).
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant Webapp
-    participant Job
-    participant Analyzer
+    participant Browser as Flask UI
+    participant API as FastAPI /api
+    participant Jobs as JobService
+    participant Analyzer as AnalysisOrchestrator
+    participant Agent as AgentOrchestrator
     participant DB as Greenplum
 
-    User->>Webapp: POST /detailed/discover (DDL, БД)
-    Webapp->>Webapp: job_id, _jobs[job_id], _logs[job_id]
-    Webapp->>Job: _run_discovery_job
-    Job->>Analyzer: discover_tables(ddl)
-    Analyzer->>Analyzer: block_parser, variables, SQLObjectExtractor
+    User->>Browser: Открывает /detailed, вводит DDL/SQL и параметры
+    Browser->>Browser: POST /detailed/discover
+    Browser->>Jobs: создать discovery job
+    Jobs->>Analyzer: discover_tables(payload)
+    Analyzer->>Analyzer: block_parser + SQLObjectExtractor + runtime registry
     opt С подключением к БД
         Analyzer->>DB: pg_class, pg_attribute (размеры таблиц)
         DB-->>Analyzer: current_rows, size_gb, avg_row_size
     end
-    Analyzer-->>Job: discovered_tables, variables, blocks
-    Job->>Webapp: status = tables_discovered
-    Webapp->>User: redirect /discovery/result/<job_id>
+    Analyzer-->>Jobs: discovered_tables, variables, blocks
+    Jobs-->>Browser: status=tables_discovered, redirect table_sizes
 
-    User->>Webapp: POST /detailed/analyze (job_id, params, size_*)
-    Webapp->>Job: _run_analysis_job(params, user_sizes)
-    Job->>Analyzer: analyze_with_user_sizes(params, user_sizes)
+    User->>Browser: POST /detailed/analyze (params + user_sizes)
+    Browser->>Jobs: создать analysis job
+    Jobs->>Analyzer: analyze_with_user_sizes(...)
     loop По каждому блоку
-        Analyzer->>Analyzer: _replace_variables_safe, _clean_sql_for_explain
+        Analyzer->>Analyzer: подстановка переменных + очистка SQL
         Analyzer->>DB: EXPLAIN (SELECT ...)
         DB-->>Analyzer: plan JSON
-        Analyzer->>Analyzer: plan_adjuster.apply_user_sizes_to_plan
-        Analyzer->>Analyzer: load_calculator.compute_block_load
+        Analyzer->>Analyzer: plan_adjuster + load_calculator + antipattern_detector
     end
-    Analyzer->>Analyzer: calculate_total_load, get_top_blocks
-    Analyzer-->>Job: result (blocks_count, total_memory_gb, risk, block_details, top_blocks)
-    Job->>Webapp: status = done, result
-    Webapp->>User: /detailed/result/<job_id>, SSE лог, polling /status, /details
+
+    opt Режим "чистый агент" / "гибрид без БД"
+        Jobs->>Agent: generate_sql / synthesize_plan
+        Agent-->>Jobs: SQL/DDL, синтезированные планы, метаданные моделей
+    end
+
+    Analyzer-->>Jobs: итоговые метрики и детали блоков
+    Jobs-->>Browser: /detailed/result/<job_id> + SSE + polling status
+    Browser->>API: GET /api/agent/* (profiles, model-options, token-status)
+    API-->>Browser: contract-safe JSON (ok/data/error)
 ```
 
 ---
