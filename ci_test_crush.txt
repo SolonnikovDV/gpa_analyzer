@@ -1,92 +1,97 @@
-2s
 Run python -m pytest -q --tb=short
-.F...........FF.....................................F................... [ 75%]
-.............FFFF....F..                                                 [100%]
+  
+.............FFF........................................................ [ 75%]
+............FFFFFFFF.FF                                                  [100%]
 =================================== FAILURES ===================================
-________________________ test_resolve_deepseek_from_env ________________________
-tests/test_agent_credentials.py:11: in test_resolve_deepseek_from_env
-    assert resolve_credentials("deepseek") is not None
-E   AssertionError: assert None is not None
-E    +  where None = resolve_credentials('deepseek')
 _________________________ test_api_governance_summary __________________________
-tests/test_agent_track_integration.py:102: in test_api_governance_summary
-    assert response.status_code == 200
-E   assert 404 == 200
-E    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+tests/test_agent_track_integration.py:109: in test_api_governance_summary
+    payload = response.get_json()
+E   AttributeError: 'Response' object has no attribute 'get_json'
 ----------------------------- Captured stderr call -----------------------------
-{"event": "http.request.started", "method": "GET", "path": "/api/agent/governance", "remote_addr": "127.0.0.1", "request_id": "***", "timestamp": "2026-06-03T09:30:21.562426+00:00"}
-{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/api/agent/governance", "request_id": "***", "status_code": 404, "timestamp": "2026-06-03T09:30:21.563238+00:00"}
+{"duration_ms": 4, "event": "http.request.completed", "framework": "fastapi", "method": "GET", "path": "/api/agent/governance", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:18.524833+00:00"}
 _________________________ test_api_providers_contract __________________________
-tests/test_agent_track_integration.py:114: in test_api_providers_contract
-    assert response.status_code == 200
-E   assert 404 == 200
-E    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+tests/test_agent_track_integration.py:121: in test_api_providers_contract
+    payload = response.get_json()
+E   AttributeError: 'Response' object has no attribute 'get_json'
 ----------------------------- Captured stderr call -----------------------------
-{"event": "http.request.started", "method": "GET", "path": "/api/agent/providers", "remote_addr": "127.0.0.1", "request_id": "***", "timestamp": "2026-06-03T09:30:21.576622+00:00"}
-{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/api/agent/providers", "request_id": "***", "status_code": 404, "timestamp": "2026-06-03T09:30:21.576898+00:00"}
-____________________________ test_env_token_status _____________________________
-tests/test_hybrid_integration.py:128: in test_env_token_status
-    assert "hasToken" in body["data"]
-E   KeyError: 'data'
+{"duration_ms": 2, "event": "http.request.completed", "framework": "fastapi", "method": "GET", "path": "/api/agent/providers", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:18.613831+00:00"}
+_______________ test_status_exposes_agent_and_governance_fields ________________
+tests/test_agent_track_integration.py:143: in test_status_exposes_agent_and_governance_fields
+    payload = response.get_json()
+E   AttributeError: 'Response' object has no attribute 'get_json'
 ----------------------------- Captured stderr call -----------------------------
-{"duration_ms": 1, "event": "http.request.completed", "framework": "fastapi", "method": "GET", "path": "/agent/env-token-status", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T09:30:22.216611+00:00"}
+{"event": "http.request.started", "method": "GET", "path": "/status/job-agent-meta", "remote_addr": "testclient", "request_id": "***", "timestamp": "2026-06-03T11:45:18.656103+00:00"}
+{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/status/job-agent-meta", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:18.656860+00:00"}
 _______________ test_runtime_descriptor_returns_unified_contract _______________
-tests/test_webapp_integration.py:34: in test_runtime_descriptor_returns_unified_contract
-    assert response.status_code == 200
-E   assert 404 == 200
-E    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+tests/test_webapp_integration.py:41: in test_runtime_descriptor_returns_unified_contract
+    payload = response.get_json()
+E   AttributeError: 'Response' object has no attribute 'get_json'
 ----------------------------- Captured stderr call -----------------------------
-{"event": "http.request.started", "method": "POST", "path": "/api/runtime/descriptor", "remote_addr": "127.0.0.1", "request_id": "***", "timestamp": "2026-06-03T09:30:22.304605+00:00"}
-{"duration_ms": 0, "event": "http.request.completed", "method": "POST", "path": "/api/runtime/descriptor", "request_id": "***", "status_code": 404, "timestamp": "2026-06-03T09:30:22.304970+00:00"}
+{"duration_ms": 2, "event": "http.request.completed", "framework": "fastapi", "method": "POST", "path": "/api/runtime/descriptor", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:19.423828+00:00"}
 ________________________ test_runtime_presets_crud_flow ________________________
-tests/test_webapp_integration.py:49: in test_runtime_presets_crud_flow
-    assert create_response.status_code == 200
-E   assert 404 == 200
-E    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+tests/test_webapp_integration.py:56: in test_runtime_presets_crud_flow
+    created = create_response.get_json()
+E   AttributeError: 'Response' object has no attribute 'get_json'
 ----------------------------- Captured stderr call -----------------------------
-{"event": "http.request.started", "method": "POST", "path": "/api/runtime-presets", "remote_addr": "127.0.0.1", "request_id": "***", "timestamp": "2026-06-03T09:30:22.318606+00:00"}
-{"duration_ms": 0, "event": "http.request.completed", "method": "POST", "path": "/api/runtime-presets", "request_id": "***", "status_code": 404, "timestamp": "2026-06-03T09:30:22.318881+00:00"}
+{"duration_ms": 6, "event": "http.request.completed", "framework": "fastapi", "method": "POST", "path": "/api/runtime-presets", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:19.467385+00:00"}
 _________ test_runtime_presets_validation_error_uses_standard_contract _________
-tests/test_webapp_integration.py:75: in test_runtime_presets_validation_error_uses_standard_contract
-    assert response.status_code == 400
-E   assert 404 == 400
-E    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+  + Exception Group Traceback (most recent call last):
+  |   File "/opt/hostedtoolcache/Python/3.9.25/x64/lib/python3.9/site-packages/starlette/_utils.py", line 79, in collapse_excgroups
+  |     yield
 ----------------------------- Captured stderr call -----------------------------
-{"event": "http.request.started", "method": "POST", "path": "/api/runtime-presets", "remote_addr": "127.0.0.1", "request_id": "***", "timestamp": "2026-06-03T09:30:22.332450+00:00"}
-{"duration_ms": 0, "event": "http.request.completed", "method": "POST", "path": "/api/runtime-presets", "request_id": "***", "status_code": 404, "timestamp": "2026-06-03T09:30:22.332722+00:00"}
-_______________ test_runtime_test_for_spark_returns_ok_contract ________________
-tests/test_webapp_integration.py:86: in test_runtime_test_for_spark_returns_ok_contract
-    assert response.status_code == 200
-E   assert 404 == 200
-E    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+{"event": "http.request.started", "method": "GET", "path": "/status/job-1", "remote_addr": "testclient", "request_id": "***", "timestamp": "2026-06-03T11:45:19.936170+00:00"}
+{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/status/job-1", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:19.936495+00:00"}
+_________________ test_status_not_found_returns_standard_error _________________
+tests/test_webapp_integration.py:140: in test_status_not_found_returns_standard_error
+    payload = response.get_json()
+E   AttributeError: 'Response' object has no attribute 'get_json'
 ----------------------------- Captured stderr call -----------------------------
-{"event": "http.request.started", "method": "POST", "path": "/api/runtime/test", "remote_addr": "127.0.0.1", "request_id": "***", "timestamp": "2026-06-03T09:30:22.345864+00:00"}
-{"duration_ms": 0, "event": "http.request.completed", "method": "POST", "path": "/api/runtime/test", "request_id": "***", "status_code": 404, "timestamp": "2026-06-03T09:30:22.346103+00:00"}
-________________ test_request_id_is_exposed_in_response_headers ________________
-tests/test_webapp_integration.py:183: in test_request_id_is_exposed_in_response_headers
-    assert response.status_code == 200
-E   assert 404 == 200
-E    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+{"event": "http.request.started", "method": "GET", "path": "/status/missing-job", "remote_addr": "testclient", "request_id": "***", "timestamp": "2026-06-03T11:45:19.975033+00:00"}
+{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/status/missing-job", "request_id": "***", "status_code": 404, "timestamp": "2026-06-03T11:45:19.975226+00:00"}
+_______________ test_performance_endpoint_returns_monitor_stats ________________
+tests/test_webapp_integration.py:158: in test_performance_endpoint_returns_monitor_stats
+    payload = response.get_json()
+E   AttributeError: 'Response' object has no attribute 'get_json'
 ----------------------------- Captured stderr call -----------------------------
-{"event": "http.request.started", "method": "GET", "path": "/api/cache/baseline", "remote_addr": "127.0.0.1", "request_id": "req-123", "timestamp": "2026-06-03T09:30:22.404910+00:00"}
-{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/api/cache/baseline", "request_id": "req-123", "status_code": 404, "timestamp": "2026-06-03T09:30:22.405165+00:00"}
+{"event": "http.request.started", "method": "GET", "path": "/performance/job-1", "remote_addr": "testclient", "request_id": "***", "timestamp": "2026-06-03T11:45:20.013621+00:00"}
+{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/performance/job-1", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:20.013814+00:00"}
+___________ test_status_tables_discovered_includes_discovery_payload ___________
+tests/test_webapp_integration.py:180: in test_status_tables_discovered_includes_discovery_payload
+    payload = response.get_json()
+E   AttributeError: 'Response' object has no attribute 'get_json'
+----------------------------- Captured stderr call -----------------------------
+{"event": "http.request.started", "method": "GET", "path": "/status/job-2", "remote_addr": "testclient", "request_id": "***", "timestamp": "2026-06-03T11:45:20.057817+00:00"}
+{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/status/job-2", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:20.058045+00:00"}
+______________ test_health_live_is_public_and_returns_live_status ______________
+tests/test_webapp_integration.py:200: in test_health_live_is_public_and_returns_live_status
+    payload = response.get_json()
+E   AttributeError: 'Response' object has no attribute 'get_json'
+----------------------------- Captured stderr call -----------------------------
+{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/health/live", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:20.132984+00:00"}
+__________________ test_health_ready_returns_readiness_checks __________________
+tests/test_webapp_integration.py:212: in test_health_ready_returns_readiness_checks
+    payload = response.get_json()
+E   AttributeError: 'Response' object has no attribute 'get_json'
+----------------------------- Captured stderr call -----------------------------
+{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/health/ready", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:20.171358+00:00"}
+=============================== warnings summary ===============================
+../../../../../../opt/hostedtoolcache/Python/3.9.25/x64/lib/python3.9/site-packages/starlette/middleware/wsgi.py:15
+  /opt/hostedtoolcache/Python/3.9.25/x64/lib/python3.9/site-packages/starlette/middleware/wsgi.py:15: DeprecationWarning: starlette.middleware.wsgi is deprecated and will be removed in a future release. Please refer to https://github.com/abersheeran/a2wsgi as a replacement.
+    warnings.warn(
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 =========================== short test summary info ============================
-FAILED tests/test_agent_credentials.py::test_resolve_deepseek_from_env - AssertionError: assert None is not None
- +  where None = resolve_credentials('deepseek')
-FAILED tests/test_agent_track_integration.py::test_api_governance_summary - assert 404 == 200
- +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
-FAILED tests/test_agent_track_integration.py::test_api_providers_contract - assert 404 == 200
- +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
-FAILED tests/test_hybrid_integration.py::test_env_token_status - KeyError: 'data'
-FAILED tests/test_webapp_integration.py::test_runtime_descriptor_returns_unified_contract - assert 404 == 200
- +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
-FAILED tests/test_webapp_integration.py::test_runtime_presets_crud_flow - assert 404 == 200
- +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
-FAILED tests/test_webapp_integration.py::test_runtime_presets_validation_error_uses_standard_contract - assert 404 == 400
- +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
-FAILED tests/test_webapp_integration.py::test_runtime_test_for_spark_returns_ok_contract - assert 404 == 200
- +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
-FAILED tests/test_webapp_integration.py::test_request_id_is_exposed_in_response_headers - assert 404 == 200
- +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
-9 failed, 87 passed in 1.88s
+FAILED tests/test_agent_track_integration.py::test_api_governance_summary - AttributeError: 'Response' object has no attribute 'get_json'
+FAILED tests/test_agent_track_integration.py::test_api_providers_contract - AttributeError: 'Response' object has no attribute 'get_json'
+FAILED tests/test_agent_track_integration.py::test_status_exposes_agent_and_governance_fields - AttributeError: 'Response' object has no attribute 'get_json'
+FAILED tests/test_webapp_integration.py::test_runtime_descriptor_returns_unified_contract - AttributeError: 'Response' object has no attribute 'get_json'
+FAILED tests/test_webapp_integration.py::test_runtime_presets_crud_flow - AttributeError: 'Response' object has no attribute 'get_json'
+FAILED tests/test_webapp_integration.py::test_runtime_presets_validation_error_uses_standard_contract - TypeError: error_payload() got multiple values for argument 'code'
+FAILED tests/test_webapp_integration.py::test_runtime_test_for_spark_returns_ok_contract - AttributeError: 'Response' object has no attribute 'get_json'
+FAILED tests/test_webapp_integration.py::test_status_and_details_endpoints_return_unified_contract - AttributeError: 'Response' object has no attribute 'get_json'
+FAILED tests/test_webapp_integration.py::test_status_not_found_returns_standard_error - AttributeError: 'Response' object has no attribute 'get_json'
+FAILED tests/test_webapp_integration.py::test_performance_endpoint_returns_monitor_stats - AttributeError: 'Response' object has no attribute 'get_json'
+FAILED tests/test_webapp_integration.py::test_status_tables_discovered_includes_discovery_payload - AttributeError: 'Response' object has no attribute 'get_json'
+FAILED tests/test_webapp_integration.py::test_health_live_is_public_and_returns_live_status - AttributeError: 'Response' object has no attribute 'get_json'
+FAILED tests/test_webapp_integration.py::test_health_ready_returns_readiness_checks - AttributeError: 'Response' object has no attribute 'get_json'
+13 failed, 82 passed, 1 warning in 2.59s
 Error: Process completed with exit code 1.

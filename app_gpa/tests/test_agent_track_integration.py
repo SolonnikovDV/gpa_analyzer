@@ -106,7 +106,7 @@ def client(monkeypatch, tmp_path):
 def test_api_governance_summary(client):
     test_client, _ = client
     response = test_client.get("/api/agent/governance?stack=greenplum")
-    payload = response.get_json()
+    payload = response.json()
     assert response.status_code == 200
     assert payload["ok"] is True
     data = payload["data"]
@@ -118,7 +118,7 @@ def test_api_governance_summary(client):
 def test_api_providers_contract(client):
     test_client, _ = client
     response = test_client.get("/api/agent/providers")
-    payload = response.get_json()
+    payload = response.json()
     assert response.status_code == 200
     ids = [p["id"] for p in payload["data"]["providers"]]
     assert "gigachat" in ids
@@ -140,7 +140,7 @@ def test_status_exposes_agent_and_governance_fields(client):
         },
     )
     response = test_client.get("/status/job-agent-meta")
-    payload = response.get_json()
+    payload = response.json()
     assert response.status_code == 200
     assert payload["agent_provider"] == "gigachat"
     assert payload["governance_team_id"] == "gpa-agent-team"

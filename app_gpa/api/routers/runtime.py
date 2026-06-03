@@ -62,7 +62,8 @@ async def runtime_presets(
         return JSONResponse(content=err, status_code=404)
     if status >= 400:
         code = result.get("code", "preset_error")
-        err, _ = error_payload(code, str(result.get("error") or "Preset error"), http_status=status, **result)
+        extra = {k: v for k, v in result.items() if k != "code"}
+        err, _ = error_payload(code, str(result.get("error") or "Preset error"), http_status=status, **extra)
         return JSONResponse(content=err, status_code=status)
     ok, _ = ok_payload(**result)
     return JSONResponse(content=ok, status_code=200)
