@@ -1,97 +1,21 @@
 Run python -m pytest -q --tb=short
-  
-.............FFF........................................................ [ 75%]
-............FFFFFFFF.FF                                                  [100%]
+........................................................................ [ 75%]
+.............F.........                                                  [100%]
 =================================== FAILURES ===================================
-_________________________ test_api_governance_summary __________________________
-tests/test_agent_track_integration.py:109: in test_api_governance_summary
-    payload = response.get_json()
-E   AttributeError: 'Response' object has no attribute 'get_json'
------------------------------ Captured stderr call -----------------------------
-{"duration_ms": 4, "event": "http.request.completed", "framework": "fastapi", "method": "GET", "path": "/api/agent/governance", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:18.524833+00:00"}
-_________________________ test_api_providers_contract __________________________
-tests/test_agent_track_integration.py:121: in test_api_providers_contract
-    payload = response.get_json()
-E   AttributeError: 'Response' object has no attribute 'get_json'
------------------------------ Captured stderr call -----------------------------
-{"duration_ms": 2, "event": "http.request.completed", "framework": "fastapi", "method": "GET", "path": "/api/agent/providers", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:18.613831+00:00"}
-_______________ test_status_exposes_agent_and_governance_fields ________________
-tests/test_agent_track_integration.py:143: in test_status_exposes_agent_and_governance_fields
-    payload = response.get_json()
-E   AttributeError: 'Response' object has no attribute 'get_json'
------------------------------ Captured stderr call -----------------------------
-{"event": "http.request.started", "method": "GET", "path": "/status/job-agent-meta", "remote_addr": "testclient", "request_id": "***", "timestamp": "2026-06-03T11:45:18.656103+00:00"}
-{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/status/job-agent-meta", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:18.656860+00:00"}
-_______________ test_runtime_descriptor_returns_unified_contract _______________
-tests/test_webapp_integration.py:41: in test_runtime_descriptor_returns_unified_contract
-    payload = response.get_json()
-E   AttributeError: 'Response' object has no attribute 'get_json'
------------------------------ Captured stderr call -----------------------------
-{"duration_ms": 2, "event": "http.request.completed", "framework": "fastapi", "method": "POST", "path": "/api/runtime/descriptor", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:19.423828+00:00"}
 ________________________ test_runtime_presets_crud_flow ________________________
-tests/test_webapp_integration.py:56: in test_runtime_presets_crud_flow
-    created = create_response.get_json()
-E   AttributeError: 'Response' object has no attribute 'get_json'
+tests/test_webapp_integration.py:67: in test_runtime_presets_crud_flow
+    delete_response = test_client.delete(
+E   TypeError: delete() got an unexpected keyword argument 'json'
 ----------------------------- Captured stderr call -----------------------------
-{"duration_ms": 6, "event": "http.request.completed", "framework": "fastapi", "method": "POST", "path": "/api/runtime-presets", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:19.467385+00:00"}
-_________ test_runtime_presets_validation_error_uses_standard_contract _________
-  + Exception Group Traceback (most recent call last):
-  |   File "/opt/hostedtoolcache/Python/3.9.25/x64/lib/python3.9/site-packages/starlette/_utils.py", line 79, in collapse_excgroups
-  |     yield
------------------------------ Captured stderr call -----------------------------
-{"event": "http.request.started", "method": "GET", "path": "/status/job-1", "remote_addr": "testclient", "request_id": "***", "timestamp": "2026-06-03T11:45:19.936170+00:00"}
-{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/status/job-1", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:19.936495+00:00"}
-_________________ test_status_not_found_returns_standard_error _________________
-tests/test_webapp_integration.py:140: in test_status_not_found_returns_standard_error
-    payload = response.get_json()
-E   AttributeError: 'Response' object has no attribute 'get_json'
------------------------------ Captured stderr call -----------------------------
-{"event": "http.request.started", "method": "GET", "path": "/status/missing-job", "remote_addr": "testclient", "request_id": "***", "timestamp": "2026-06-03T11:45:19.975033+00:00"}
-{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/status/missing-job", "request_id": "***", "status_code": 404, "timestamp": "2026-06-03T11:45:19.975226+00:00"}
-_______________ test_performance_endpoint_returns_monitor_stats ________________
-tests/test_webapp_integration.py:158: in test_performance_endpoint_returns_monitor_stats
-    payload = response.get_json()
-E   AttributeError: 'Response' object has no attribute 'get_json'
------------------------------ Captured stderr call -----------------------------
-{"event": "http.request.started", "method": "GET", "path": "/performance/job-1", "remote_addr": "testclient", "request_id": "***", "timestamp": "2026-06-03T11:45:20.013621+00:00"}
-{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/performance/job-1", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:20.013814+00:00"}
-___________ test_status_tables_discovered_includes_discovery_payload ___________
-tests/test_webapp_integration.py:180: in test_status_tables_discovered_includes_discovery_payload
-    payload = response.get_json()
-E   AttributeError: 'Response' object has no attribute 'get_json'
------------------------------ Captured stderr call -----------------------------
-{"event": "http.request.started", "method": "GET", "path": "/status/job-2", "remote_addr": "testclient", "request_id": "***", "timestamp": "2026-06-03T11:45:20.057817+00:00"}
-{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/status/job-2", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:20.058045+00:00"}
-______________ test_health_live_is_public_and_returns_live_status ______________
-tests/test_webapp_integration.py:200: in test_health_live_is_public_and_returns_live_status
-    payload = response.get_json()
-E   AttributeError: 'Response' object has no attribute 'get_json'
------------------------------ Captured stderr call -----------------------------
-{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/health/live", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:20.132984+00:00"}
-__________________ test_health_ready_returns_readiness_checks __________________
-tests/test_webapp_integration.py:212: in test_health_ready_returns_readiness_checks
-    payload = response.get_json()
-E   AttributeError: 'Response' object has no attribute 'get_json'
------------------------------ Captured stderr call -----------------------------
-{"duration_ms": 0, "event": "http.request.completed", "method": "GET", "path": "/health/ready", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T11:45:20.171358+00:00"}
+{"duration_ms": 12, "event": "http.request.completed", "framework": "fastapi", "method": "POST", "path": "/api/runtime-presets", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T13:18:24.331670+00:00"}
+{"duration_ms": 0, "event": "http.request.completed", "framework": "fastapi", "method": "GET", "path": "/api/runtime-presets", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T13:18:24.333950+00:00"}
 =============================== warnings summary ===============================
 ../../../../../../opt/hostedtoolcache/Python/3.9.25/x64/lib/python3.9/site-packages/starlette/middleware/wsgi.py:15
   /opt/hostedtoolcache/Python/3.9.25/x64/lib/python3.9/site-packages/starlette/middleware/wsgi.py:15: DeprecationWarning: starlette.middleware.wsgi is deprecated and will be removed in a future release. Please refer to https://github.com/abersheeran/a2wsgi as a replacement.
     warnings.warn(
+
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 =========================== short test summary info ============================
-FAILED tests/test_agent_track_integration.py::test_api_governance_summary - AttributeError: 'Response' object has no attribute 'get_json'
-FAILED tests/test_agent_track_integration.py::test_api_providers_contract - AttributeError: 'Response' object has no attribute 'get_json'
-FAILED tests/test_agent_track_integration.py::test_status_exposes_agent_and_governance_fields - AttributeError: 'Response' object has no attribute 'get_json'
-FAILED tests/test_webapp_integration.py::test_runtime_descriptor_returns_unified_contract - AttributeError: 'Response' object has no attribute 'get_json'
-FAILED tests/test_webapp_integration.py::test_runtime_presets_crud_flow - AttributeError: 'Response' object has no attribute 'get_json'
-FAILED tests/test_webapp_integration.py::test_runtime_presets_validation_error_uses_standard_contract - TypeError: error_payload() got multiple values for argument 'code'
-FAILED tests/test_webapp_integration.py::test_runtime_test_for_spark_returns_ok_contract - AttributeError: 'Response' object has no attribute 'get_json'
-FAILED tests/test_webapp_integration.py::test_status_and_details_endpoints_return_unified_contract - AttributeError: 'Response' object has no attribute 'get_json'
-FAILED tests/test_webapp_integration.py::test_status_not_found_returns_standard_error - AttributeError: 'Response' object has no attribute 'get_json'
-FAILED tests/test_webapp_integration.py::test_performance_endpoint_returns_monitor_stats - AttributeError: 'Response' object has no attribute 'get_json'
-FAILED tests/test_webapp_integration.py::test_status_tables_discovered_includes_discovery_payload - AttributeError: 'Response' object has no attribute 'get_json'
-FAILED tests/test_webapp_integration.py::test_health_live_is_public_and_returns_live_status - AttributeError: 'Response' object has no attribute 'get_json'
-FAILED tests/test_webapp_integration.py::test_health_ready_returns_readiness_checks - AttributeError: 'Response' object has no attribute 'get_json'
-13 failed, 82 passed, 1 warning in 2.59s
+FAILED tests/test_webapp_integration.py::test_runtime_presets_crud_flow - TypeError: delete() got an unexpected keyword argument 'json'
+1 failed, 94 passed, 1 warning in 3.35s
 Error: Process completed with exit code 1.

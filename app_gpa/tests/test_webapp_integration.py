@@ -64,7 +64,8 @@ def test_runtime_presets_crud_flow(client):
     assert listed["ok"] is True
     assert listed["items"][0]["name"] == "preset-1"
 
-    delete_response = test_client.delete(
+    delete_response = test_client.request(
+        "DELETE",
         "/api/runtime-presets",
         json={"stack": "greenplum", "kind": "metadata", "name": "preset-1"},
     )
