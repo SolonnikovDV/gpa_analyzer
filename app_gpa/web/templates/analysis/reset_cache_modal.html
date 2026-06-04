@@ -1,0 +1,148 @@
+{# Модальное окно: сброс кэшей к базовым настройкам #}
+<div class="modal fade" id="resetCacheModal" tabindex="-1" aria-labelledby="resetCacheModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered apple-sheet-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="resetCacheModalLabel">Управление базовым состоянием</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-subpanel mb-3">
+          <p class="small mb-0">Базовое состояние включает кэши, профили GigaChat и конфигурацию SSL. При сбросе система возвращается к этой точке, а не к полностью пустому состоянию.</p>
+        </div>
+        <div class="mb-3 form-subpanel">
+          <button type="button" class="btn btn-outline-primary btn-sm" id="saveBaselineBtn" title="Сохранить текущие кэши как точку восстановления — при сбросе данные не удалятся ниже этого снимка">Сохранить текущее состояние как базовое</button>
+          <span id="baselineStatus" class="ms-2 small text-muted"></span>
+        </div>
+        <p class="text-muted small mb-3">Выберите, что сбросить. Профили и конфиг всегда восстанавливаются из базового снимка. Кэши при наличии снимка будут восстановлены, иначе очищены.</p>
+        <div class="mb-2">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="resetVector" value="vector" title="Эмбеддинги для семантического поиска — сброс отключит переиспользование ответов по похожим формулировкам">
+            <label class="form-check-label" for="resetVector"><strong>Векторная база (agent_vec_cache)</strong></label>
+          </div>
+          <div class="form-text ms-4" id="resetVectorDesc">Хранит эмбеддинги для семантического поиска похожих запросов. При сбросе: генерация SQL по описанию будет каждый раз вызывать API (без переиспользования по похожим формулировкам).</div>
+        </div>
+        <div class="mb-2">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="resetCache" value="cache" title="Точные ответы агента и планы — повторные запросы вызовут API заново">
+            <label class="form-check-label" for="resetCache"><strong>Кэш ответов</strong></label>
+          </div>
+          <div class="form-text ms-4" id="resetCacheDesc">Точные ответы агента, кэш планов EXPLAIN, JSON-файл. Повторные запросы будут вызывать API заново.</div>
+        </div>
+        <div class="mb-2">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="resetState" value="state" title="Результаты discovery по хешу DDL — повторный анализ той же функции потребует полного перерасчёта">
+            <label class="form-check-label" for="resetState"><strong>Состояния discovery</strong></label>
+          </div>
+          <div class="form-text ms-4" id="resetStateDesc">Результаты discovery по хешу DDL/описания. Повторный анализ той же функции потребует полного перерасчёта.</div>
+        </div>
+        <div id="resetSummary" class="alert alert-info mt-3 small" style="display: none;"></div>
+        <div id="resetCacheMessage" class="mt-3" role="alert" aria-live="polite" style="display: none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-warning" id="resetCacheConfirm" title="Выполнить сброс выбранных кэшей (восстановление из baseline или полная очистка)">Применить сброс</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var resetVector = document.getElementById('resetVector');
+  var resetCache = document.getElementById('resetCache');
+  var resetState = document.getElementById('resetState');
+  var resetSummary = document.getElementById('resetSummary');
+  var resetCacheMessage = document.getElementById('resetCacheMessage');
+  var resetCacheConfirm = document.getElementById('resetCacheConfirm');
+  var resetCacheModal = document.getElementById('resetCacheModal');
+
+  function updateResetSummary() {
+    if (!resetSummary) return;
+    var effects = [];
+    if (resetVector && resetVector.checked) effects.push('<strong>Векторная база:</strong> эмбеддинги удалены.');
+    if (resetCache && resetCache.checked) effects.push('<strong>Кэш ответов:</strong> точные ответы агента и планы удалены.');
+    if (resetState && resetState.checked) effects.push('<strong>Состояния discovery:</strong> результаты по хешу DDL/описания удалены.');
+    if (effects.length === 0) { resetSummary.style.display = 'none'; return; }
+    resetSummary.style.display = 'block';
+    resetSummary.innerHTML = '<strong>Влияние сброса:</strong><ul class="mb-0 mt-1">' + effects.map(function(e) { return '<li>' + e + '</li>'; }).join('') + '</ul>';
+    resetSummary.className = 'alert alert-info mt-3 small';
+  }
+
+  function updateBaselineStatus() {
+    var statusEl = document.getElementById('baselineStatus');
+    if (!statusEl) return;
+    fetch('/api/cache/baseline')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        statusEl.textContent = (data && data.exists) ? '✓ Базовое состояние сохранено' : 'Базовый снимок не создан';
+        statusEl.className = 'ms-2 small ' + ((data && data.exists) ? 'text-success' : 'text-muted');
+      })
+      .catch(function() { statusEl.textContent = ''; });
+  }
+
+  [resetVector, resetCache, resetState].forEach(function(cb) { if (cb) cb.addEventListener('change', updateResetSummary); });
+
+  var saveBaselineBtn = document.getElementById('saveBaselineBtn');
+  if (saveBaselineBtn) {
+    saveBaselineBtn.addEventListener('click', function() {
+      saveBaselineBtn.disabled = true;
+      fetch('/api/cache/baseline/save', { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.ok) updateBaselineStatus();
+          else if (resetCacheMessage) { resetCacheMessage.textContent = 'Ошибка: ' + (data.error || 'неизвестная'); resetCacheMessage.className = 'alert alert-danger mt-3'; resetCacheMessage.style.display = 'block'; }
+        })
+        .catch(function() { if (resetCacheMessage) { resetCacheMessage.textContent = 'Ошибка запроса'; resetCacheMessage.className = 'alert alert-danger mt-3'; resetCacheMessage.style.display = 'block'; } })
+        .finally(function() { saveBaselineBtn.disabled = false; });
+    });
+  }
+
+  if (resetCacheModal) {
+    resetCacheModal.addEventListener('show.bs.modal', function() {
+      if (resetCacheMessage) resetCacheMessage.style.display = 'none';
+      updateResetSummary();
+      updateBaselineStatus();
+    });
+  }
+
+  if (resetCacheConfirm) {
+    resetCacheConfirm.addEventListener('click', function() {
+      var payload = { vector: resetVector && resetVector.checked, cache: resetCache && resetCache.checked, state: resetState && resetState.checked };
+      if (!payload.vector && !payload.cache && !payload.state) {
+        if (resetCacheMessage) { resetCacheMessage.textContent = 'Выберите хотя бы один пункт для сброса.'; resetCacheMessage.className = 'alert alert-warning mt-3'; resetCacheMessage.style.display = 'block'; }
+        return;
+      }
+      resetCacheConfirm.disabled = true;
+      if (resetCacheMessage) resetCacheMessage.style.display = 'none';
+      fetch('/api/cache/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.ok) {
+            var r = data.reset || {};
+            var fromBase = data.from_baseline;
+            var parts = [];
+            function fmt(v) {
+              if (v == null) return null;
+              if (v < 0) return Math.abs(v) + ' записей';
+              return v + ' записей';
+            }
+            if (r.config) parts.push('профили и конфиг: ' + r.config);
+            if (r.vector != null) parts.push('векторная база: ' + fmt(r.vector));
+            if (r.cache != null) parts.push('кэш: ' + fmt(r.cache));
+            if (r.state != null) parts.push('состояния: ' + fmt(r.state));
+            var msg = (fromBase ? 'Восстановлено из базового снимка. ' : 'Сброс выполнен. ') + (parts.length ? parts.join('; ') : '—');
+            if (resetCacheMessage) { resetCacheMessage.innerHTML = msg; resetCacheMessage.className = 'alert alert-success mt-3'; resetCacheMessage.style.display = 'block'; }
+            if (resetVector) resetVector.checked = false;
+            if (resetCache) resetCache.checked = false;
+            if (resetState) resetState.checked = false;
+            updateResetSummary();
+            if (typeof bootstrap !== 'undefined' && resetCacheModal) setTimeout(function() { bootstrap.Modal.getInstance(resetCacheModal).hide(); }, 1500);
+          } else if (resetCacheMessage) { resetCacheMessage.textContent = 'Ошибка: ' + (data.error || 'неизвестная'); resetCacheMessage.className = 'alert alert-danger mt-3'; resetCacheMessage.style.display = 'block'; }
+        })
+        .catch(function(err) { if (resetCacheMessage) { resetCacheMessage.textContent = 'Ошибка запроса: ' + (err && err.message ? err.message : 'сеть'); resetCacheMessage.className = 'alert alert-danger mt-3'; resetCacheMessage.style.display = 'block'; } })
+        .finally(function() { resetCacheConfirm.disabled = false; });
+    });
+  }
+})();
+</script>

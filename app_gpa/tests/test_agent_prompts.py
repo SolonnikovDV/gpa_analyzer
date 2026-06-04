@@ -1,6 +1,6 @@
 """Тесты шаблонов промптов агента."""
 
-from agent.agent_prompts import get_prompt
+from modules.agents.agent_prompts import get_prompt
 
 
 def test_revise_sql_prompt_escapes_braces_in_user_sql():

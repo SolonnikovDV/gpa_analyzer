@@ -1,0 +1,296 @@
+/* Титульная страница — macOS-подобный landing */
+
+html.gpa-home-ui,
+html.gpa-home-ui body {
+  scroll-behavior: smooth;
+}
+
+.gpa-home__body {
+  display: grid;
+  gap: 2rem;
+  padding-bottom: 4.5rem;
+}
+
+.gpa-home-toolbar {
+  margin-bottom: 0.25rem;
+}
+
+.gpa-home-hero {
+  margin-top: 0.25rem;
+}
+
+.gpa-home-window {
+  border-radius: 28px;
+  border: 1px solid rgba(154, 179, 214, 0.12);
+  background: linear-gradient(165deg, rgba(22, 36, 58, 0.92) 0%, rgba(10, 18, 31, 0.88) 100%);
+  box-shadow: var(--gpa-shadow-glow);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  overflow: hidden;
+  transition: transform var(--gpa-motion-medium) var(--gpa-ease-spring), box-shadow var(--gpa-motion-medium) ease;
+}
+
+.gpa-home-window:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.1), 0 28px 72px rgba(0, 0, 0, 0.36);
+}
+
+.gpa-home-window__chrome {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid rgba(154, 179, 214, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.gpa-traffic {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.gpa-traffic--close { background: #ff5f57; }
+.gpa-traffic--min { background: #febc2e; }
+.gpa-traffic--max { background: #28c840; }
+
+.gpa-home-window__body {
+  padding: 2rem 2.1rem 2.25rem;
+}
+
+.gpa-home-hero__eyebrow {
+  margin: 0 0 0.65rem;
+  color: var(--gpa-accent-strong);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.gpa-home-hero__title {
+  margin: 0 0 0.85rem;
+  max-width: 28rem;
+  color: var(--gpa-text-strong);
+  font-size: clamp(1.65rem, 3.2vw, 2.35rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.12;
+}
+
+.gpa-home-hero__lead {
+  margin: 0 0 1.5rem;
+  max-width: 36rem;
+  color: var(--gpa-text-muted);
+  font-size: 1.02rem;
+  line-height: 1.55;
+}
+
+.gpa-home-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.gpa-home-cta {
+  min-width: 11rem;
+  border-radius: 999px;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(122, 162, 255, 0.28);
+  transition: transform var(--gpa-motion-fast) var(--gpa-ease-spring), box-shadow var(--gpa-motion-fast) ease;
+}
+
+.gpa-home-cta:hover {
+  transform: scale(1.02);
+  box-shadow: 0 12px 32px rgba(122, 162, 255, 0.34);
+}
+
+.gpa-home-section__head {
+  margin-bottom: 1rem;
+}
+
+.gpa-home-section__title {
+  margin: 0 0 0.35rem;
+  color: var(--gpa-text-strong);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.gpa-home-section__note {
+  margin: 0;
+  color: var(--gpa-text-muted);
+  font-size: 0.88rem;
+  max-width: 42rem;
+}
+
+.gpa-home-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.gpa-home-step-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-height: 11rem;
+  padding: 1.1rem 1.15rem 1.15rem;
+  border-radius: 22px;
+  border: 1px solid rgba(154, 179, 214, 0.1);
+  background: rgba(255, 255, 255, 0.022);
+  transition:
+    transform var(--gpa-motion-medium) var(--gpa-ease-spring),
+    border-color var(--gpa-motion-medium) ease,
+    background-color var(--gpa-motion-medium) ease;
+}
+
+.gpa-home-step-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(122, 162, 255, 0.22);
+  background: rgba(122, 162, 255, 0.06);
+}
+
+.gpa-home-step-card__badge {
+  align-self: flex-start;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(122, 162, 255, 0.14);
+  color: var(--gpa-accent-strong);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gpa-home-step-card__title {
+  margin: 0;
+  color: var(--gpa-text-strong);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.gpa-home-step-card__text {
+  margin: 0;
+  flex: 1;
+  color: var(--gpa-text-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.gpa-home-step-card__link {
+  color: var(--gpa-accent-strong);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.gpa-home-step-card__hint {
+  color: var(--gpa-text-muted);
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+.gpa-home-features {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.gpa-home-feature {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 0.15rem 0.75rem;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(154, 179, 214, 0.08);
+  background: rgba(255, 255, 255, 0.018);
+  transition: background-color var(--gpa-motion-fast) ease;
+}
+
+.gpa-home-feature:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.gpa-home-feature__icon {
+  grid-row: 1 / span 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 12px;
+  background: rgba(122, 162, 255, 0.12);
+  color: var(--gpa-accent-strong);
+}
+
+.gpa-home-feature__icon svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.gpa-home-feature strong {
+  color: var(--gpa-text-strong);
+  font-size: 0.92rem;
+}
+
+.gpa-home-feature span:last-child {
+  grid-column: 2;
+  color: var(--gpa-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 991.98px) {
+  .gpa-home-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .gpa-home-features {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gpa-home-window,
+  .gpa-home-step-card,
+  .gpa-home-cta {
+    transition: none;
+  }
+
+  .gpa-home-window:hover,
+  .gpa-home-step-card:hover,
+  .gpa-home-cta:hover {
+    transform: none;
+  }
+}
+
+html[data-theme="light"] .gpa-home-window {
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.96) 0%, rgba(244, 249, 255, 0.94) 100%);
+  border-color: rgba(101, 132, 173, 0.2);
+  box-shadow: 0 12px 34px rgba(140, 165, 194, 0.24);
+}
+
+html[data-theme="light"] .gpa-home-window__chrome {
+  border-bottom-color: rgba(101, 132, 173, 0.16);
+  background: rgba(235, 245, 255, 0.72);
+}
+
+html[data-theme="light"] .gpa-home-step-card,
+html[data-theme="light"] .gpa-home-feature {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(101, 132, 173, 0.18);
+}
+
+html[data-theme="light"] .gpa-home-step-card:hover,
+html[data-theme="light"] .gpa-home-feature:hover {
+  background: rgba(233, 245, 255, 0.9);
+  border-color: rgba(79, 143, 218, 0.28);
+}
+
+html[data-theme="light"] .gpa-home-step-card__hint,
+html[data-theme="light"] .gpa-home-section__note,
+html[data-theme="light"] .gpa-home-hero__lead {
+  color: var(--gpa-text);
+}

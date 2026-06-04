@@ -1,6 +1,6 @@
 """Выбор одной чат-/embedding-модели GigaChat и вспомогательные утилиты."""
 
-from agent.gigachat_agent import (
+from modules.agents.gigachat_agent import (
     CHAT_MODEL_PRIORITY,
     DEFAULT_MODEL,
     EMBEDDING_MODEL_PRIORITY,

@@ -1,0 +1,148 @@
+{# Контекст агента — GigaChat / DeepSeek; governance из app_gpa/agent/governance #}
+<div class="modal fade" id="agentContextModal" tabindex="-1" aria-labelledby="agentContextModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered apple-sheet-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="agentContextModalLabel">Контекст агента</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div id="agentProfileWizardHint" class="alert alert-info py-2 small mb-3" style="display: none;" role="status"></div>
+        <p class="small text-muted mb-3">Token не сохраняется на диск. Провайдер, профиль, scope и модели — в сессии браузера. Команда GPA: <code>app_gpa/agent/governance/</code>.</p>
+        <div class="mb-2">
+          <label class="form-label" for="agentProviderSelect">Провайдер LLM</label>
+          <select class="form-select" id="agentProviderSelect">
+            <option value="">Загрузка…</option>
+          </select>
+        </div>
+        <div id="agentGigachatFields">
+        <div class="mb-2">
+          <label class="form-label" for="agentMatchSelect">Профиль агента</label>
+          <select class="form-select" id="agentMatchSelect">
+            <option value="">— новый —</option>
+          </select>
+        </div>
+        <div id="agentEnvTokenMessage" class="mb-2 alert py-2 small" style="display: none;" role="alert"></div>
+        <div class="mb-2">
+          <label class="form-label" for="agentMatchNameInput">Имя (для сохранения в profiles)</label>
+          <input type="text" class="form-control" id="agentMatchNameInput" placeholder="Имя пользователя или профиля" autocomplete="off">
+        </div>
+        <div class="mb-2">
+          <label class="form-label" for="agentCredentialsInput">Token</label>
+          <input type="password" class="form-control" id="agentCredentialsInput" placeholder="Токен из личного кабинета GigaChat" autocomplete="off">
+        </div>
+        <div class="mb-2">
+          <label class="form-label" for="agentClientIdInput">Client ID</label>
+          <input type="text" class="form-control" id="agentClientIdInput" placeholder="Client ID" autocomplete="off">
+        </div>
+        <div class="mb-2">
+          <label class="form-label" for="agentScopeSelect">Scope</label>
+          <select class="form-select" id="agentScopeSelect">
+            <option value="GIGACHAT_API_PERS">GIGACHAT_API_PERS (физлица)</option>
+            <option value="GIGACHAT_API_B2B">GIGACHAT_API_B2B (B2B prepaid)</option>
+            <option value="GIGACHAT_API_CORP">GIGACHAT_API_CORP (корпоративный)</option>
+          </select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label" for="agentProfileChatModel">Чат-модель</label>
+          <select class="form-select" id="agentProfileChatModel"></select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label" for="agentProfileEmbeddingModel">Модель эмбеддингов</label>
+          <select class="form-select" id="agentProfileEmbeddingModel"></select>
+        </div>
+        <div class="mb-2 form-check">
+          <input type="checkbox" class="form-check-input" id="agentVerifySslCheck" checked>
+          <label class="form-check-label" for="agentVerifySslCheck">Проверять SSL-сертификат</label>
+          <div class="form-text">Снимите галочку при ошибке «EOF occurred in violation of protocol»</div>
+        </div>
+        </div>
+        {# ── Generic "simple API-key" fields (DeepSeek / Groq / OpenRouter / …) ── #}
+        {# Populated dynamically from /api/agent/providers — no hardcode.           #}
+        <div id="agentSimpleProviderFields" style="display: none;">
+          <div class="mb-2">
+            <label class="form-label" for="agentSimpleMatchSelect">Профиль</label>
+            <select class="form-select" id="agentSimpleMatchSelect">
+              <option value="">— новый —</option>
+            </select>
+          </div>
+          <div id="agentSimpleEnvTokenMessage" class="mb-2 alert py-2 small" style="display: none;" role="alert"></div>
+          <div class="mb-2">
+            <label class="form-label" for="agentSimpleProfileNameInput">Имя профиля</label>
+            <input type="text" class="form-control" id="agentSimpleProfileNameInput" placeholder="Имя для сохранения профиля" autocomplete="off">
+          </div>
+          <div class="mb-2">
+            <label class="form-label" for="agentSimpleCredentialsInput">API Key</label>
+            <input type="password" class="form-control" id="agentSimpleCredentialsInput" placeholder="API Key" autocomplete="off">
+          </div>
+          <div class="mb-2">
+            <label class="form-label" for="agentSimpleChatModel">Чат-модель</label>
+            <select class="form-select" id="agentSimpleChatModel">
+              <option value="">Загрузка…</option>
+            </select>
+          </div>
+          <p class="small text-muted mb-0" id="agentSimpleProviderHint"></p>
+        </div>
+
+        <div class="mb-2 form-check">
+          <input type="checkbox" class="form-check-input" id="agentMultiAgentCheck" disabled title="Включайте на шаге 1 — переключатель Multi-agent">
+          <label class="form-check-label text-muted" for="agentMultiAgentCheck">Multi-agent debate</label>
+          <div class="form-text">Управление — переключатель «Multi-agent» в блоке LLM на шаге 1.</div>
+        </div>
+        <div id="agentCredentialsMessage" class="mt-3" role="alert" aria-live="polite" style="display: none;"></div>
+      </div>
+      <div class="modal-footer flex-wrap gap-2">
+        <button type="button" class="btn btn-outline-secondary" id="agentProbeModelsBtn" title="Проверить ответ API по каждой модели">Проверить модели</button>
+        <div class="ms-auto d-flex gap-2">
+          <span id="agentTokenSourceBadge" class="agent-token-source-badge" style="display: none;" aria-live="polite"></span>
+          <span id="agentCredentialsApplyState" class="small text-muted align-self-center" style="display: none;" aria-live="polite"></span>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="button" class="btn btn-primary" id="agentCredentialsApply" title="Проверить ключ и сохранить контекст сессии">Применить контекст</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="multiAgentPickModal" tabindex="-1" aria-labelledby="multiAgentPickModalLabel" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered apple-sheet-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="multiAgentPickModalLabel">Multi-agent: активные LLM</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted mb-3">Отметьте провайдеры и chat-модели для debate (review → challenge → consensus). После подтверждения откроются модалы профиля для каждого LLM.</p>
+        <div id="multiAgentPickError" class="alert alert-warning py-2 small mb-2" style="display: none;" role="alert"></div>
+        <div id="multiAgentPickList"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="multiAgentPickConfirm">Далее — профили</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="agentModelProbeModal" tabindex="-1" aria-labelledby="agentModelProbeModalLabel" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable apple-sheet-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="agentModelProbeModalLabel">Доступность моделей GigaChat</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted mb-3">Справка по доступным моделям. Выбор — в контексте агента.</p>
+        <div class="mb-3">
+          <div class="fw-semibold small mb-1">Чат</div>
+          <ul class="list-group list-group-flush small border rounded" id="agentModelProbeChatList"></ul>
+        </div>
+        <div class="mb-2">
+          <div class="fw-semibold small mb-1">Эмбеддинги</div>
+          <ul class="list-group list-group-flush small border rounded" id="agentModelProbeEmbList"></ul>
+        </div>
+        <div class="alert alert-light border mb-0 small" id="agentModelProbeSummary" role="status">Ожидание…</div>
+      </div>
+    </div>
+  </div>
+</div>

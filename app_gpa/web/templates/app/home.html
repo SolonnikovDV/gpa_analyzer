@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ru" class="gpa-home-ui">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ app_name }} — оценка нагрузки SQL</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='ux.css') }}">
+</head>
+<body>
+<div class="apple-shell apple-shell--home">
+  {% set shell_active = 'home' %}
+  {% set shell_table_href = none %}
+  {% set shell_result_href = none %}
+  {% set shell_status_title = 'Главная' %}
+  {% set shell_status_note = 'Обзор возможностей и быстрый старт.' %}
+  {% set show_tips = false %}
+  {% include 'apple_sidebar.html' %}
+
+  <main class="apple-main gpa-home">
+    <header class="apple-toolbar gpa-home-toolbar page-reveal">
+      <div class="apple-toolbar__titles">
+        <span class="apple-toolbar__eyebrow">Welcome</span>
+        <h1 class="apple-toolbar__title">{{ app_name }}</h1>
+        <p class="apple-toolbar__subtitle">Спокойный macOS-подобный интерфейс для оценки нагрузки SQL, PL/pgSQL и PySpark-сценариев до запуска на кластере.</p>
+      </div>
+      <div class="apple-toolbar__actions">
+        <div class="apple-toolbar__surface">
+          <button type="button" class="btn btn-sm btn-outline-secondary theme-toggle" data-theme-toggle aria-label="Переключить тему">
+            <span class="theme-toggle__icon" aria-hidden="true">◐</span>
+            <span class="theme-toggle__label">Светлая тема</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="apple-main__body gpa-home__body">
+      <section class="gpa-home-hero page-reveal" aria-labelledby="home-hero-title">
+        <div class="gpa-home-window">
+          <div class="gpa-home-window__chrome" aria-hidden="true">
+            <span class="gpa-traffic gpa-traffic--close"></span>
+            <span class="gpa-traffic gpa-traffic--min"></span>
+            <span class="gpa-traffic gpa-traffic--max"></span>
+          </div>
+          <div class="gpa-home-window__body">
+            <p class="gpa-home-hero__eyebrow">Greenplum · PostgreSQL · Agent</p>
+            <h2 id="home-hero-title" class="gpa-home-hero__title">Понимайте риск нагрузки до прогона на проде</h2>
+            <p class="gpa-home-hero__lead">Три шага: подготовка SQL и доступов → сценарий таблиц → сводка, блоки, антипаттерны и JSON-отчёт.</p>
+            <div class="gpa-home-hero__actions">
+              <a class="btn btn-primary btn-lg gpa-home-cta" href="{{ url_for('analysis.detailed_index') }}">Начать анализ</a>
+              <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('pages.about_page') }}">О приложении</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="gpa-home-section page-reveal" aria-labelledby="home-steps-title">
+        <div class="gpa-home-section__head">
+          <h2 id="home-steps-title" class="gpa-home-section__title">Структура workspace</h2>
+          <p class="gpa-home-section__note">Каждый шаг — отдельный экран с боковой навигацией. Переходы только когда предыдущий этап завершён.</p>
+        </div>
+        <div class="gpa-home-steps">
+          <article class="gpa-home-step-card gpa-home-step-card--1">
+            <span class="gpa-home-step-card__badge">Шаг 1</span>
+            <h3 class="gpa-home-step-card__title">Подготовка</h3>
+            <p class="gpa-home-step-card__text">Стек, SQL или DDL, подключение к БД или агент GigaChat, проверка синтаксиса.</p>
+            <a class="gpa-home-step-card__link" href="{{ url_for('analysis.detailed_index') }}">Открыть подготовку →</a>
+          </article>
+          <article class="gpa-home-step-card gpa-home-step-card--2">
+            <span class="gpa-home-step-card__badge">Шаг 2</span>
+            <h3 class="gpa-home-step-card__title">Таблицы и параметры</h3>
+            <p class="gpa-home-step-card__text">Discovery источников, размеры сценария, параметры функции, запуск расчёта.</p>
+            <span class="gpa-home-step-card__hint">Доступно после discovery</span>
+          </article>
+          <article class="gpa-home-step-card gpa-home-step-card--3">
+            <span class="gpa-home-step-card__badge">Шаг 3</span>
+            <h3 class="gpa-home-step-card__title">Результат</h3>
+            <p class="gpa-home-step-card__text">Сводка, KPI, вкладки блоков, риски, антипаттерны, пересчёт по размерам.</p>
+            <span class="gpa-home-step-card__hint">Доступно после анализа</span>
+          </article>
+        </div>
+      </section>
+
+      <section class="gpa-home-section page-reveal" aria-labelledby="home-features-title">
+        <div class="gpa-home-section__head">
+          <h2 id="home-features-title" class="gpa-home-section__title">Возможности</h2>
+        </div>
+        <div class="gpa-home-features">
+          <div class="gpa-home-feature">
+            <span class="gpa-home-feature__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
+            </span>
+            <strong>EXPLAIN и планы</strong>
+            <span>Оценка памяти и строк по планам с учётом ваших размеров таблиц.</span>
+          </div>
+          <div class="gpa-home-feature">
+            <span class="gpa-home-feature__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg>
+            </span>
+            <strong>Гибрид с агентом</strong>
+            <span>Генерация SQL, ревизия кода и синтез планов без прямого доступа к БД.</span>
+          </div>
+          <div class="gpa-home-feature">
+            <span class="gpa-home-feature__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            </span>
+            <strong>Антипаттерны</strong>
+            <span>Детекция рискованных конструкций и рекомендации по смягчению на скейле.</span>
+          </div>
+          <div class="gpa-home-feature">
+            <span class="gpa-home-feature__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 8h8M8 12h5"/></svg>
+            </span>
+            <strong>Тёмная и светлая тема</strong>
+            <span>Единая система токенов, читаемые таблицы и сводки в обоих режимах.</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="gpa-home-dock-wrap page-reveal" aria-label="Быстрые действия">
+        <nav class="gpa-home-dock">
+          <a class="gpa-home-dock__item" href="{{ url_for('analysis.detailed_index') }}" title="Начать подготовку анализа">
+            <span class="gpa-home-dock__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 5v14M5 12h14"/></svg>
+            </span>
+            <span class="gpa-home-dock__label">Анализ</span>
+          </a>
+          <a class="gpa-home-dock__item" href="{{ url_for('pages.about_page') }}" title="О приложении">
+            <span class="gpa-home-dock__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7h.01"/></svg>
+            </span>
+            <span class="gpa-home-dock__label">О нас</span>
+          </a>
+          <button type="button" class="gpa-home-dock__item border-0 bg-transparent theme-toggle" data-theme-toggle aria-label="Переключить тему" title="Тема">
+            <span class="gpa-home-dock__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 3a6 6 0 100 12 6 6 0 000-12z"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            </span>
+            <span class="gpa-home-dock__label">Тема</span>
+          </button>
+        </nav>
+      </div>
+
+      {% include 'app_footer.html' %}
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

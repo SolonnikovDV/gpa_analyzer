@@ -1,3 +1,4 @@
+.cursor/
 # --- Python ---
 .venv/
 venv/
@@ -30,10 +31,9 @@ build/
 .agent_cache.db
 .agent_cache.baseline.json
 .agent_cache.baseline.db
-app_gpa/agent/.agent_cache.json
-app_gpa/agent/.agent_cache.db
-app_gpa/agent/.agent_cache.baseline.json
-app_gpa/agent/.agent_cache.baseline.db
+app_gpa/var/
+app_gpa/modules/agents/.agent_cache.*
+app_gpa/modules/agents/.agent_baseline_config.json
 
 # --- Логи и архивы ---
 *.log
@@ -58,3 +58,24 @@ test_query
 .idea/
 *.swp
 *~
+
+# --- DCI local/runtime (do not publish) ---
+.cursor/dci/dci.env
+.cursor/context/.project_lock
+.cursor/context/.dialog_window_lock
+.cursor/context/vector_fallback.jsonl
+.cursor/context/.compress_snapshot.project.json
+.cursor/context/dialogs/**/.compress_snapshot.json
+.cursor/context/dialogs/**/dialog_bundle.md
+.cursor/context/dialog_bundle.md
+.cursor/context/vector_index.meta.md
+.cursor/context/dialogs/**/vector_index.meta.md
+
+# --- TIG generated artifacts (local only) ---
+tig_delta.md
+tig_snapshot.md
+tig_app_ru.py
+
+
+# --- Rukes and context ---
+README_CUSTOM_RULES.md

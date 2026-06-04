@@ -1,0 +1,82 @@
+{
+  "version": "1.0.0",
+  "team_id": "gpa-agent-team",
+  "description": "Команда агента GPA: SQL/DE/DBA + stack-роли на всём треке prepare → discovery → analysis",
+  "core_roles": [
+    "sql_developer",
+    "data_engineer",
+    "analytics_engineer",
+    "dba",
+    "reviewer",
+    "critic",
+    "arbiter",
+    "registry_steward"
+  ],
+  "stack_roles": {
+    "greenplum": ["greenplum_developer"],
+    "spark": ["spark_engineer"],
+    "pyspark": ["pyspark_engineer"]
+  },
+  "track_steps": {
+    "generate_sql": {
+      "label": "Генерация SQL",
+      "roles": ["sql_developer", "analytics_engineer", "data_engineer"],
+      "include_stack_roles": true
+    },
+    "revise_sql": {
+      "label": "Ревизия SQL",
+      "roles": ["sql_developer", "reviewer", "critic"],
+      "include_stack_roles": true
+    },
+    "analyze_description": {
+      "label": "Анализ описания",
+      "roles": ["analytics_engineer", "sql_developer"],
+      "include_stack_roles": false
+    },
+    "blocks_and_objects": {
+      "label": "Discovery блоков",
+      "roles": ["data_engineer", "dba"],
+      "include_stack_roles": true
+    },
+    "synthesize_plan": {
+      "label": "Синтез плана",
+      "roles": ["dba", "critic"],
+      "include_stack_roles": true
+    },
+    "objects_from_sql": {
+      "label": "Объекты из SQL",
+      "roles": ["data_engineer", "dba"],
+      "include_stack_roles": true
+    },
+    "missing_objects": {
+      "label": "Недостающие объекты",
+      "roles": ["data_engineer", "reviewer"],
+      "include_stack_roles": true
+    }
+  },
+  "providers": {
+    "gigachat": {
+      "label": "GigaChat",
+      "default_chat_model": "GigaChat-2",
+      "default_embedding_model": "Embeddings-2",
+      "supports_embeddings": true
+    },
+    "deepseek": {
+      "label": "DeepSeek",
+      "default_chat_model": "deepseek-chat",
+      "supports_embeddings": false,
+      "api_base": "https://api.deepseek.com"
+    }
+  },
+  "multi_agent": {
+    "enabled": true,
+    "max_debate_rounds": 3,
+    "max_reviewers_per_round": 2,
+    "cycle_guard_ms": 120000,
+    "restart_on_stale_consensus": true,
+    "arbiter_role": "arbiter",
+    "supervisor_role": "registry_steward",
+    "debate_modes": ["review", "challenge", "synthesize"],
+    "notes": "При enabled=true orchestrator запускает раунды review/challenge до consensus или лимита"
+  }
+}

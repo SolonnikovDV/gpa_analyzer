@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Результат анализа</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <style>
+    #log { height: 50vh; }
+    .pill { border-radius: 999px; padding: .25rem .6rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">Analyzer</a>
+    <div class="navbar-nav ms-auto">
+      <a class="nav-link" href="{{ url_for('pages.about_page') }}">О приложении</a>
+    </div>
+  </div>
+</nav>
+<div class="container my-4">
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>Онлайн-лог</span>
+          <span id="status" class="badge bg-secondary">{{ status }}</span>
+        </div>
+        <div class="card-body">
+          <div id="log"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-header">Краткая статистика</div>
+        <div class="card-body">
+          <div id="summary">
+            <div class="text-muted">Ожидание завершения...</div>
+          </div>
+          <div class="mt-3">
+            <a id="btn-details" href="#" class="btn btn-outline-primary disabled" target="_blank">Полный JSON</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% set show_reset_cache = false %}
+{% include 'app_footer.html' %}
+
+<script>
+(function(){
+  const jobId = {{ job_id | tojson }};
+  const logEl = document.getElementById('log');
+  const statusEl = document.getElementById('status');
+  const summaryEl = document.getElementById('summary');
+  const btnDetails = document.getElementById('btn-details');
+
+  // Stream logs via SSE
+  const es = new EventSource(`/stream/${jobId}`);
+  es.onmessage = (e) => {
+    const t = e.data || '';
+    if (t === '[STREAM_END]') {
+      es.close();
+      return;
+    }
+    logEl.textContent += t + "\n";
+    logEl.scrollTop = logEl.scrollHeight;
+  };
+
+  // Poll status
+  const interval = setInterval(async () => {
+    try {
+      const r = await fetch(`/status/${jobId}`);
+      const js = await r.json();
+      statusEl.textContent = js.status;
+      statusEl.className = 'badge bg-' + (js.status === 'done' ? 'success' : js.status === 'error' ? 'danger' : 'secondary');
+      if (js.status === 'done') {
+        clearInterval(interval);
+        const s = js.summary;
+        summaryEl.innerHTML = `
+          <ul class="list-group small">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Функция <span class="pill bg-light text-dark">${s.function}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Риск <span class="pill ${s.risk==='ВЫСОКИЙ'?'bg-danger':'bg-warning-subtle'}">${s.risk}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Нагрузка, % (per seg) <span class="pill bg-light text-dark">${s.max_utilization}%</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Память всего, GB <span class="pill bg-light text-dark">${s.total_memory_gb}</span>
+            </li>
+          </ul>`;
+        btnDetails.classList.remove('disabled');
+        btnDetails.href = `/details/${jobId}`;
+      }
+      if (js.status === 'error') {
+        clearInterval(interval);
+        summaryEl.innerHTML = `<div class="alert alert-danger">Ошибка: ${js.error || 'Неизвестная ошибка'}</div>`;
+      }
+    } catch(e) {
+      // ignore
+    }
+  }, 1500);
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from agent.gigachat_agent import _parse_first_json, _repair_json_invalid_escapes
+from modules.agents.gigachat_agent import _parse_first_json, _repair_json_invalid_escapes
 
 
 def test_repair_regex_escape_in_json_string():

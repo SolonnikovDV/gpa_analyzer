@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ru" class="gpa-home-ui">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ app_name }} — О приложении</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='ux.css') }}">
+</head>
+<body>
+<div class="apple-shell apple-shell--home">
+  {% set shell_active = 'about' %}
+  {% set shell_table_href = none %}
+  {% set shell_result_href = none %}
+  {% set shell_status_title = 'О приложении' %}
+  {% set shell_status_note = 'Версия, автор и лицензия.' %}
+  {% set show_tips = false %}
+  {% include 'apple_sidebar.html' %}
+
+  <main class="apple-main gpa-home">
+    <header class="apple-toolbar gpa-home-toolbar page-reveal">
+      <div class="apple-toolbar__titles">
+        <span class="apple-toolbar__eyebrow">About</span>
+        <h1 class="apple-toolbar__title">О платформе анализа</h1>
+        <p class="apple-toolbar__subtitle">Служебная информация о продукте, владельце и лицензировании.</p>
+      </div>
+      <div class="apple-toolbar__actions">
+        <div class="apple-toolbar__surface">
+          <button type="button" class="btn btn-sm btn-outline-secondary theme-toggle" data-theme-toggle aria-label="Переключить тему">
+            <span class="theme-toggle__icon" aria-hidden="true">◐</span>
+            <span class="theme-toggle__label">Светлая тема</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="apple-main__body gpa-home__body">
+      <section class="apple-view apple-view__surface page-reveal">
+        <div class="form-subpanel mb-3">
+          <p class="mb-1"><strong>{{ app_name }}</strong></p>
+          <p class="small mb-0">{{ app_description }}</p>
+        </div>
+
+        <div class="row g-3 small">
+          <div class="col-sm-6">
+            <div class="form-subpanel h-100">
+              <div class="text-muted mb-1">Автор</div>
+              <div>{{ app_author }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="form-subpanel h-100">
+              <div class="text-muted mb-1">Версия</div>
+              <div>{{ app_version }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3 small text-muted">© {{ app_author }}</div>
+        <p class="mt-3 mb-0 small">
+          Приложение распространяется по <strong>лицензии MIT</strong>.
+          Текст лицензии: <a href="{{ url_for('system.license_page') }}" target="_blank" rel="noopener">MIT License</a>.
+        </p>
+      </section>
+
+      {% include 'app_footer.html' %}
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

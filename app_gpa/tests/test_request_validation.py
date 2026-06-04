@@ -1,6 +1,6 @@
 import pytest
 
-from detailed.request_validation import RequestValidationError, expect_list_payload, require_non_empty_string
+from modules.analysis.request_validation import RequestValidationError, expect_list_payload, require_non_empty_string
 
 
 def test_require_non_empty_string_returns_trimmed_value():

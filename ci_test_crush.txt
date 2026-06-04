@@ -1,0 +1,21 @@
+Run python -m pytest -q --tb=short
+........................................................................ [ 75%]
+.............F.........                                                  [100%]
+=================================== FAILURES ===================================
+________________________ test_runtime_presets_crud_flow ________________________
+tests/test_webapp_integration.py:67: in test_runtime_presets_crud_flow
+    delete_response = test_client.delete(
+E   TypeError: delete() got an unexpected keyword argument 'json'
+----------------------------- Captured stderr call -----------------------------
+{"duration_ms": 12, "event": "http.request.completed", "framework": "fastapi", "method": "POST", "path": "/api/runtime-presets", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T13:18:24.331670+00:00"}
+{"duration_ms": 0, "event": "http.request.completed", "framework": "fastapi", "method": "GET", "path": "/api/runtime-presets", "request_id": "***", "status_code": 200, "timestamp": "2026-06-03T13:18:24.333950+00:00"}
+=============================== warnings summary ===============================
+../../../../../../opt/hostedtoolcache/Python/3.9.25/x64/lib/python3.9/site-packages/starlette/middleware/wsgi.py:15
+  /opt/hostedtoolcache/Python/3.9.25/x64/lib/python3.9/site-packages/starlette/middleware/wsgi.py:15: DeprecationWarning: starlette.middleware.wsgi is deprecated and will be removed in a future release. Please refer to https://github.com/abersheeran/a2wsgi as a replacement.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_webapp_integration.py::test_runtime_presets_crud_flow - TypeError: delete() got an unexpected keyword argument 'json'
+1 failed, 94 passed, 1 warning in 3.35s
+Error: Process completed with exit code 1.

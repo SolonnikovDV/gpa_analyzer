@@ -1,0 +1,47 @@
+{# workflow_current: 1|2|3; workflow_job_id: optional for steps 2–3 #}
+{% set wf_current = workflow_current | default(1) %}
+{% set wf_job = workflow_job_id | default(none) %}
+{% set wf_prep_href = url_for('analysis.detailed_index') %}
+{% set wf_tables_href = url_for('analysis.discovery_result', job_id=wf_job) if wf_job else none %}
+{% set wf_result_href = url_for('analysis.detailed_result', job_id=wf_job) if wf_job and wf_current >= 3 else none %}
+{% set wf_fill_pct = ((wf_current - 1) / 2 * 100) | round(0, 'floor') %}
+
+<nav class="gpa-workflow-progress page-reveal" aria-label="Прогресс анализа">
+  <ol class="gpa-workflow-progress__steps">
+    <li class="gpa-workflow-progress__step{% if wf_current == 1 %} is-current{% elif wf_current > 1 %} is-done{% endif %}">
+      <a class="gpa-workflow-progress__link" href="{{ wf_prep_href }}"{% if wf_current == 1 %} aria-current="step"{% endif %}>
+        <span class="gpa-workflow-progress__dot" aria-hidden="true">1</span>
+        <span class="gpa-workflow-progress__label">Подготовка</span>
+      </a>
+    </li>
+    <li class="gpa-workflow-progress__step{% if wf_current == 2 %} is-current{% elif wf_current > 2 %} is-done{% else %} is-upcoming{% endif %}">
+      {% if wf_tables_href %}
+      <a class="gpa-workflow-progress__link" href="{{ wf_tables_href }}"{% if wf_current == 2 %} aria-current="step"{% endif %}>
+        <span class="gpa-workflow-progress__dot" aria-hidden="true">2</span>
+        <span class="gpa-workflow-progress__label">Таблицы</span>
+      </a>
+      {% else %}
+      <span class="gpa-workflow-progress__link is-disabled" aria-disabled="true">
+        <span class="gpa-workflow-progress__dot" aria-hidden="true">2</span>
+        <span class="gpa-workflow-progress__label">Таблицы</span>
+      </span>
+      {% endif %}
+    </li>
+    <li class="gpa-workflow-progress__step{% if wf_current == 3 %} is-current{% else %} is-upcoming{% endif %}">
+      {% if wf_result_href %}
+      <a class="gpa-workflow-progress__link" href="{{ wf_result_href }}"{% if wf_current == 3 %} aria-current="step"{% endif %}>
+        <span class="gpa-workflow-progress__dot" aria-hidden="true">3</span>
+        <span class="gpa-workflow-progress__label">Результат</span>
+      </a>
+      {% else %}
+      <span class="gpa-workflow-progress__link is-disabled" aria-disabled="true">
+        <span class="gpa-workflow-progress__dot" aria-hidden="true">3</span>
+        <span class="gpa-workflow-progress__label">Результат</span>
+      </span>
+      {% endif %}
+    </li>
+  </ol>
+  <div class="gpa-workflow-progress__track" aria-hidden="true">
+    <div class="gpa-workflow-progress__fill" style="width: {{ wf_fill_pct }}%;"></div>
+  </div>
+</nav>

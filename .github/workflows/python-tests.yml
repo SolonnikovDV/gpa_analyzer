@@ -29,5 +29,7 @@ jobs:
           python -m pip install -r requirements.txt
 
       - name: Run test suite
+        env:
+          GPA_HYBRID_MODE: "1"
         run: |
-          python -m pytest
+          python -m pytest -q --tb=short

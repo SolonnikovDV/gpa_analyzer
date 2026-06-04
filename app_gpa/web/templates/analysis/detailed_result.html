@@ -1,0 +1,1478 @@
+<!doctype html>
+<html lang="ru" class="gpa-detailed-ui">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Результат детального анализа</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='detailed.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='ux.css') }}">
+</head>
+<body>
+<div class="apple-shell">
+  {% set shell_active = 'result' %}
+  {% set shell_table_href = '#tables' %}
+  {% set shell_result_href = request.path %}
+  {% set shell_status_title = 'Результат' %}
+  {% set shell_status_note = 'Сводка, вкладки и детали блоков.' %}
+  {% set show_tips = false %}
+  {% include 'apple_sidebar.html' %}
+
+  <main class="apple-main">
+    <header class="apple-toolbar page-reveal">
+      <div class="apple-toolbar__titles">
+        <span class="apple-toolbar__eyebrow">Workspace · Шаг 3</span>
+        <h1 class="apple-toolbar__title">Результат анализа нагрузки</h1>
+        <p class="apple-toolbar__subtitle" id="resultToolbarSubtitle">Лог слева, компактная сводка справа, детали по вкладкам ниже.</p>
+      </div>
+      <div class="apple-toolbar__actions">
+        <div class="apple-toolbar__surface">
+          <span class="apple-toolbar__meta">Статус: {{ status }}</span>
+          {% if agent_chat_model or agent_embedding_model or agent_provider %}
+          {% set prov_label = 'DeepSeek' if agent_provider == 'deepseek' else 'GigaChat' %}
+          <span class="badge bg-dark ms-1" title="Провайдер и модели агента">{{ prov_label }}: {{ agent_chat_model or '—' }}{% if agent_provider != 'deepseek' %} · emb {{ agent_embedding_model or '—' }}{% endif %}</span>
+          {% endif %}
+          <span class="badge bg-secondary ms-1" title="Governance GPA Agent Team">{{ governance_team_id or 'gpa-agent-team' }} v{{ governance_version or '1.0.0' }}{% if multi_agent_enabled or agent_multi_agent %} · multi{% endif %}</span>
+          <button type="button" class="btn btn-sm btn-outline-secondary theme-toggle" data-theme-toggle aria-label="Переключить тему">
+            <span class="theme-toggle__icon" aria-hidden="true">◐</span>
+            <span class="theme-toggle__label">Светлая тема</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="apple-main__body gpa-workflow-enter">
+      {% set workflow_current = 3 %}
+      {% set workflow_job_id = job_id %}
+      {% include 'workflow_progress.html' %}
+      <div id="token-strip" class="token-strip page-reveal" aria-live="polite">
+        <span><strong id="token-provider-label">GigaChat</strong> · суммарно <span class="token-used" id="token-used">0</span> (ввод <span id="token-prompt">0</span>, вывод <span id="token-completion">0</span><span id="token-precached-wrap">, кэш вх. <span id="token-precached" title="precached_prompt_tokens из ответов API">0</span></span>)</span>
+        <span id="token-last-wrap">последний запрос: ввод <span id="token-last-prompt">—</span>, вывод <span id="token-last-completion">—</span></span>
+        <span>сессий: <span id="token-sessions">0</span></span>
+        <span>остаток: <span class="token-available na" id="token-available">—</span></span>
+        <span id="token-429-wrap">429: <span id="token-rate-limit" class="token-rate-limit" title="Превышение лимита запросов GigaChat">0</span></span>
+      </div>
+
+      <div class="gpa-analysis-hero page-reveal" id="system-stats">
+        <div class="gpa-analysis-hero__stat">
+          <span class="gpa-analysis-hero__label">Память</span>
+          <span class="gpa-analysis-hero__value" id="stat-memory">0 MB</span>
+        </div>
+        <div class="gpa-analysis-hero__stat">
+          <span class="gpa-analysis-hero__label">CPU</span>
+          <span class="gpa-analysis-hero__value" id="stat-cpu">0%</span>
+        </div>
+        <div class="gpa-analysis-hero__stat">
+          <span class="gpa-analysis-hero__label">Блоки</span>
+          <span class="gpa-analysis-hero__value" id="stat-blocks">0/0</span>
+        </div>
+        <div class="gpa-analysis-hero__progress">
+          <div class="progress-bar-wrapper">
+            <div class="progress-bar-fill" id="progress-bar-fill"></div>
+          </div>
+          <div class="progress-text">
+            <span><span class="loading-spinner" id="loading-spinner"></span> <span id="progress-status">Выполнение…</span></span>
+            <span id="progress-percent">0%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="apple-view apple-view__surface app-content apple-view-grid apple-view-grid--result">
+        <div class="apple-stack">
+          <div class="row g-4 apple-result-top-row">
+            <div class="col-lg-8">
+              <div class="card shadow-sm page-reveal apple-log-card apple-log-card--compact">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="apple-log-card__title-group">
+            <span class="apple-log-card__title">Лог</span>
+            <span class="apple-log-card__count" id="log-line-count">0 строк</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span id="mode-badge" class="badge bg-info" style="display: none;" title="Режим анализа">—</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-copy-log" title="Скопировать весь лог">
+              Копировать
+            </button>
+            <span id="status" class="badge bg-secondary">{{ status }}</span>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div id="log" class="gpa-log--compact"></div>
+        </div>
+      </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="card shadow-sm page-reveal apple-summary-card">
+        <div class="card-header">Сводка</div>
+        <div class="card-body">
+          <div id="summary">
+            <div id="summary-waiting" class="app-loader app-loader--compact app-loader--{{ loader_mode or 'logic' }}">
+              <span class="app-loader__spinner"></span>
+              <span class="app-loader__mode-icon"></span>
+              <span class="app-loader__status-text">Расчёт…</span>
+            </div>
+            <div id="analysis-quality-note" class="alert alert-secondary py-2 small mb-3" style="display: none;"></div>
+            <div id="summary-content" style="display: none;"></div>
+          </div>
+          <div class="cta-bar mt-3">
+            <div class="d-flex gap-2 flex-wrap">
+              <a id="btn-details" href="#" class="btn btn-outline-primary disabled" target="_blank">JSON-отчёт</a>
+              <a href="/detailed" class="btn btn-outline-secondary">Новый анализ</a>
+            </div>
+          </div>
+        </div>
+      </div>
+            </div>
+          </div>
+  
+          <div id="metrics-strip" class="metrics-strip" style="display: none;"></div>
+
+          <div class="row mt-2" id="results-tabs" style="display: none;">
+            <div class="col-12">
+              <div class="card shadow-sm apple-tabs-card">
+        <div class="card-header">
+          <ul class="nav nav-tabs card-header-tabs" id="resultTabs">
+            <li class="nav-item">
+              <button class="nav-link active" id="tables-tab" data-bs-toggle="tab" data-bs-target="#tables" type="button">Таблицы</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" id="blocks-tab" data-bs-toggle="tab" data-bs-target="#blocks" type="button">Блоки</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" id="top-tab" data-bs-toggle="tab" data-bs-target="#top" type="button">Топ нагрузки</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" id="problems-tab" data-bs-toggle="tab" data-bs-target="#problems" type="button">Риски <span class="badge bg-warning text-dark" id="problems-badge" style="display: none;">0</span></button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" id="perf-tab" data-bs-toggle="tab" data-bs-target="#perf" type="button">Исполнение</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" id="errors-tab" data-bs-toggle="tab" data-bs-target="#errors" type="button">Сбои <span class="badge bg-danger" id="errors-badge" style="display: none;">0</span></button>
+            </li>
+          </ul>
+        </div>
+        <div class="card-body">
+          <div class="tab-content" id="resultTabsContent">
+            <!-- Вкладка с таблицами -->
+            <div class="tab-pane fade show active" id="tables">
+              <div class="table-title-row">
+                <h6 id="resultSourcesTitle">Источники сценария</h6>
+                <p class="mini-note" id="resultSourcesNote">Корректируйте объёмы и пересчитывайте.</p>
+              </div>
+              <div class="table-responsive">
+              <table class="table table-sm table-striped">
+                <thead>
+                  <tr>
+                    <th>Таблица</th>
+                    <th>Текущее строк</th>
+                    <th>Размер (GB)</th>
+                    <th>Средняя ширина (байт)</th>
+                    <th>Желаемое строк</th>
+                  </tr>
+                </thead>
+                <tbody id="tables-tbody"></tbody>
+              </table>
+              </div>
+              <button class="btn btn-sm btn-primary" id="apply-sizes" title="Обновить размеры таблиц и перезапустить расчёт нагрузки">Пересчитать</button>
+            </div>
+            
+            <!-- Вкладка со всеми блоками -->
+            <div class="tab-pane fade" id="blocks">
+              <div class="table-title-row">
+                <h6>Все блоки</h6>
+                <p class="mini-note">Выберите строку, чтобы раскрыть SQL и детали ниже.</p>
+              </div>
+              <div class="table-responsive">
+              <table class="table table-sm table-striped">
+                <thead>
+                  <tr>
+                    <th>№</th>
+                    <th>Тип</th>
+                    <th>Категория</th>
+                    <th>Нагрузка (GB)</th>
+                    <th>Строк</th>
+                    <th>Таблицы</th>
+                  </tr>
+                </thead>
+                <tbody id="blocks-tbody"></tbody>
+              </table>
+              </div>
+              <div id="block-detail-panel" class="block-detail-panel" style="display: none;">
+                <div class="block-detail-panel__header">
+                  <h6 class="mb-0" id="block-detail-title">Детали блока</h6>
+                </div>
+                <div class="block-detail-panel__meta" id="block-detail-meta"></div>
+                <div class="block-detail-panel__copy">
+                  <div class="mini-note mb-2">SQL</div>
+                  <pre class="block-detail-panel__sql" id="block-detail-sql">—</pre>
+                </div>
+                <div class="block-detail-panel__copy" id="block-detail-fallback-wrap" style="display: none;">
+                  <div class="mini-note mb-2">Fallback-оценка</div>
+                  <div class="form-subpanel small" id="block-detail-fallback"></div>
+                </div>
+                <div class="block-detail-panel__copy" id="block-detail-antipatterns-wrap" style="display: none;">
+                  <div class="mini-note mb-2">Антипаттерны</div>
+                  <ul class="block-detail-panel__list" id="block-detail-antipatterns"></ul>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Вкладка с топ-3 запросами -->
+            <div class="tab-pane fade" id="top">
+              <p class="panel-note">Самые тяжёлые блоки по памяти и риску.</p>
+              <div id="top-blocks"></div>
+            </div>
+
+            <!-- Вкладка с проблемными блоками (антипаттерны) -->
+            <div class="tab-pane fade" id="problems">
+              <div id="problems-content">
+                <p class="text-muted small mb-3">Паттерны, которые сильнее всего повышают риск на росте данных.</p>
+                <div id="problems-list"></div>
+                <h6 class="mt-3 mb-2">Рекомендации</h6>
+                <ul id="hedge-recommendations" class="small"></ul>
+              </div>
+            </div>
+
+            <!-- Вкладка со статистикой выполнения -->
+            <div class="tab-pane fade" id="errors">
+              <p class="text-muted small mb-3">Ошибки агента и сетевые сбои, которые не прошли повторную попытку.</p>
+              <div id="errors-list"></div>
+            </div>
+            <div class="tab-pane fade" id="perf">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="card mb-3 chart-shell">
+                    <div class="card-header">Память (MB)</div>
+                    <div class="card-body">
+                      <canvas id="memory-chart" style="height: 200px;"></canvas>
+                      <div class="mt-2" id="memory-stats"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card mb-3 chart-shell">
+                    <div class="card-header">CPU (%)</div>
+                    <div class="card-body">
+                      <canvas id="cpu-chart" style="height: 200px;"></canvas>
+                      <div class="mt-2" id="cpu-stats"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-12">
+                  <div class="card">
+                    <div class="card-header">Итоговая статистика</div>
+                    <div class="card-body" id="perf-summary">
+                      <div class="text-muted">Сбор данных...</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% include 'app_footer.html' %}
+    </div>
+  </main>
+</div>
+
+<!-- Форма для автоматического перезапуска анализа (скрытая) -->
+<form id="restart-form" method="post" action="{{ url_for('analysis.detailed_analyze') }}" style="display: none;">
+  <input type="hidden" name="job_id" value="{{ job_id }}">
+  <input type="hidden" name="params" id="restart-params" value="">
+  <div id="restart-sizes-container"></div>
+</form>
+
+{% include 'about_modal.html' %}
+{% include 'reset_cache_modal.html' %}
+
+<!-- Модальное окно: задержка GigaChat, повторная попытка -->
+<div class="modal fade" id="gigachatRetryModal" tabindex="-1" aria-labelledby="gigachatRetryLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered apple-popover-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-warning bg-opacity-25">
+        <h5 class="modal-title" id="gigachatRetryLabel">Задержка обработки GigaChat</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">Обнаружена временная задержка при обработке данных GigaChat. Выполняется повторная попытка (до 3 раз). Пожалуйста, подождите.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='gpa-ui.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function(){
+  const jobId = {{ job_id | tojson }};
+  const initialLoaderMode = {{ (loader_mode or 'logic') | tojson }};
+  const initialStack = {{ (stack or 'greenplum') | tojson }};
+  const analysisQualityNote = document.getElementById('analysis-quality-note');
+  function escapeHtml(s) {
+    if (s == null) return '';
+    const d = document.createElement('div');
+    d.textContent = String(s);
+    return d.innerHTML;
+  }
+  const logEl = document.getElementById('log');
+  const logLineCount = document.getElementById('log-line-count');
+  if (window.GpaLog && logEl && logLineCount) GpaLog.bindCounter(logEl, logLineCount);
+  const statusEl = document.getElementById('status');
+  const summaryEl = document.getElementById('summary');
+  const summaryWaiting = document.getElementById('summary-waiting');
+  const summaryContent = document.getElementById('summary-content');
+  const btnDetails = document.getElementById('btn-details');
+  const resultsTabs = document.getElementById('results-tabs');
+  const tablesTbody = document.getElementById('tables-tbody');
+  const blocksTbody = document.getElementById('blocks-tbody');
+  const topBlocks = document.getElementById('top-blocks');
+  const applySizes = document.getElementById('apply-sizes');
+  const restartForm = document.getElementById('restart-form');
+  const restartParams = document.getElementById('restart-params');
+  const restartSizesContainer = document.getElementById('restart-sizes-container');
+  const btnCopyLog = document.getElementById('btn-copy-log');
+  const blockDetailPanel = document.getElementById('block-detail-panel');
+  const blockDetailTitle = document.getElementById('block-detail-title');
+  const blockDetailMeta = document.getElementById('block-detail-meta');
+  const blockDetailSql = document.getElementById('block-detail-sql');
+  const blockDetailFallbackWrap = document.getElementById('block-detail-fallback-wrap');
+  const blockDetailFallback = document.getElementById('block-detail-fallback');
+  const blockDetailAntipatternsWrap = document.getElementById('block-detail-antipatterns-wrap');
+  const blockDetailAntipatterns = document.getElementById('block-detail-antipatterns');
+
+  // Копировать весь лог в буфер обмена
+  if (btnCopyLog && logEl) {
+    btnCopyLog.addEventListener('click', function() {
+      const text = logEl.innerText || logEl.textContent || '';
+      if (!text.trim()) {
+        btnCopyLog.textContent = 'Лог пуст';
+        setTimeout(function() { btnCopyLog.textContent = 'Копировать весь лог'; }, 1500);
+        return;
+      }
+      navigator.clipboard.writeText(text).then(function() {
+        const orig = btnCopyLog.textContent;
+        btnCopyLog.textContent = 'Скопировано';
+        btnCopyLog.classList.add('btn-success');
+        btnCopyLog.classList.remove('btn-outline-secondary');
+        setTimeout(function() {
+          btnCopyLog.textContent = orig;
+          btnCopyLog.classList.remove('btn-success');
+          btnCopyLog.classList.add('btn-outline-secondary');
+        }, 2000);
+      }).catch(function() {
+        btnCopyLog.textContent = 'Ошибка';
+        setTimeout(function() { btnCopyLog.textContent = 'Копировать весь лог'; }, 1500);
+      });
+    });
+  }
+
+  // Элементы плашки
+  const systemStats = document.getElementById('system-stats');
+  const statMemory = document.getElementById('stat-memory');
+  const statCpu = document.getElementById('stat-cpu');
+  const statBlocks = document.getElementById('stat-blocks');
+  const progressBarFill = document.getElementById('progress-bar-fill');
+  const progressStatus = document.getElementById('progress-status');
+  const progressPercent = document.getElementById('progress-percent');
+  const loadingSpinner = document.getElementById('loading-spinner');
+
+  let currentResult = null;
+  let currentParams = [];
+  
+  // Переменные для отслеживания прогресса
+  let progressInterval;
+  let systemStatsInterval;
+  let totalEstimatedBlocks = 0;
+  let currentBlockIndex = 0;
+  
+  // Для графиков производительности
+  let perfInterval;
+  let memoryChart, cpuChart;
+  let memoryData = [], cpuData = [], timeLabels = [];
+
+  function formatBlocksCounter(analyzed, total) {
+    const a = Number(analyzed) || 0;
+    const t = Number(total) || 0;
+    return t > 0 ? (a + '/' + t) : String(a);
+  }
+
+  function trafficLevelFromPercent(pct) {
+    const v = Number(pct) || 0;
+    if (v > 40) return 'high';
+    if (v > 15) return 'medium';
+    return 'low';
+  }
+
+  function trafficLevelRisk(riskRaw) {
+    const r = String(riskRaw || '').toUpperCase();
+    if (r.indexOf('ВЫСОК') >= 0 || r === 'HIGH') return 'high';
+    if (r.indexOf('СРЕД') >= 0 || r === 'MEDIUM') return 'medium';
+    if (r.indexOf('НИЗ') >= 0 || r === 'LOW') return 'low';
+    return 'medium';
+  }
+
+  function trafficLevelTime(sec) {
+    const v = Number(sec) || 0;
+    if (v >= 300) return 'high';
+    if (v >= 60) return 'medium';
+    return 'low';
+  }
+
+  function trafficBadgeClass(level) {
+    return 'badge gpa-traffic gpa-traffic--' + (level || 'low');
+  }
+
+  function trafficStripClass(level) {
+    return 'metrics-strip-item gpa-traffic-strip gpa-traffic-strip--' + (level || 'low');
+  }
+
+  function runtimePercent(resultOrSummary) {
+    const src = resultOrSummary || {};
+    if (src.memory_pressure != null && !isNaN(Number(src.memory_pressure))) {
+      return Number(src.memory_pressure) * 100;
+    }
+    return Number(src.max_utilization) || 0;
+  }
+
+  function resetBlockDetail() {
+    if (blockDetailPanel) blockDetailPanel.style.display = 'none';
+    if (blockDetailTitle) blockDetailTitle.textContent = 'Детали блока';
+    if (blockDetailMeta) blockDetailMeta.innerHTML = '';
+    if (blockDetailSql) blockDetailSql.textContent = '—';
+    if (blockDetailFallbackWrap) blockDetailFallbackWrap.style.display = 'none';
+    if (blockDetailFallback) blockDetailFallback.innerHTML = '';
+    if (blockDetailAntipatternsWrap) blockDetailAntipatternsWrap.style.display = 'none';
+    if (blockDetailAntipatterns) blockDetailAntipatterns.innerHTML = '';
+  }
+
+  function renderBlockDetail(block) {
+    if (!block) {
+      resetBlockDetail();
+      return;
+    }
+    if (blockDetailPanel) blockDetailPanel.style.display = 'block';
+    if (blockDetailTitle) blockDetailTitle.textContent = 'Блок ' + (block.index || '—');
+    if (blockDetailMeta) {
+      blockDetailMeta.innerHTML = [
+        ['Тип', escapeHtml(block.type || 'N/A')],
+        ['Категория', escapeHtml(block.category || 'N/A')],
+        ['Нагрузка', escapeHtml(((block.max_memory_gb || 0).toFixed(3)) + ' GB')],
+        ['Строк', escapeHtml((block.total_rows || 0).toLocaleString())],
+        ['Таблицы', escapeHtml((block.tables || []).join(', ') || '—')]
+      ].map(function(item) {
+        return '<div class="block-detail-panel__meta-item"><span>' + item[0] + '</span><strong>' + item[1] + '</strong></div>';
+      }).join('');
+    }
+    if (blockDetailSql) blockDetailSql.textContent = block.sql_full || block.sql_preview || '—';
+
+    if (blockDetailFallbackWrap && blockDetailFallback) {
+      if (block.fallback_estimate && (block.heavy_reason || block.heavy_recommendation)) {
+        blockDetailFallbackWrap.style.display = 'block';
+        blockDetailFallback.innerHTML =
+          (block.heavy_reason ? '<div><strong>Причина:</strong> ' + escapeHtml(block.heavy_reason) + '</div>' : '') +
+          (block.heavy_recommendation ? '<div class="mt-2"><strong>Рекомендация:</strong> ' + escapeHtml(block.heavy_recommendation) + '</div>' : '');
+      } else {
+        blockDetailFallbackWrap.style.display = 'none';
+        blockDetailFallback.innerHTML = '';
+      }
+    }
+
+    if (blockDetailAntipatternsWrap && blockDetailAntipatterns) {
+      if (block.anti_patterns && block.anti_patterns.length > 0) {
+        blockDetailAntipatternsWrap.style.display = 'block';
+        blockDetailAntipatterns.innerHTML = block.anti_patterns.map(function(ap) {
+          return '<li><strong>' + escapeHtml(ap.pattern || '') + '</strong>: ' + escapeHtml(ap.reason || '') + '</li>';
+        }).join('');
+      } else {
+        blockDetailAntipatternsWrap.style.display = 'none';
+        blockDetailAntipatterns.innerHTML = '';
+      }
+    }
+  }
+
+  function updateSummaryPanel(data) {
+    if (!summaryContent) return;
+    const s = data || {};
+    const objectName = s.object_display
+      || (function() {
+        const fnRaw = s.function;
+        const fnL = String(fnRaw || '').trim().toLowerCase();
+        const it = String(s.input_type || '').trim().toLowerCase();
+        if (it !== 'function') return 'запрос';
+        if (fnRaw && fnL !== 'unknown' && fnL !== 'n/a' && fnL !== 'na' && fnL !== '—' && fnL !== '-') {
+          return String(fnRaw);
+        }
+        return 'анонимная функция';
+      })();
+    const blocksLabel = formatBlocksCounter(
+      s.blocks_analyzed != null ? s.blocks_analyzed : s.analyzed_blocks,
+      s.blocks_count
+    );
+    const riskRaw = s.risk || 'Н/Д';
+    const loadPct = runtimePercent(s);
+    const runtimePct = loadPct;
+    const timeSec = Number(s.estimated_time_sec) || 0;
+    const riskLevel = trafficLevelRisk(riskRaw);
+    const loadLevel = trafficLevelFromPercent(loadPct);
+    const runtimeLevel = trafficLevelFromPercent(runtimePct);
+    const timeLevel = trafficLevelTime(timeSec);
+    summaryContent.style.display = 'block';
+    summaryContent.innerHTML = `
+      <ul class="list-group list-group-flush small summary-list">
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span class="summary-list__label">Объект</span>
+          <span class="badge bg-secondary" title="${escapeHtml(objectName)}">${escapeHtml(objectName)}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span class="summary-list__label">Блоки</span>
+          <span class="badge bg-secondary">${escapeHtml(blocksLabel)}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span class="summary-list__label">Риск</span>
+          <span class="${trafficBadgeClass(riskLevel)}">${escapeHtml(String(riskRaw))}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span class="summary-list__label">Нагрузка</span>
+          <span>
+            <span class="${trafficBadgeClass(loadLevel)}">${escapeHtml(String(s.total_memory_gb || 0))} GB</span>
+            ${loadPct > 0 ? `<small class="text-muted ms-1">(${loadPct.toFixed(1)}%)</small>` : ''}
+            ${(s.antipattern_added_gb || 0) > 0 ? ` <small class="text-warning">+${escapeHtml(String(s.antipattern_added_gb))} GB</small>` : ''}
+          </span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span class="summary-list__label">Runtime</span>
+          <span class="${trafficBadgeClass(runtimeLevel)}">${runtimePct.toFixed(1)}%</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span class="summary-list__label">Время</span>
+          <span class="${trafficBadgeClass(timeLevel)}">${escapeHtml(String(timeSec))} сек</span>
+        </li>
+      </ul>`;
+  }
+
+  function activateTabFromHash() {
+    const hash = (window.location.hash || '').trim();
+    if (!hash || typeof bootstrap === 'undefined') return;
+    const trigger = document.querySelector('[data-bs-target="' + hash + '"]');
+    if (trigger) {
+      bootstrap.Tab.getOrCreateInstance(trigger).show();
+    }
+  }
+
+  function updateTokenStrip() {
+    var provider = {{ (agent_provider or 'gigachat') | tojson }};
+    fetch('/api/agent/token_usage?provider=' + encodeURIComponent(provider))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (window.GpaTokenStrip) GpaTokenStrip.apply(data, { provider: provider });
+      }).catch(function() {});
+  }
+  updateTokenStrip();
+  if (window.GpaJobPage) GpaJobPage.trackInterval(setInterval(updateTokenStrip, 12000));
+  else setInterval(updateTokenStrip, 12000);
+
+  // Функция валидации больших чисел
+  window.validateBigNumber = function(input) {
+    let value = input.value.replace(/,/g, '');
+    if (value.includes('e') || value.includes('E')) {
+      value = Number(value);
+    }
+    value = parseInt(value);
+    if (isNaN(value) || value < 0) {
+      input.value = 0;
+    } else {
+      input.value = value;
+    }
+  };
+
+  // Функция обновления прогресс-бара
+  function updateProgressBar(progress, statusText) {
+    if (progressBarFill) {
+      progressBarFill.style.width = progress + '%';
+    }
+    if (progressPercent) {
+      progressPercent.textContent = progress + '%';
+    }
+    if (progressStatus) {
+      progressStatus.textContent = statusText;
+    }
+  }
+
+  // Функция запуска отслеживания прогресса
+  function startProgressTracking() {
+    console.log('Запуск отслеживания прогресса');
+    
+    // Показываем плашку
+    if (systemStats) {
+      systemStats.style.display = 'grid';
+      systemStats.classList.add('is-running');
+    }
+    var shell = document.querySelector('.apple-shell');
+    if (shell) shell.classList.add('gpa-analysis-running');
+    
+    // Показываем спиннер
+    if (loadingSpinner) {
+      loadingSpinner.style.display = 'inline-block';
+    }
+    
+    // Сбрасываем прогресс
+    currentBlockIndex = 0;
+    totalEstimatedBlocks = 0;
+    updateProgressBar(0, 'Подготовка к анализу...');
+    
+    // Запускаем мониторинг системных ресурсов
+    startSystemStatsMonitoring();
+    
+    // Запускаем отслеживание прогресса по логу
+    if (progressInterval) clearInterval(progressInterval);
+    
+    progressInterval = setInterval(() => {
+      const logText = logEl ? logEl.textContent : '';
+      
+      // Ищем информацию о текущем блоке
+      const blockMatches = logText.match(/--- Блок (\d+) \[(.*?)\] ---/g);
+      if (blockMatches && blockMatches.length > 0) {
+        const lastBlock = blockMatches[blockMatches.length - 1];
+        const blockNumMatch = lastBlock.match(/--- Блок (\d+)/);
+        if (blockNumMatch) {
+          currentBlockIndex = parseInt(blockNumMatch[1]);
+        }
+      }
+      
+      // Определяем общее количество блоков из лога (реальное найденное количество)
+      if (totalEstimatedBlocks === 0) {
+        const totalMatch = logText.match(/Всего блоков: (\d+)/);
+        if (totalMatch) {
+          totalEstimatedBlocks = parseInt(totalMatch[1]);
+        } else {
+          const foundMatch = logText.match(/Найдено (\d+) логических блоков/);
+          if (foundMatch) {
+            totalEstimatedBlocks = parseInt(foundMatch[1]);
+          } else {
+            const allBlockMatches = logText.match(/--- Блок (\d+) \[/g);
+            if (allBlockMatches && allBlockMatches.length > 0) {
+              const nums = allBlockMatches.map(m => parseInt(m.match(/\d+/)[0]));
+              totalEstimatedBlocks = Math.max(...nums);
+            }
+          }
+        }
+      }
+      
+      // Вычисляем прогресс
+      let progress = 0;
+      let statusText = 'Выполнение анализа...';
+      
+      if (totalEstimatedBlocks > 0) {
+        progress = Math.min(95, Math.round((currentBlockIndex / totalEstimatedBlocks) * 100));
+      }
+      
+      // Определяем текущую операцию
+      const lastLines = logText.split('\n').slice(-10).join(' ').toLowerCase();
+      
+      if (lastLines.includes('truncate')) {
+        statusText = 'Очистка буферных таблиц...';
+      } else if (lastLines.includes('insert')) {
+        statusText = 'Вставка данных...';
+      } else if (lastLines.includes('select')) {
+        statusText = 'Выполнение запросов...';
+      } else if (lastLines.includes('analyze')) {
+        statusText = 'Анализ статистики...';
+      } else if (lastLines.includes('get diagnostics')) {
+        statusText = 'Получение диагностики...';
+      } else if (lastLines.includes('return')) {
+        statusText = 'Завершение...';
+      }
+      
+      updateProgressBar(progress, statusText);
+    }, 500);
+    if (window.GpaJobPage) GpaJobPage.trackInterval(progressInterval);
+  }
+
+  // Мониторинг системных ресурсов
+  function startSystemStatsMonitoring() {
+    if (systemStatsInterval) clearInterval(systemStatsInterval);
+    
+    systemStatsInterval = setInterval(async () => {
+      try {
+        const resp = await fetch(`/performance/${jobId}`);
+        const stats = await resp.json();
+        
+        if (stats.error) return;
+        
+        // Обновляем показатели
+        if (statMemory) {
+          statMemory.textContent = Math.round(stats.current_memory_mb) + ' MB';
+          if (stats.current_memory_mb > 1024) {
+            statMemory.classList.add('warning');
+          } else {
+            statMemory.classList.remove('warning');
+          }
+        }
+        
+        if (statCpu) {
+          statCpu.textContent = stats.current_cpu_percent + '%';
+          if (stats.current_cpu_percent > 80) {
+            statCpu.classList.add('warning');
+          } else {
+            statCpu.classList.remove('warning');
+          }
+        }
+        
+        if (statBlocks) {
+          statBlocks.textContent = `${currentBlockIndex}/${totalEstimatedBlocks || '?'}`;
+        }
+        
+      } catch(e) {
+        console.error('Error fetching system stats:', e);
+      }
+    }, 1000);
+    if (window.GpaJobPage) GpaJobPage.trackInterval(systemStatsInterval);
+  }
+
+  // Остановка мониторинга
+  function stopProgressTracking() {
+    if (progressInterval) {
+      clearInterval(progressInterval);
+      progressInterval = null;
+    }
+    if (systemStatsInterval) {
+      clearInterval(systemStatsInterval);
+      systemStatsInterval = null;
+    }
+    
+    // Скрываем спиннер
+    if (loadingSpinner) {
+      loadingSpinner.style.display = 'none';
+    }
+    
+    // Обновляем прогресс до 100%
+    updateProgressBar(100, 'Анализ завершен!');
+    
+    // Скрываем плашку через 3 секунды
+    setTimeout(() => {
+      if (systemStats) {
+        systemStats.style.display = 'none';
+        systemStats.classList.remove('is-running');
+      }
+      var shell = document.querySelector('.apple-shell');
+      if (shell) shell.classList.remove('gpa-analysis-running');
+    }, 3000);
+  }
+
+  function appendStreamLogLine(t) {
+    const lineDiv = document.createElement('div');
+    lineDiv.className = 'log-entry';
+    if (t.includes('❌') || t.includes('Error')) {
+      lineDiv.style.color = '#ff6b6b';
+    } else if (t.includes('⚠️') || t.includes('WARN')) {
+      lineDiv.style.color = '#ffd93d';
+    } else if (t.includes('✅')) {
+      lineDiv.style.color = '#51cf66';
+    }
+    lineDiv.textContent = t;
+    logEl.appendChild(lineDiv);
+    logEl.scrollTop = logEl.scrollHeight;
+    if ((t.includes('Задержка обработки') || t.includes('Ошибка парсинга JSON')) && t.includes('повтор')) {
+      const modal = document.getElementById('gigachatRetryModal');
+      if (modal && typeof bootstrap !== 'undefined') {
+        const m = bootstrap.Modal.getOrCreateInstance(modal);
+        if (!modal.classList.contains('show')) m.show();
+      }
+    }
+  }
+
+  function bindJobEventSource() {
+    if (!window.GpaJobPage) return;
+    GpaJobPage.bindEventSource('/stream/' + jobId, function(e) {
+      const t = e.data || '';
+      if (t === '[STREAM_END]') {
+        GpaJobPage.closeEventSource();
+        return;
+      }
+      appendStreamLogLine(t);
+    });
+  }
+  bindJobEventSource();
+
+  function getLoaderMode(js) {
+    if (js && js.status === 'not_found') return initialLoaderMode;
+    const mode = (js && js.analysis_mode) || 'logic';
+    const useDb = !!(js && js.use_db_connection);
+    if (mode === 'logic') return 'logic';
+    if (mode === 'hybrid') return useDb ? 'hybrid' : 'agent';
+    return 'logic';
+  }
+  function getStackLabel(stack) {
+    return stack === 'spark' ? 'Spark' : (stack === 'pyspark' ? 'PySpark' : 'GreenPlum');
+  }
+  function applyLoaderMode(el, js) {
+    if (!el) return;
+    el.classList.remove('app-loader--agent', 'app-loader--logic', 'app-loader--hybrid');
+    el.classList.add('app-loader--' + getLoaderMode(js));
+  }
+  function getModeLabel(mode) {
+    return mode === 'agent' ? 'Чистый агент' : (mode === 'hybrid' ? 'Гибрид' : 'Логика');
+  }
+  function updateModeBadge(mode, stack) {
+    const badge = document.getElementById('mode-badge');
+    if (!badge) return;
+    const effectiveMode = mode || 'logic';
+    badge.textContent = getStackLabel(stack || initialStack) + ' · ' + getModeLabel(effectiveMode);
+    badge.style.display = 'inline-block';
+  }
+  function updateResultCopy(stack) {
+    const titleEl = document.getElementById('resultSourcesTitle');
+    const noteEl = document.getElementById('resultSourcesNote');
+    const subtitleEl = document.getElementById('resultToolbarSubtitle');
+    if (stack === 'spark') {
+      if (titleEl) titleEl.textContent = 'Spark-источники сценария';
+      if (noteEl) noteEl.textContent = 'Корректируйте объёмы Spark-источников и пересчитывайте.';
+      if (subtitleEl) subtitleEl.textContent = 'Лог слева, сводка справа, детали Spark-аналитики по вкладкам.';
+      return;
+    }
+    if (stack === 'pyspark') {
+      if (titleEl) titleEl.textContent = 'PySpark-источники сценария';
+      if (noteEl) noteEl.textContent = 'Корректируйте объёмы источников PySpark и пересчитывайте.';
+      if (subtitleEl) subtitleEl.textContent = 'Лог слева, сводка справа, детали PySpark-аналитики по вкладкам.';
+      return;
+    }
+    if (titleEl) titleEl.textContent = 'Источники сценария';
+    if (noteEl) noteEl.textContent = 'Корректируйте объёмы и пересчитывайте.';
+    if (subtitleEl) subtitleEl.textContent = 'Лог слева, компактная сводка справа, детали по вкладкам ниже.';
+  }
+  function renderAnalysisQuality(result) {
+    if (!analysisQualityNote) return;
+    const runtime = (result && result.runtime_context) || {};
+    const quality = (result && result.analysis_quality) || 'approximate';
+    const qualityLabel = quality === 'profile_enriched'
+      ? 'Profile-enriched analysis'
+      : (quality === 'metadata_enriched'
+        ? 'Metadata-enriched analysis'
+        : (quality === 'runtime_hinted' ? 'Runtime-hinted analysis' : (quality === 'deep' ? 'Deep analysis' : 'Approximate analysis')));
+    const parts = [`<strong>${qualityLabel}</strong>`];
+    if (runtime.capacity_gb) {
+      parts.push(`runtime capacity: ${Number(runtime.capacity_gb).toFixed(1)} GB`);
+    }
+    if (result && result.memory_pressure != null) {
+      parts.push(`pressure: ${(Number(result.memory_pressure) * 100).toFixed(1)}%`);
+    }
+    if (runtime.metadata_sources) {
+      parts.push(`metadata snapshot: ${runtime.metadata_sources}`);
+    }
+    if (runtime.profile_attached) {
+      parts.push('runtime profile attached');
+    }
+    if (Array.isArray(runtime.notes) && runtime.notes.length) {
+      parts.push(runtime.notes.join(' '));
+    }
+    analysisQualityNote.innerHTML = parts.join(' · ');
+    analysisQualityNote.style.display = 'block';
+  }
+
+  var statusPollDone = false;
+
+  async function pollStatusOnce() {
+    try {
+      const r = await fetch(`/status/${jobId}`);
+      const js = await r.json();
+      statusEl.textContent = js.status;
+      statusEl.className = 'badge bg-' + (js.status === 'done' ? 'success' : js.status === 'error' ? 'danger' : 'secondary');
+      applyLoaderMode(summaryWaiting, js);
+      updateModeBadge(getLoaderMode(js), js.stack || initialStack);
+      updateResultCopy(js.stack || initialStack);
+
+      if (js.status === 'running') {
+        if (systemStats && systemStats.style.display !== 'flex') {
+          systemStats.style.display = 'flex';
+        }
+        if (!progressInterval) {
+          startProgressTracking();
+        }
+      }
+
+      if (js.status === 'done') {
+        statusPollDone = true;
+        stopProgressTracking();
+        const retryModal = document.getElementById('gigachatRetryModal');
+        if (retryModal && retryModal.classList.contains('show') && typeof bootstrap !== 'undefined') {
+          bootstrap.Modal.getInstance(retryModal)?.hide();
+        }
+
+        if (js.summary && js.summary.user_params) {
+          currentParams = js.summary.user_params;
+        }
+
+        const s = js.summary || {};
+        if (summaryWaiting) summaryWaiting.style.display = 'none';
+        updateSummaryPanel(s);
+        if (statBlocks) {
+          statBlocks.textContent = formatBlocksCounter(s.blocks_analyzed, s.blocks_count);
+        }
+        btnDetails.classList.remove('disabled');
+        btnDetails.href = `/details/${jobId}`;
+
+        const detailsResp = await fetch(`/details/${jobId}`);
+        currentResult = await detailsResp.json();
+        renderAnalysisQuality(currentResult);
+
+        if (currentResult.blocks_count) {
+          totalEstimatedBlocks = currentResult.blocks_count;
+        }
+
+        if (currentResult.user_params) {
+          currentParams = currentResult.user_params;
+        }
+
+        displayResults(currentResult);
+      }
+      if (js.status === 'error') {
+        statusPollDone = true;
+        stopProgressTracking();
+        if (summaryWaiting) summaryWaiting.style.display = 'none';
+        if (summaryContent) {
+          summaryContent.style.display = 'block';
+          summaryContent.innerHTML = `<div class="alert alert-danger mb-0">Ошибка: ${js.error || 'Неизвестная ошибка'}</div>`;
+        }
+      }
+      return js;
+    } catch(e) {
+      console.error('Polling error:', e);
+      return null;
+    }
+  }
+
+  var statusPollId = setInterval(async function() {
+    if (statusPollDone) return;
+    const js = await pollStatusOnce();
+    if (js && (js.status === 'done' || js.status === 'error')) {
+      clearInterval(statusPollId);
+    }
+  }, 1500);
+  if (window.GpaJobPage) GpaJobPage.trackInterval(statusPollId);
+
+  window.addEventListener('pageshow', function(ev) {
+    if (!ev.persisted) return;
+    if (window.GpaJobPage) GpaJobPage.stopAll();
+    progressInterval = null;
+    systemStatsInterval = null;
+    statusPollDone = false;
+    bindJobEventSource();
+    statusPollId = setInterval(async function() {
+      if (statusPollDone) return;
+      const js = await pollStatusOnce();
+      if (js && (js.status === 'done' || js.status === 'error')) {
+        clearInterval(statusPollId);
+      }
+    }, 1500);
+    if (window.GpaJobPage) GpaJobPage.trackInterval(statusPollId);
+    pollStatusOnce();
+  });
+
+  function displayResults(result) {
+    resultsTabs.style.display = 'block';
+    resetBlockDetail();
+    activateTabFromHash();
+    updateSummaryPanel(result);
+
+    if (statBlocks) {
+      statBlocks.textContent = formatBlocksCounter(result.analyzed_blocks, result.blocks_count);
+    }
+
+    const metricsStrip = document.getElementById('metrics-strip');
+    if (metricsStrip) {
+      const m = result.analysis_mode || 'logic';
+      const useDb = !!result.use_db_connection;
+      const displayMode = (m === 'hybrid' && !useDb) ? 'agent' : (m || 'logic');
+      updateModeBadge(displayMode, result.stack || initialStack);
+      updateResultCopy(result.stack || initialStack);
+
+      const riskLevel = trafficLevelRisk(result.risk);
+      const loadLevel = trafficLevelFromPercent(runtimePercent(result));
+      const runtimeLevel = trafficLevelFromPercent(runtimePercent(result));
+      const timeLevel = trafficLevelTime(result.estimated_time_sec);
+      const blocksLabel = formatBlocksCounter(result.analyzed_blocks, result.blocks_count);
+      metricsStrip.innerHTML = `
+        <span class="metrics-strip-item"><span class="text-muted">Режим</span> <span class="metric-value">${getModeLabel(displayMode)}</span></span>
+        <span class="metrics-strip-item"><span class="text-muted">Качество</span> <span class="metric-value">${result.analysis_quality || 'N/A'}</span></span>
+        <span class="${trafficStripClass(riskLevel)}"><span class="text-muted">Риск</span> <span class="metric-value">${result.risk || 'N/A'}</span></span>
+        <span class="${trafficStripClass(loadLevel)}"><span class="text-muted">Нагрузка</span> <span class="metric-value">${(result.total_memory_gb || 0).toFixed(2)} GB</span>${(result.antipattern_added_gb || 0) > 0 ? ` <small class="text-warning">(+${(result.antipattern_added_gb || 0).toFixed(2)})</small>` : ''}</span>
+        <span class="${trafficStripClass(runtimeLevel)}"><span class="text-muted">Runtime</span> <span class="metric-value">${runtimePercent(result).toFixed(1)}%</span></span>
+        <span class="metrics-strip-item"><span class="text-muted">Блоков</span> <span class="metric-value">${blocksLabel}</span></span>
+        <span class="${trafficStripClass(timeLevel)}"><span class="text-muted">Время</span> <span class="metric-value">${(result.estimated_time_sec || 0).toFixed(1)} сек</span></span>
+      `;
+      metricsStrip.style.display = 'flex';
+    }
+    renderAnalysisQuality(result);
+    
+    if (result.blocks_count) {
+      totalEstimatedBlocks = result.blocks_count;
+    }
+    
+    if (result.discovered_tables) {
+      let tablesHtml = '';
+      const userSizes = result.user_table_sizes || {};
+      
+      for (const [key, info] of Object.entries(result.discovered_tables)) {
+        const currentRows = info.current_rows || 0;
+        const userRows = userSizes[key] !== undefined ? userSizes[key] : currentRows;
+        
+        tablesHtml += `
+          <tr>
+            <td><strong>${key}</strong></td>
+            <td class="text-end">${currentRows.toLocaleString()}</td>
+            <td class="text-end">${(info.size_gb || 0).toFixed(3)}</td>
+            <td class="text-end">${(info.avg_row_size_bytes || 0).toFixed(1)}</td>
+            <td><input type="number" class="form-control form-control-sm user-rows" 
+                       data-table="${key}" value="${userRows}" min="0" step="1000000" 
+                       onchange="validateBigNumber(this)"></td>
+          </tr>
+        `;
+      }
+      
+      tablesTbody.innerHTML = tablesHtml;
+    }
+    
+    if (result.block_details && result.block_details.length > 0) {
+      let blocksHtml = '';
+      result.block_details.forEach(b => {
+        const gb = b.max_memory_gb || 0;
+        const loadClass = gb >= 1 ? 'load-high' : (gb >= 0.1 ? 'load-medium' : 'load-low');
+        const fallbackBadge = b.fallback_estimate ? ' <span class="badge bg-warning text-dark" title="Оценка по размерам (план недоступен)">оценка</span>' : '';
+        const antiBadge = (b.anti_patterns && b.anti_patterns.length > 0)
+          ? ` <span class="badge bg-danger" title="Антипаттерны: ${(b.anti_patterns || []).map(ap => ap.pattern).join(', ')}">⚠ ${b.anti_patterns.length}</span>` : '';
+        blocksHtml += `
+          <tr class="block-row ${loadClass}" data-block-index="${b.index}">
+            <td>${b.index}</td>
+            <td>${b.type || 'N/A'}${fallbackBadge}${antiBadge}</td>
+            <td>${b.category || 'N/A'}</td>
+            <td class="text-end">${(gb).toFixed(3)}</td>
+            <td class="text-end">${(b.total_rows || 0).toLocaleString()}</td>
+            <td><small>${(b.tables || []).join('<br>')}</small></td>
+          </tr>
+        `;
+      });
+      blocksTbody.innerHTML = blocksHtml;
+      
+      document.querySelectorAll('.block-row').forEach(row => {
+        row.addEventListener('click', function() {
+          const index = this.dataset.blockIndex;
+          const block = result.block_details.find(b => b.index == index);
+          if (!block) return;
+          document.querySelectorAll('.block-row').forEach(function(item) {
+            item.classList.remove('is-selected');
+          });
+          this.classList.add('is-selected');
+          renderBlockDetail(block);
+        });
+      });
+    } else {
+      blocksTbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Нет данных о блоках</td></tr>';
+    }
+    
+    if (result.top_blocks && result.top_blocks.length > 0) {
+      let topHtml = '';
+      result.top_blocks.forEach((b, i) => {
+        const blockDetail = result.block_details.find(x => x.index == b.index);
+        const fallbackNote = blockDetail && blockDetail.fallback_estimate && blockDetail.heavy_reason
+          ? `<div class="mt-1"><small class="text-warning">⚠️ ${blockDetail.heavy_reason}</small></div><div class="mt-3"><small class="text-muted">Рекомендация:</small><br><small>${blockDetail.heavy_recommendation || '—'}</small></div>`
+          : '';
+        topHtml += `
+          <div class="card mb-2 card-hover">
+            <div class="card-body py-2">
+              <h6 class="mb-1">${i+1}. Блок ${b.index} [${b.type || 'N/A'}]${blockDetail && blockDetail.fallback_estimate ? ' <span class="badge bg-warning text-dark">оценка</span>' : ''}</h6>
+              <div class="row">
+                <div class="col-md-3">
+                  <small class="text-muted">Нагрузка:</small><br>
+                  <strong>${(b.max_memory_gb || 0).toFixed(3)} GB</strong>
+                </div>
+                <div class="col-md-9">
+                  <small class="text-muted">Таблицы:</small><br>
+                  <small>${(b.tables || []).join(', ')}</small>
+                </div>
+              </div>
+              <div class="mt-1">
+                <small class="text-muted">SQL:</small><br>
+                <small class="text-secondary">${(b.sql_preview || '').substring(0, 150)}...</small>
+              </div>
+              ${fallbackNote}
+            </div>
+          </div>
+        `;
+      });
+      topBlocks.innerHTML = topHtml;
+    } else {
+      topBlocks.innerHTML = '<div class="alert alert-info">Нет данных о топ-3 запросах</div>';
+    }
+
+    // Вкладка «Проблемные блоки»
+    const problemsList = document.getElementById('problems-list');
+    const hedgeList = document.getElementById('hedge-recommendations');
+    const problemsBadge = document.getElementById('problems-badge');
+    const problematicBlocks = result.problematic_blocks || [];
+    const generalHedge = result.general_hedge_recommendations || [];
+
+    if (problemsBadge) {
+      problemsBadge.textContent = problematicBlocks.length;
+      problemsBadge.style.display = problematicBlocks.length > 0 ? 'inline' : 'none';
+    }
+
+    if (problemsList) {
+      if (problematicBlocks.length > 0) {
+        let html = '';
+        problematicBlocks.forEach(pb => {
+          const apItems = (pb.anti_patterns || []).map(ap =>
+            `<li><strong>${escapeHtml(ap.pattern)}</strong>: ${escapeHtml(ap.reason)}<br><small class="text-success">Хедж: ${escapeHtml(ap.hedge)}</small></li>`
+          ).join('');
+          const blockHedge = (pb.block_hedge || []).map(h => `<li class="text-success">${escapeHtml(h)}</li>`).join('');
+          const rawSql = pb.sql_full || pb.sql_preview || '';
+          let sqlHtml = escapeHtml(rawSql);
+          (pb.anti_patterns || []).forEach(ap => {
+            const mt = (ap.match_text || ap.pattern || '').trim();
+            if (mt) {
+              try {
+                const mtEscaped = escapeHtml(mt);
+                const reEscaped = mtEscaped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+                sqlHtml = sqlHtml.replace(new RegExp(reEscaped, 'gi'), m => `<mark class="sql-risk-highlight">${m}</mark>`);
+              } catch (e) {}
+            }
+          });
+          html += `
+            <div class="card mb-2 border-warning">
+              <div class="card-header py-2 bg-warning bg-opacity-25">
+                <strong>Блок ${pb.index}</strong> [${pb.type}] — ${(pb.max_memory_gb || 0).toFixed(3)} GB
+                <br><small class="text-muted">${(pb.tables || []).join(', ')}</small>
+              </div>
+              <div class="card-body py-2 small">
+                <strong>Текст блока:</strong>
+                <pre class="analysis-sql-snippet p-2 rounded mt-1 mb-2 small" style="white-space: pre-wrap; word-break: break-word;">${sqlHtml}</pre>
+                <strong>Антипаттерны:</strong>
+                <ul class="mb-2">${apItems}</ul>
+                ${blockHedge ? '<strong>Рекомендации для блока:</strong><ul>' + blockHedge + '</ul>' : ''}
+              </div>
+            </div>
+          `;
+        });
+        problemsList.innerHTML = html;
+      } else {
+        problemsList.innerHTML = '<p class="text-success">Проблемных блоков не обнаружено.</p>';
+      }
+    }
+
+    if (hedgeList) {
+      hedgeList.innerHTML = generalHedge.map(h => `<li>${escapeHtml(h)}</li>`).join('');
+    }
+
+    const agentErrors = result.agent_errors || [];
+    const errorsList = document.getElementById('errors-list');
+    const errorsBadge = document.getElementById('errors-badge');
+    if (errorsBadge) {
+      errorsBadge.textContent = agentErrors.length;
+      errorsBadge.style.display = agentErrors.length > 0 ? 'inline' : 'none';
+    }
+    if (errorsList) {
+      if (agentErrors.length > 0) {
+        errorsList.innerHTML = agentErrors.map((err, i) => `
+          <div class="card mb-2 border-danger">
+            <div class="card-header py-2 bg-danger bg-opacity-10">
+              <strong>${i + 1}. ${escapeHtml(err.operation || 'Агент')}</strong> — ${escapeHtml(err.type || '')}
+            </div>
+            <div class="card-body py-2 small">
+              <pre class="mb-0" style="white-space: pre-wrap;">${escapeHtml(err.full || err.message || '')}</pre>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        errorsList.innerHTML = '<p class="text-success">Ошибок агента нет.</p>';
+      }
+    }
+
+    loadPerformanceSummary();
+  }
+
+  // Кнопка применения размеров
+  applySizes.addEventListener('click', function() {
+    console.log('Клик по кнопке применения размеров');
+    
+    const sizes = {};
+    document.querySelectorAll('.user-rows').forEach(input => {
+      const val = parseInt(input.value);
+      if (!isNaN(val) && val >= 0) {
+        sizes[input.dataset.table] = val;
+      }
+    });
+    
+    if (currentParams && currentParams.length > 0) {
+      const paramsStr = currentParams.map(p => {
+        if (p.startsWith("'") && p.endsWith("'")) return p;
+        if (p === 'current_date') return p;
+        return `'${p}'`;
+      }).join(',');
+      
+      restartParams.value = paramsStr;
+    }
+    
+    restartSizesContainer.innerHTML = '';
+    for (const [table, size] of Object.entries(sizes)) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = `size_${table.replace(/\./g, '___DOT___')}`;
+      input.value = size;
+      restartSizesContainer.appendChild(input);
+    }
+    
+    // Запускаем прогресс
+    startProgressTracking();
+    
+    restartForm.submit();
+  });
+
+  window.addEventListener('hashchange', activateTabFromHash);
+  activateTabFromHash();
+
+  window.validateInput = function(input) {
+    const value = parseInt(input.value);
+    if (isNaN(value) || value < 0) {
+      input.value = 0;
+    }
+  };
+
+  // Загрузка статистики производительности
+  async function loadPerformanceSummary() {
+    try {
+      const resp = await fetch(`/performance/${jobId}`);
+      const stats = await resp.json();
+      
+      if (stats.error) return;
+      
+      buildPerformanceCharts(stats);
+      
+      document.getElementById('perf-summary').innerHTML = `
+        <div class="row">
+          <div class="col-md-6">
+            <ul class="list-group">
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Пик памяти
+                <span class="badge bg-primary rounded-pill">${stats.peak_memory_mb} MB</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Средняя память
+                <span class="badge bg-primary rounded-pill">${stats.avg_memory_mb} MB</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Финальная память
+                <span class="badge bg-primary rounded-pill">${stats.current_memory_mb} MB</span>
+              </li>
+            </ul>
+          </div>
+          <div class="col-md-6">
+            <ul class="list-group">
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Пик CPU
+                <span class="badge bg-primary rounded-pill">${stats.peak_cpu_percent}%</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Средний CPU
+                <span class="badge bg-primary rounded-pill">${stats.avg_cpu_percent}%</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Финальный CPU
+                <span class="badge bg-primary rounded-pill">${stats.current_cpu_percent}%</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-12">
+            <ul class="list-group">
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Время выполнения
+                <span class="badge bg-primary rounded-pill">${stats.uptime_seconds} сек</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Количество замеров
+                <span class="badge bg-primary rounded-pill">${stats.samples_count}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      `;
+    } catch(e) {
+      console.error('Error loading performance summary:', e);
+    }
+  }
+
+  // Построение графиков производительности
+  function buildPerformanceCharts(stats) {
+    if (!stats.samples_count || stats.samples_count === 0) {
+      document.getElementById('memory-stats').innerHTML = '<div class="text-muted">Нет данных для отображения</div>';
+      document.getElementById('cpu-stats').innerHTML = '<div class="text-muted">Нет данных для отображения</div>';
+      return;
+    }
+
+    const timePoints = [];
+    const memoryPoints = [];
+    const cpuPoints = [];
+    
+    for (let i = 0; i <= 10; i++) {
+      const progress = i / 10;
+      timePoints.push(`${Math.round(progress * stats.uptime_seconds)}с`);
+      
+      if (i < 7) {
+        memoryPoints.push(Math.round(stats.avg_memory_mb * (0.5 + progress * 0.7)));
+      } else {
+        memoryPoints.push(Math.round(stats.peak_memory_mb * (1.2 - progress * 0.3)));
+      }
+      
+      cpuPoints.push(Math.round(stats.avg_cpu_percent * (0.7 + Math.sin(progress * Math.PI) * 0.5)));
+    }
+    
+    if (memoryChart) {
+      memoryChart.data.labels = timePoints;
+      memoryChart.data.datasets[0].data = memoryPoints;
+      memoryChart.update();
+    } else {
+      const ctxMem = document.getElementById('memory-chart').getContext('2d');
+      memoryChart = new Chart(ctxMem, {
+        type: 'line',
+        data: {
+          labels: timePoints,
+          datasets: [{
+            label: 'Память (MB)',
+            data: memoryPoints,
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+            tension: 0.3,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `Память: ${context.raw} MB`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Память (MB)'
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Время выполнения (сек)'
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    if (cpuChart) {
+      cpuChart.data.labels = timePoints;
+      cpuChart.data.datasets[0].data = cpuPoints;
+      cpuChart.update();
+    } else {
+      const ctxCpu = document.getElementById('cpu-chart').getContext('2d');
+      cpuChart = new Chart(ctxCpu, {
+        type: 'line',
+        data: {
+          labels: timePoints,
+          datasets: [{
+            label: 'CPU %',
+            data: cpuPoints,
+            borderColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `CPU: ${context.raw}%`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              title: {
+                display: true,
+                text: 'CPU %'
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Время выполнения (сек)'
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    document.getElementById('memory-stats').innerHTML = `
+      <small>
+        <span style="color: rgb(75, 192, 192);">●</span> Пик: ${stats.peak_memory_mb} MB | 
+        <span style="color: rgb(54, 162, 235);">●</span> Сред: ${Math.round(stats.avg_memory_mb)} MB | 
+        <span style="color: rgb(40, 167, 69);">●</span> Фин: ${stats.current_memory_mb} MB
+      </small>
+    `;
+    
+    document.getElementById('cpu-stats').innerHTML = `
+      <small>
+        <span style="color: rgb(255, 99, 132);">●</span> Пик: ${stats.peak_cpu_percent}% | 
+        <span style="color: rgb(54, 162, 235);">●</span> Сред: ${Math.round(stats.avg_cpu_percent)}% | 
+        <span style="color: rgb(40, 167, 69);">●</span> Фин: ${stats.current_cpu_percent}%
+      </small>
+    `;
+  }
+
+  // Начальный режим и плашка
+  updateModeBadge(initialLoaderMode, initialStack);
+  updateResultCopy(initialStack);
+
+  // Автоматический запуск прогресса при загрузке
+  fetch(`/status/${jobId}`).then(r => r.json()).then(js => {
+    applyLoaderMode(summaryWaiting, js);
+    updateModeBadge(getLoaderMode(js), js.stack || initialStack);
+    updateResultCopy(js.stack || initialStack);
+    if (js.status === 'running') {
+      startProgressTracking();
+    }
+  }).catch(e => {
+    console.error('Error checking initial status:', e);
+    applyLoaderMode(summaryWaiting, { status: 'not_found' });
+    updateModeBadge(initialLoaderMode, initialStack);
+    updateResultCopy(initialStack);
+  });
+
+})(); // <--- ЭТО КОНЕЦ СКРИПТА
+</script>
+</body>
+</html>
