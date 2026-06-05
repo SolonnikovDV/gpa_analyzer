@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>GPA Analyzer — Презентация</title>
+<style>
+  @page { size: A4 landscape; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #0d3d6b; --navy-mid: #0d5cab; --ink: #1a2332; --muted: #5a6578;
+    --line: #c8d0dc; --line-light: #e4e9f0; --bg: #f4f6f9; --card: #ffffff;
+    --accent: #0d5cab; --accent-bright: #1a7fbb; --accent-soft: #e8f1fb;
+    --accent-cyan: #4db8ff; --ok: #1a7f4b; --ok-soft: #e6f4ec; --warn: #b86e00;
+    --alert: #c41e12; --radius: 8px;
+  }
+  html, body {
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink); background: #fff; line-height: 1.4; -webkit-font-smoothing: antialiased;
+  }
+  .icon { width: 28px; height: 28px; flex-shrink: 0; stroke: var(--accent); fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .icon-sm { width: 22px; height: 22px; }
+  .icon-green { stroke: #248942; } .icon-orange { stroke: #a05f00; } .icon-red { stroke: #c41e12; } .icon-gray { stroke: #6e6e73; }
+  .slide {
+    width: 297mm; height: 210mm; padding: 11mm 14mm 9mm;
+    display: flex; flex-direction: column; page-break-after: always;
+    position: relative; overflow: hidden; background: var(--bg);
+  }
+  .slide:last-child { page-break-after: auto; }
+  .slide-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--navy) 0%, var(--accent) 55%, var(--accent-bright) 100%); }
+  .slide-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid var(--accent); gap: 10px; }
+  .slide-num { font-size: 8pt; font-weight: 700; color: var(--accent); letter-spacing: 0.6px; text-transform: uppercase; }
+  .slide-title { font-size: 21pt; font-weight: 700; letter-spacing: -0.02em; margin-top: 3px; line-height: 1.15; color: var(--ink); }
+  .slide-headline { font-size: 11pt; color: var(--muted); margin-top: 5px; max-width: 92%; line-height: 1.35; font-weight: 500; }
+  .slide-brand { font-size: 8pt; color: var(--accent); font-weight: 600; text-align: right; border: 1px solid #b8d4f0; padding: 2px 10px; border-radius: 999px; background: var(--accent-soft); white-space: nowrap; margin-bottom: 2px; }
+  .slide-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .slide-footer { margin-top: auto; padding-top: 6px; display: flex; justify-content: space-between; font-size: 7.5pt; color: var(--muted); letter-spacing: 0.03em; border-top: 1px solid var(--line-light); }
+  .slide-footer span:first-child { color: var(--accent); font-weight: 600; }
+  .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; min-height: 0; }
+  .cols-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; flex: 1; min-height: 0; }
+  .cols-55-45 { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 12px; flex: 1; }
+  .cols-60-40 { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 12px; flex: 1; }
+  .stat-card { background: var(--card); border-radius: var(--radius); padding: 12px 14px; display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--line); box-shadow: 0 2px 8px rgba(13,92,171,0.06); }
+  .stat-card h4 { font-size: 10.5pt; font-weight: 700; margin-bottom: 3px; }
+  .stat-card p { font-size: 10pt; color: var(--muted); line-height: 1.35; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pipeline { display: flex; align-items: stretch; margin: 8px 0; background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid rgba(0,0,0,0.08); }
+  .pipe-step { flex: 1; padding: 11px 8px; text-align: center; position: relative; font-size: 10pt; font-weight: 600; }
+  .pipe-step:not(:last-child)::after { content: '▶'; position: absolute; right: -6px; top: 50%; transform: translateY(-50%); color: #aeaeb2; font-size: 10pt; z-index: 2; }
+  .pipe-t { background: rgba(52,199,89,0.15); color: #248942; }
+  .pipe-f { background: rgba(255,149,0,0.15); color: #a05f00; }
+  .pipe-v { background: rgba(0,122,255,0.12); color: #0051a8; }
+  .pipe-m { background: rgba(175,82,222,0.12); color: #7b2fa0; }
+  .pipe-sub { font-size: 8.5pt; font-weight: 400; color: #6e6e73; margin-top: 3px; }
+  .iceberg { display: flex; gap: 12px; align-items: stretch; }
+  .iceberg-vis { width: 130px; flex-shrink: 0; display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; border: 1px solid rgba(0,0,0,0.08); }
+  .ice-top { flex: 0.32; background: rgba(0,122,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 9.5pt; font-weight: 700; color: #0051a8; text-align: center; padding: 8px; }
+  .ice-bot { flex: 0.68; background: rgba(255,59,48,0.12); display: flex; align-items: center; justify-content: center; font-size: 9.5pt; font-weight: 700; color: #c41e12; text-align: center; padding: 8px; }
+  .iceberg-list { flex: 1; display: flex; flex-direction: column; gap: 7px; justify-content: center; }
+  .ice-item { display: flex; gap: 8px; align-items: flex-start; font-size: 10pt; line-height: 1.35; }
+  .ice-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .ba-grid { display: flex; flex-direction: column; gap: 9px; }
+  .ba-row { display: grid; grid-template-columns: 1fr 72px 72px; gap: 8px; align-items: center; font-size: 10pt; padding: 8px 10px; background: var(--card); border-radius: var(--radius); border: 1px solid var(--line); }
+  .ba-row.header { background: transparent; font-size: 9pt; font-weight: 700; color: #6e6e73; text-transform: uppercase; letter-spacing: 0.4px; padding: 0 10px; }
+  .ba-bad { color: #c41e12; font-weight: 700; text-align: center; font-size: 9.5pt; }
+  .ba-good { color: #248942; font-weight: 700; text-align: center; font-size: 9.5pt; }
+  .role-card { background: var(--card); border-radius: var(--radius); padding: 14px 16px; border: 1px solid var(--line); border-top: 4px solid var(--accent); height: 100%; display: flex; flex-direction: column; box-shadow: 0 2px 8px rgba(13,92,171,0.06); }
+  .role-card.de { border-top-color: #ff9500; } .role-card.an { border-top-color: #5856d6; }
+  .role-card.biz { border-top-color: #34c759; } .role-card.dba { border-top-color: var(--accent-bright); }
+  .role-title { font-size: 11.5pt; font-weight: 800; } .role-sub { font-size: 9.5pt; color: #6e6e73; margin: 2px 0 10px; }
+  .role-body { flex: 1; font-size: 10pt; line-height: 1.35; color: #48484a; }
+  .role-scenario { margin-top: auto; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.08); font-size: 9.5pt; }
+  .role-scenario b { color: var(--accent); font-size: 9pt; text-transform: uppercase; }
+  .roles-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; min-height: 0; }
+  .scenario-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; padding: 10px 12px; background: var(--accent-soft); border-radius: var(--radius); border: 1px solid #b8d4f0; }
+  .scenario-bar-item { font-size: 9.5pt; line-height: 1.35; padding-left: 8px; border-left: 3px solid var(--accent); }
+  .scenario-bar-item b { display: block; font-size: 9pt; color: var(--accent); margin-bottom: 2px; }
+  .scenario-bar-title { font-size: 10pt; font-weight: 700; grid-column: 1 / -1; margin-bottom: 4px; }
+  .arch { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px; background: var(--card); border-radius: var(--radius); margin-bottom: 10px; border: 1px solid var(--line); flex-wrap: wrap; }
+  .arch-node { text-align: center; padding: 10px 12px; border-radius: 8px; font-size: 10pt; font-weight: 700; min-width: 84px; }
+  .arch-node small { display: block; font-weight: 400; font-size: 8.5pt; color: #6e6e73; margin-top: 3px; }
+  .arch-arrow { color: #aeaeb2; font-size: 16pt; }
+  .arch-db { background: rgba(52,199,89,0.15); color: #248942; border: 2px solid #34c759; }
+  .arch-core { background: rgba(255,149,0,0.12); color: #a05f00; border: 2px solid #ff9500; }
+  .arch-api { background: #e8e8ed; color: #3a3a3c; border: 2px solid #aeaeb2; }
+  .arch-ui { background: var(--accent-soft); color: var(--accent); border: 2px solid var(--accent); }
+  .arch-agent { background: rgba(175,82,222,0.12); color: #7b2fa0; border: 2px solid #af52de; }
+  .funnel { display: flex; gap: 10px; }
+  .funnel-num { width: 30px; height: 30px; background: var(--accent); color: #fff; border-radius: 50%; font-weight: 800; font-size: 13pt; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; }
+  .funnel-step { flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 12px; text-align: center; }
+  .funnel-step h4 { font-size: 10.5pt; font-weight: 700; margin-bottom: 5px; }
+  .funnel-step p { font-size: 9.5pt; color: #48484a; line-height: 1.35; }
+  .req-box { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 9.5pt; line-height: 1.4; }
+  .screenshot-frame { border: 1px solid rgba(0,0,0,0.12); border-radius: 10px; overflow: hidden; background: #eee; min-height: 0; }
+  .screenshot-frame img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+  .shot-caption { font-size: 8.5pt; color: var(--muted); text-align: center; margin-top: 4px; font-weight: 600; }
+  .callouts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
+  .callout { background: var(--card); border-radius: var(--radius); padding: 8px 10px; font-size: 9.5pt; border: 1px solid var(--line); border-left: 3px solid var(--accent); line-height: 1.3; }
+  .callout strong { display: block; color: var(--accent); margin-bottom: 2px; }
+  .callout.warn strong { color: var(--alert); border-left-color: var(--alert); }
+  .vs-table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+  .vs-table th, .vs-table td { border: 1px solid rgba(0,0,0,0.08); padding: 7px 10px; vertical-align: middle; }
+  .vs-table th { background: var(--accent-soft); font-size: 9.5pt; }
+  .score-high { color: #248942; font-weight: 700; } .score-mid { color: #a05f00; font-weight: 600; } .score-low { color: #aeaeb2; }
+  .kpi-table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+  .kpi-table th, .kpi-table td { border: 1px solid rgba(0,0,0,0.08); padding: 7px 10px; vertical-align: top; line-height: 1.35; }
+  .kpi-table th { background: var(--accent-soft); font-size: 9.5pt; }
+  .pilot-steps { display: flex; gap: 8px; margin-top: 10px; }
+  .pilot-step { flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; font-size: 9.5pt; }
+  .pilot-step b { display: block; font-size: 10pt; color: var(--accent); margin-bottom: 4px; }
+  .stat-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .title-slide { padding: 0; background: linear-gradient(135deg, #eef2f7 0%, #fff 50%, var(--accent-soft) 100%); }
+  .title-slide .slide-bar { display: none; }
+  .title-layout { display: grid; grid-template-columns: 1.05fr 0.95fr; flex: 1; min-height: 0; }
+  .title-content { display: flex; flex-direction: column; justify-content: center; padding: 16mm 10mm 12mm 14mm; position: relative; }
+  .title-content::before { content: ''; position: absolute; left: 0; top: 12mm; bottom: 12mm; width: 4px; background: linear-gradient(180deg, var(--accent-cyan), var(--accent), var(--ok)); border-radius: 2px; }
+  .title-eyebrow { font-size: 9pt; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--accent); }
+  .hero-title { font-size: 38pt; font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; margin: 10px 0 14px; }
+  .hero-title span { color: var(--accent-cyan); display: block; font-size: 0.92em; }
+  .hero-sub { font-size: 13.5pt; color: var(--muted); margin-bottom: 18px; line-height: 1.4; font-weight: 500; }
+  .title-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .pill { font-size: 9.5pt; font-weight: 700; padding: 7px 14px; border-radius: 20px; }
+  .pill-green { background: var(--ok-soft); color: var(--ok); border: 1px solid #b8dfc8; }
+  .pill-blue { background: var(--accent-soft); color: var(--accent); border: 1px solid #b8d4f0; }
+  .pill-gray { background: var(--card); color: var(--muted); border: 1px solid var(--line); }
+  .hero-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .hero-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 12px; box-shadow: 0 2px 8px rgba(13,92,171,0.06); }
+  .hero-card h4 { font-size: 10.5pt; font-weight: 700; margin-bottom: 4px; }
+  .hero-card p { font-size: 9.5pt; color: var(--muted); line-height: 1.35; }
+  .title-visual { background: linear-gradient(160deg, var(--navy) 0%, var(--navy-mid) 45%, #0a2744 100%); position: relative; display: flex; align-items: center; justify-content: center; padding: 12mm; }
+  .title-art { width: 100%; max-height: 100%; }
+  .title-footer { display: flex; justify-content: space-between; padding: 8px 14mm 9mm; border-top: 1px solid var(--line-light); background: var(--card); font-size: 9pt; color: var(--muted); }
+  .title-footer b { color: var(--ink); } .title-footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .slide-contacts .slide-body { justify-content: center; align-items: center; }
+  .contact-wrap { display: grid; grid-template-columns: 1fr 1.15fr; gap: 10mm; width: 100%; max-width: 240mm; }
+  .contact-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 8mm; border-top: 3px solid var(--accent); box-shadow: 0 4px 16px rgba(13,92,171,0.1); }
+  .contact-avatar { width: 18mm; height: 18mm; border-radius: var(--radius); background: linear-gradient(135deg, var(--accent), var(--accent-bright)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14pt; font-weight: 600; margin-bottom: 4mm; }
+  .contact-name { font-size: 17pt; font-weight: 700; } .contact-role { font-size: 10.5pt; color: var(--accent); margin-top: 2mm; }
+  .contact-link a { color: var(--accent-bright); text-decoration: none; font-weight: 600; font-size: 10pt; }
+  .topic-item { display: flex; gap: 3mm; padding: 3mm 3.5mm; background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: var(--radius); font-size: 10pt; margin-bottom: 3mm; }
+  .topic-num { width: 22px; height: 22px; flex-shrink: 0; background: var(--accent); color: #fff; border-radius: 50%; font-size: 9pt; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .demo-agent-row { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-top: 8px; flex: 1; min-height: 0; }
+  .compare-shots { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex: 1; min-height: 0; }
+  .compare-shots .screenshot-frame { height: 72mm; }
+  .risk-formula { font-size: 9pt; color: var(--muted); margin-top: 8px; padding: 8px 10px; background: var(--card); border-radius: var(--radius); border: 1px solid var(--line); line-height: 1.4; }
+  .limits-list { font-size: 9.5pt; line-height: 1.4; color: #48484a; }
+  .limits-list li { margin-bottom: 5px; margin-left: 14px; }
+  .icon-xs { width: 20px; height: 20px; }
+  .infographic-panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .infographic-panel h5 { font-size: 8.5pt; font-weight: 700; color: var(--accent); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .infographic-panel svg { width: 100%; flex: 1; min-height: 52px; }
+  .step-journey { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+  .step-journey-item { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; display: flex; gap: 8px; align-items: center; }
+  .step-journey-item b { display: block; font-size: 10pt; color: var(--ink); }
+  .step-journey-item span { color: var(--muted); font-size: 8.5pt; line-height: 1.25; }
+  .step-ico { width: 30px; height: 30px; flex-shrink: 0; stroke: var(--accent); fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .shot-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; flex: 1; min-height: 0; }
+  .shot-panel { display: flex; flex-direction: column; min-height: 0; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 6px rgba(13,92,171,0.05); }
+  .shot-panel .screenshot-frame { flex: 1; min-height: 42mm; max-height: 46mm; border: none; border-radius: 0; background: #eef1f5; }
+  .shot-panel .screenshot-frame img { object-fit: contain; object-position: center top; }
+  .shot-panel .shot-caption { padding: 5px 8px; background: var(--accent-soft); border-top: 1px solid #b8d4f0; margin-top: 0; font-size: 8pt; }
+  .shot-hero .screenshot-frame { min-height: 50mm; max-height: 54mm; }
+  .shot-side .screenshot-frame { min-height: 36mm; max-height: 40mm; }
+  .priority-list { display: flex; flex-direction: column; gap: 6px; }
+  .priority-item { display: flex; gap: 8px; align-items: flex-start; font-size: 9.5pt; padding: 8px 10px; background: var(--card); border-radius: var(--radius); border: 1px solid var(--line); border-left: 3px solid var(--accent); line-height: 1.3; }
+  .priority-num { width: 20px; height: 20px; background: var(--accent); color: #fff; border-radius: 50%; font-size: 8pt; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .mode-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .mode-pill { font-size: 8pt; padding: 3px 9px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); color: var(--muted); font-weight: 600; }
+  .cols-52-48 { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 12px; flex: 1; min-height: 0; }
+  .pillar-card { flex-direction: column; align-items: center; text-align: center; padding: 12px 10px; gap: 8px; }
+  .pillar-card .icon { width: 36px; height: 36px; }
+  .pillar-card h4 { font-size: 10pt; }
+  .pillar-card p { font-size: 9pt; }
+  .pillar-v2 { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; height: 100%; box-shadow: 0 2px 8px rgba(13,92,171,0.06); }
+  .pillar-v2 h4 { font-size: 10.5pt; font-weight: 700; color: var(--ink); }
+  .pillar-v2 p { font-size: 9pt; color: var(--muted); line-height: 1.35; }
+  .pillar-diagram { flex: 1; min-height: 28mm; display: flex; align-items: center; }
+  .pillar-diagram svg { width: 100%; height: 100%; max-height: 32mm; }
+  .slide-07-body { display: grid; grid-template-rows: auto 1fr auto; gap: 8px; flex: 1; min-height: 0; }
+  .value-strip { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .value-block { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; border-left: 3px solid var(--accent); min-height: 0; }
+  .value-block h4 { font-size: 9.5pt; font-weight: 700; color: var(--accent); margin-bottom: 3px; }
+  .value-block p { font-size: 9pt; color: #48484a; line-height: 1.3; }
+  .value-block ul { font-size: 8.5pt; color: #48484a; margin: 0 0 0 12px; line-height: 1.3; padding: 0; }
+  .value-block li { margin-bottom: 2px; }
+  .value-shot-row { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 10px; min-height: 0; align-items: stretch; }
+  .value-shot-wrap { display: flex; flex-direction: column; min-height: 0; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .value-shot-wrap .screenshot-frame { flex: 1; min-height: 44mm; max-height: 48mm; background: #eef1f5; border: none; }
+  .value-shot-wrap .screenshot-frame img { object-fit: contain; object-position: center top; }
+  .value-kpi-strip { display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+  .value-kpi { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; border-left: 3px solid var(--alert); }
+  .value-kpi b { display: block; font-size: 11pt; color: var(--alert); margin-bottom: 4px; }
+  .value-kpi span { font-size: 9pt; color: #48484a; line-height: 1.3; }
+  .value-annotations { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .slide-10-body { display: grid; grid-template-rows: auto auto 1fr; gap: 8px; flex: 1; min-height: 0; }
+  .eco-map { flex-shrink: 0; margin-top: 0; }
+  .eco-map svg { max-height: 24mm; display: block; }
+  .eco-caption { font-size: 9pt; color: var(--accent); font-weight: 600; text-align: center; margin-top: 4px; line-height: 1.3; }
+  .slide-10-side { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+  .verdict-compare { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; }
+  .verdict-panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .verdict-panel.low { border-top: 3px solid var(--ok); }
+  .verdict-panel.high { border-top: 3px solid var(--alert); }
+  .verdict-panel h4 { font-size: 10pt; font-weight: 700; }
+  .verdict-panel.low h4 { color: var(--ok); }
+  .verdict-panel.high h4 { color: var(--alert); }
+  .verdict-panel .verdict-diagram { flex: 1; min-height: 36mm; }
+  .verdict-slider { background: var(--accent-soft); border: 1px solid #b8d4f0; border-radius: var(--radius); padding: 8px 10px; text-align: center; font-size: 9pt; color: var(--accent); font-weight: 600; }
+  .pillar-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .slide { page-break-inside: avoid; } }
+</style>
+</head>
+<body>
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="ico-cost" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 10h4a2 2 0 110 4h-2"/></symbol>
+  <symbol id="ico-time" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="ico-alert" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></symbol>
+  <symbol id="ico-chart" viewBox="0 0 24 24"><path d="M4 18v-6M10 18V6M16 18v-9M22 18V4"/></symbol>
+  <symbol id="ico-code" viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M14 6l-4 12"/></symbol>
+  <symbol id="ico-free" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12h8"/></symbol>
+  <symbol id="ico-shield" viewBox="0 0 24 24"><path d="M12 3l8 4v6c0 5-3.5 8-8 8s-8-3-8-8V7z"/></symbol>
+  <symbol id="ico-launch" viewBox="0 0 24 24"><path d="M5 16l4-10 10-4-4 10z"/><path d="M15 6l3 3"/></symbol>
+  <symbol id="ico-down-cost" viewBox="0 0 24 24"><path d="M12 4v14M8 14l4 4 4-4"/><path d="M5 20h14"/></symbol>
+  <symbol id="ico-warroom" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M4 19c0-3 2.5-5 5-5s5 2 5 5M13 19c0-2.5 1.5-4 3.5-4"/></symbol>
+  <symbol id="ico-freeze" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 118 0v3"/></symbol>
+  <symbol id="ico-signal" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></symbol>
+  <symbol id="ico-explain" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="5" rx="1"/><rect x="13" y="4" width="7" height="5" rx="1"/><rect x="8.5" y="13" width="7" height="7" rx="1"/><path d="M7.5 9v2h2M16.5 9v2h-2M12 11v2"/></symbol>
+  <symbol id="ico-mult" viewBox="0 0 24 24"><circle cx="8" cy="8" r="4"/><circle cx="16" cy="16" r="4"/><path d="M11 11l2 2"/></symbol>
+  <symbol id="ico-agent" viewBox="0 0 24 24"><path d="M12 3a5 5 0 015 5v1h-2l2 5-2 2-3-3-3 3-2-2 2-5H7a5 5 0 015-5z"/><path d="M9 18h6"/></symbol>
+  <symbol id="ico-hybrid" viewBox="0 0 24 24"><ellipse cx="8" cy="12" rx="5" ry="6"/><ellipse cx="16" cy="12" rx="5" ry="6"/><path d="M11 12h2"/></symbol>
+  <symbol id="ico-json" viewBox="0 0 24 24"><path d="M7 6c-2 0-3 1-3 3s1 3 3 3-1 2-1 3 1 3 3 3M17 6c2 0 3 1 3 3s-1 3-3 3 1 2 1 3-1 3-3 3"/></symbol>
+  <symbol id="ico-server" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="6" rx="1"/><rect x="4" y="14" width="16" height="6" rx="1"/><path d="M8 7h.01M8 17h.01"/></symbol>
+  <symbol id="ico-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></symbol>
+  <symbol id="ico-eco" viewBox="0 0 24 24"><circle cx="12" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M12 9L6 15M12 9l6 6"/></symbol>
+  <symbol id="ico-gp" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/></symbol>
+  <symbol id="ico-func" viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4"/><path d="M13 6l-2 12"/></symbol>
+  <symbol id="ico-risk" viewBox="0 0 24 24"><path d="M4 18h16"/><rect x="6" y="12" width="3" height="6" rx="1" fill="rgba(36,137,66,0.25)" stroke="#248942"/><rect x="10.5" y="8" width="3" height="10" rx="1" fill="rgba(184,110,0,0.25)" stroke="#b86e00"/><rect x="15" y="4" width="3" height="14" rx="1" fill="rgba(196,30,18,0.25)" stroke="#c41e12"/></symbol>
+</svg>
+
+<!-- 1 TITLE -->
+<section class="slide title-slide">
+  <div class="title-layout">
+    <div class="title-content">
+      <div class="title-eyebrow">Greenplum · PL/pgSQL · Pre-deploy</div>
+      <h1 class="hero-title">GPA<span>Analyzer</span></h1>
+      <p class="hero-sub">Оценка риска нагрузки функции и SQL до прогона на проде — по планам, сценарию данных и антипаттернам</p>
+      <div class="title-pills">
+        <span class="pill pill-green">MIT · self-host</span>
+        <span class="pill pill-blue">Pilot 2 недели</span>
+        <span class="pill pill-gray">Roadmap · расширения</span>
+      </div>
+      <div class="hero-cards">
+        <div class="hero-card"><h4>Риск и GB</h4><p>Сводка по блокам, топ нагрузки, время</p></div>
+        <div class="hero-card"><h4>Сценарий роста</h4><p>Желаемые строки таблиц до деплоя</p></div>
+        <div class="hero-card"><h4>Антипаттерны</h4><p>+GB на скейле · рекомендации в UI</p></div>
+      </div>
+    </div>
+    <div class="title-visual">
+      <svg class="title-art" viewBox="0 0 360 260" aria-hidden="true">
+        <defs>
+          <pattern id="g" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M16 0H0V16" fill="none" stroke="rgba(255,255,255,0.05)"/></pattern>
+          <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#4db8ff"/></marker>
+          <filter id="glow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <rect width="360" height="260" fill="url(#g)"/>
+        <text x="180" y="28" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9" font-weight="700" letter-spacing="1" font-family="Segoe UI,sans-serif">PRE-DEPLOY · EXPLAIN · ΣGB/RAM</text>
+        <g transform="translate(24,52)">
+          <ellipse cx="32" cy="12" rx="28" ry="10" fill="none" stroke="#5dd879" stroke-width="1.5"/>
+          <path d="M4 12v52c0 8 12.5 14 28 14s28-6 28-14V12" fill="rgba(52,199,89,0.1)" stroke="#5dd879" stroke-width="1.5"/>
+          <text x="14" y="42" fill="#fff" font-size="9" font-weight="700" font-family="Segoe UI,sans-serif">GP</text>
+        </g>
+        <path d="M88 88h36" stroke="#4db8ff" stroke-width="2" marker-end="url(#arr)"/>
+        <rect x="128" y="68" width="72" height="40" rx="8" fill="none" stroke="#4db8ff" stroke-width="1.5"/>
+        <text x="164" y="88" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="monospace">f()</text>
+        <text x="164" y="100" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-size="7" font-family="Segoe UI,sans-serif">PL/pgSQL</text>
+        <path d="M204 88h36" stroke="#4db8ff" stroke-width="2" marker-end="url(#arr)"/>
+        <circle cx="268" cy="88" r="36" fill="none" stroke="#4db8ff" stroke-width="2"/>
+        <circle cx="268" cy="88" r="26" fill="rgba(77,184,255,0.12)" stroke="rgba(77,184,255,0.5)" stroke-width="1"/>
+        <text x="268" y="84" text-anchor="middle" fill="#4db8ff" font-size="9" font-weight="800" font-family="Segoe UI,sans-serif">GPA</text>
+        <text x="268" y="96" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="Segoe UI,sans-serif">Analyzer</text>
+        <path d="M304 88h28" stroke="#ff6b5a" stroke-width="2" marker-end="url(#arr)"/>
+        <g transform="translate(296,130)" filter="url(#glow)">
+          <rect x="0" y="24" width="14" height="20" rx="2" fill="rgba(36,137,66,0.4)" stroke="#5dd879"/>
+          <rect x="18" y="12" width="14" height="32" rx="2" fill="rgba(255,179,64,0.4)" stroke="#ffb340"/>
+          <rect x="36" y="0" width="14" height="44" rx="2" fill="rgba(255,107,90,0.55)" stroke="#ff6b5a" stroke-width="2"/>
+          <text x="43" y="-8" text-anchor="middle" fill="#ff6b5a" font-size="10" font-weight="800" font-family="Segoe UI,sans-serif">HIGH</text>
+          <text x="43" y="58" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="8" font-family="Segoe UI,sans-serif">go / no-go</text>
+        </g>
+        <text x="180" y="238" text-anchor="middle" fill="rgba(255,255,255,0.65)" font-size="10" font-weight="600" font-family="Segoe UI,sans-serif">Риск нагрузки до прогона на проде</text>
+      </svg>
+    </div>
+  </div>
+  <div class="title-footer">
+    <span><b>Dmitry Solonnikov</b> · <a href="https://t.me/Dmitry_as_SoloD">t.me/Dmitry_as_SoloD</a></span>
+    <span>1 / 12</span>
+  </div>
+</section>
+
+<!-- 2 PROBLEM -->
+<section class="slide">
+  <div class="slide-bar"></div>
+  <div class="slide-header">
+    <div>
+      <div class="slide-num">02 · Проблема</div>
+      <div class="slide-title">Код принят на review — на проде падает кластер</div>
+      <div class="slide-headline">Пик RAM на сегменте Greenplum виден только при реальном объеме данных и плане запроса</div>
+    </div>
+    <div class="slide-brand">GPA Analyzer</div>
+  </div>
+  <div class="slide-body cols-55-45">
+    <div style="display:flex;flex-direction:column;gap:8px;min-height:0">
+      <div class="pipeline">
+        <div class="pipe-step pipe-t">DDL функции<div class="pipe-sub">merge в main</div></div>
+        <div class="pipe-step pipe-f">Ночной прогон<div class="pipe-sub">пик RAM</div></div>
+        <div class="pipe-step pipe-v">Инцидент<div class="pipe-sub">SLA / откат</div></div>
+        <div class="pipe-step pipe-m">Post-mortem<div class="pipe-sub">часы разбора</div></div>
+      </div>
+      <div class="iceberg">
+        <div class="iceberg-vis">
+          <div class="ice-top">Code<br>review OK</div>
+          <div class="ice-bot">OOM · spill<br>· 1249% RAM/seg</div>
+        </div>
+        <div class="iceberg-list">
+          <div class="ice-item"><span class="ice-dot" style="background:var(--accent)"></span><span><b>Ручной EXPLAIN</b> по десяткам блоков в функции</span></div>
+          <div class="ice-item"><span class="ice-dot" style="background:#ff9500"></span><span><b>Нет сценария роста</b> — оценка только на «сегодняшних» строках</span></div>
+          <div class="ice-item"><span class="ice-dot" style="background:#ff3b30"></span><span><b>Антипаттерны</b> LATERAL, SELECT *, ORDER BY без LIMIT</span></div>
+          <div class="ice-item"><span class="ice-dot" style="background:#5856d6"></span><span><b>Нет единого отчета</b> для бизнеса и DE до релиза</span></div>
+        </div>
+      </div>
+      <div class="infographic-panel">
+        <h5>Эскалация стоимости без pre-deploy</h5>
+        <svg viewBox="0 0 320 72" aria-hidden="true">
+          <line x1="24" y1="58" x2="296" y2="58" stroke="#c8d0dc" stroke-width="1.5"/>
+          <rect x="24" y="42" width="40" height="16" rx="3" fill="#e6f4ec" stroke="#248942"/>
+          <rect x="88" y="32" width="40" height="26" rx="3" fill="#fff4e0" stroke="#b86e00"/>
+          <rect x="152" y="18" width="40" height="40" rx="3" fill="#ffe8e6" stroke="#c41e12"/>
+          <rect x="216" y="6" width="72" height="52" rx="3" fill="#fde8e6" stroke="#c41e12" stroke-width="1.5"/>
+          <text x="28" y="54" font-size="7" fill="#248942" font-family="Segoe UI,sans-serif">merge</text>
+          <text x="90" y="44" font-size="7" fill="#b86e00" font-family="Segoe UI,sans-serif">ночь</text>
+          <text x="154" y="30" font-size="7" fill="#c41e12" font-family="Segoe UI,sans-serif">OOM</text>
+          <text x="222" y="18" font-size="7" fill="#c41e12" font-weight="700" font-family="Segoe UI,sans-serif">war room</text>
+          <text x="222" y="30" font-size="7" fill="#5a6578" font-family="Segoe UI,sans-serif">+ откат</text>
+          <path d="M44 42 L88 32 L152 18 L216 12" fill="none" stroke="#0d5cab" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <text x="120" y="68" font-size="8" fill="#0d5cab" font-weight="600" font-family="Segoe UI,sans-serif">GPA — сигнал на этапе merge</text>
+        </svg>
+      </div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><svg class="icon icon-red"><use href="#ico-down-cost"/></svg><div><h4>Прямые затраты</h4><p>Простой витрины, аварийные правки, откат релиза</p></div></div>
+      <div class="stat-card"><svg class="icon icon-orange"><use href="#ico-warroom"/></svg><div><h4>Время команды</h4><p>War room и ручной разбор планов по блокам</p></div></div>
+      <div class="stat-card"><svg class="icon icon-orange"><use href="#ico-freeze"/></svg><div><h4>Страх деплоя</h4><p>«Не трогаем функцию» — витрины не масштабируются</p></div></div>
+      <div class="stat-card"><svg class="icon icon-gray"><use href="#ico-signal"/></svg><div><h4>Нет go/no-go</h4><p>Бизнес не видит риск в GB до merge</p></div></div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Pre-deploy оценка нагрузки</span><span>2 / 12</span></div>
+</section>
+
+<!-- 3 ECONOMICS -->
+<section class="slide">
+  <div class="slide-bar"></div>
+  <div class="slide-header">
+    <div>
+      <div class="slide-num">03 · Экономика</div>
+      <div class="slide-title">Тот же код — другой объем — другой риск деплоя</div>
+      <div class="slide-headline">От 0 GB до 1918 GB при росте строк · пороги риска: &lt;15% / 15–40% / &gt;40% RAM на сегмент</div>
+    </div>
+    <div class="slide-brand">GPA Analyzer</div>
+  </div>
+  <div class="slide-body cols-55-45">
+    <div>
+      <div class="ba-row header"><span>Показатель</span><span class="ba-bad">Без GPA</span><span class="ba-good">С GPA</span></div>
+      <div class="ba-grid">
+        <div class="ba-row"><span>Оценка функции перед релизом</span><span class="ba-bad">часы–дни</span><span class="ba-good">минуты</span></div>
+        <div class="ba-row"><span>Сценарий роста данных</span><span class="ba-bad">ad-hoc SQL</span><span class="ba-good">желаемые строки в UI</span></div>
+        <div class="ba-row"><span>Антипаттерны на скейле</span><span class="ba-bad">после OOM</span><span class="ba-good">+GB в отчете</span></div>
+        <div class="ba-row"><span>Артефакт для approve</span><span class="ba-bad">переписка</span><span class="ba-good">JSON + KPI в UI</span></div>
+      </div>
+      <div class="risk-formula"><b>Формула риска (README):</b> сумма GB по блокам (EXPLAIN + множители узлов + антипаттерны) ÷ RAM на сегмент → НИЗКИЙ / СРЕДНИЙ / ВЫСОКИЙ. Оценка по плану, не замена load test.</div>
+    </div>
+    <div class="verdict-compare">
+      <div class="verdict-slider">
+        <svg viewBox="0 0 200 28" width="100%" height="28" aria-hidden="true" style="display:block;margin:0 auto 4px;max-width:180px">
+          <rect x="20" y="4" width="24" height="16" rx="2" fill="#e8f1fb" stroke="#0d5cab"/>
+          <text x="32" y="15" text-anchor="middle" font-size="7" fill="#0d5cab" font-family="Segoe UI,sans-serif">rows</text>
+          <path d="M48 12h24" stroke="#0d5cab" stroke-width="1.5" marker-end="url(#arr3)"/>
+          <defs><marker id="arr3" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="#0d5cab"/></marker></defs>
+          <text x="100" y="16" text-anchor="middle" font-size="8" fill="#0d5cab" font-weight="700" font-family="Segoe UI,sans-serif">желаемые строки ↑</text>
+        </svg>
+        Один DDL — другой сценарий объема
+      </div>
+      <div class="verdict-panel low">
+        <h4>10M строк · сегодня</h4>
+        <div class="verdict-diagram">
+          <svg viewBox="0 0 160 80" aria-hidden="true">
+            <rect x="8" y="20" width="144" height="48" rx="6" fill="#e6f4ec" stroke="#248942"/>
+            <text x="80" y="42" text-anchor="middle" font-size="11" font-weight="800" fill="#248942" font-family="Segoe UI,sans-serif">НИЗКИЙ</text>
+            <text x="80" y="58" text-anchor="middle" font-size="14" font-weight="800" fill="#1a7f4b" font-family="Segoe UI,sans-serif">0 GB</text>
+            <circle cx="24" cy="32" r="8" fill="#248942"/>
+          </svg>
+        </div>
+        <p style="font-size:9pt;color:var(--muted)">Merge допустим · RAM/seg в норме</p>
+      </div>
+      <div class="verdict-panel high">
+        <h4>50B строк · завтра</h4>
+        <div class="verdict-diagram">
+          <svg viewBox="0 0 160 80" aria-hidden="true">
+            <rect x="8" y="12" width="144" height="56" rx="6" fill="#fde8e6" stroke="#c41e12"/>
+            <text x="80" y="36" text-anchor="middle" font-size="11" font-weight="800" fill="#c41e12" font-family="Segoe UI,sans-serif">ВЫСОКИЙ</text>
+            <text x="80" y="56" text-anchor="middle" font-size="14" font-weight="800" fill="#c41e12" font-family="Segoe UI,sans-serif">1918 GB</text>
+            <circle cx="24" cy="28" r="8" fill="#c41e12"/>
+          </svg>
+        </div>
+        <p style="font-size:9pt;color:var(--muted)">Отказ от ночного деплоя · правка SQL</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Сегодня vs завтра — один DDL</span><span>3 / 12</span></div>
+</section>
+
+<!-- 4 SOLUTION -->
+<section class="slide">
+  <div class="slide-bar"></div>
+  <div class="slide-header">
+    <div>
+      <div class="slide-num">04 · Решение</div>
+      <div class="slide-title">От DDL функции к отчету о риске — три шага</div>
+    </div>
+    <div class="slide-brand">GPA Analyzer</div>
+  </div>
+  <div class="slide-body">
+    <div class="funnel" style="margin-bottom:10px">
+      <div class="funnel-step"><div class="funnel-num">1</div><h4>Подготовка</h4><p>Стек Greenplum, режим (логика / гибрид / агент), DDL, опционально GigaChat</p></div>
+      <div class="funnel-step"><div class="funnel-num">2</div><h4>Таблицы и параметры</h4><p>Discovery, желаемые строки, параметры вызова функции</p></div>
+      <div class="funnel-step"><div class="funnel-num">3</div><h4>Результат</h4><p>Риск, GB, топ блоков, антипаттерны, пересчет</p></div>
+    </div>
+    <div class="cols-3">
+      <div class="pillar-v2">
+        <h4>EXPLAIN</h4>
+        <p>План на стенде GP по каждому SQL-блоку функции</p>
+        <div class="pillar-diagram">
+          <svg viewBox="0 0 200 70" aria-hidden="true">
+            <rect x="70" y="4" width="60" height="18" rx="3" fill="#e8f1fb" stroke="#0d5cab"/>
+            <text x="100" y="16" text-anchor="middle" font-size="7" fill="#0d5cab" font-weight="700" font-family="Segoe UI,sans-serif">Seq Scan</text>
+            <path d="M100 22v8" stroke="#0d5cab"/>
+            <rect x="70" y="30" width="60" height="18" rx="3" fill="#fff4e0" stroke="#b86e00"/>
+            <text x="100" y="42" text-anchor="middle" font-size="7" fill="#b86e00" font-weight="700" font-family="Segoe UI,sans-serif">Hash Join</text>
+            <path d="M100 48v8" stroke="#0d5cab"/>
+            <rect x="70" y="56" width="60" height="12" rx="3" fill="#e6f4ec" stroke="#248942"/>
+            <text x="100" y="65" text-anchor="middle" font-size="6" fill="#248942" font-family="Segoe UI,sans-serif">Motion</text>
+            <path d="M70 40 H40" stroke="#aeaeb2" stroke-dasharray="2 2"/><text x="24" y="43" font-size="6" fill="#5a6578" font-family="Segoe UI,sans-serif">GP</text>
+          </svg>
+        </div>
+      </div>
+      <div class="pillar-v2">
+        <h4>Множители узлов</h4>
+        <p>Seq Scan · Hash · Motion — GB по типу оператора</p>
+        <div class="pillar-diagram">
+          <svg viewBox="0 0 200 70" aria-hidden="true">
+            <line x1="20" y1="58" x2="180" y2="58" stroke="#c8d0dc"/>
+            <rect x="24" y="32" width="28" height="26" rx="3" fill="#e6f4ec" stroke="#248942"/>
+            <text x="38" y="48" text-anchor="middle" font-size="7" fill="#248942" font-weight="700" font-family="Segoe UI,sans-serif">×1</text>
+            <text x="38" y="24" text-anchor="middle" font-size="6" fill="#5a6578" font-family="Segoe UI,sans-serif">Scan</text>
+            <rect x="86" y="20" width="28" height="38" rx="3" fill="#fff4e0" stroke="#b86e00"/>
+            <text x="100" y="42" text-anchor="middle" font-size="7" fill="#b86e00" font-weight="700" font-family="Segoe UI,sans-serif">×N</text>
+            <text x="100" y="14" text-anchor="middle" font-size="6" fill="#5a6578" font-family="Segoe UI,sans-serif">Hash</text>
+            <rect x="148" y="8" width="28" height="50" rx="3" fill="#fde8e6" stroke="#c41e12"/>
+            <text x="162" y="36" text-anchor="middle" font-size="7" fill="#c41e12" font-weight="700" font-family="Segoe UI,sans-serif">×M</text>
+            <text x="162" y="6" text-anchor="middle" font-size="6" fill="#5a6578" font-family="Segoe UI,sans-serif">Motion</text>
+          </svg>
+        </div>
+      </div>
+      <div class="pillar-v2">
+        <h4>Чистый агент</h4>
+        <p>Fallback: синтез планов без БД, когда GP недоступен</p>
+        <div class="pillar-diagram">
+          <svg viewBox="0 0 200 70" aria-hidden="true">
+            <rect x="16" y="24" width="48" height="22" rx="4" fill="#e8f1fb" stroke="#0d5cab"/>
+            <text x="40" y="38" text-anchor="middle" font-size="7" fill="#0d5cab" font-family="Segoe UI,sans-serif">DDL</text>
+            <path d="M66 35h28" stroke="#7b2fa0"/>
+            <rect x="96" y="18" width="48" height="34" rx="4" fill="rgba(175,82,222,0.12)" stroke="#af52de"/>
+            <text x="120" y="32" text-anchor="middle" font-size="7" fill="#7b2fa0" font-weight="700" font-family="Segoe UI,sans-serif">LLM</text>
+            <text x="120" y="44" text-anchor="middle" font-size="6" fill="#5a6578" font-family="Segoe UI,sans-serif">plan</text>
+            <ellipse cx="168" cy="35" rx="20" ry="12" fill="none" stroke="#aeaeb2" stroke-dasharray="3 2"/>
+            <text x="168" y="38" text-anchor="middle" font-size="6" fill="#aeaeb2" font-family="Segoe UI,sans-serif">GP</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="mode-pills">
+      <span class="mode-pill">Режим: только логика</span>
+      <span class="mode-pill">Режим: гибрид GP + GigaChat</span>
+      <span class="mode-pill">Режим: чистый агент</span>
+    </div>
+    <p style="font-size:9pt;color:var(--muted);margin-top:6px">В расчет не все блоки DDL: SELECT INTO, EXECUTE INTO, TRUNCATE/VACUUM — см. README «Ограничения».</p>
+  </div>
+  <div class="slide-footer"><span>Подготовка → таблицы → отчет</span><span>4 / 12</span></div>
+</section>
+
+<!-- 5 ROLES -->
+<section class="slide">
+  <div class="slide-bar"></div>
+  <div class="slide-header">
+    <div>
+      <div class="slide-num">05 · Кому и зачем</div>
+      <div class="slide-title">Один отчет — четыре интерпретации</div>
+    </div>
+    <div class="slide-brand">GPA Analyzer</div>
+  </div>
+  <div class="slide-body">
+    <div class="roles-grid">
+      <div class="role-card biz">
+        <div class="role-title">Бизнес / владелец витрины</div>
+        <div class="role-sub">Go/no-go до merge</div>
+        <div class="role-body">Светофор риска и нагрузка в GB — понятный артефакт для approve релиза без чтения SQL.</div>
+        <div class="role-scenario"><b>Сценарий</b>«Релиз функции на +30% данных — допустимый риск?»</div>
+      </div>
+      <div class="role-card an">
+        <div class="role-title">Аналитик / AE</div>
+        <div class="role-sub">Сценарий «что если»</div>
+        <div class="role-body">Желаемые строки таблиц, параметры вызова — моделирование роста без прогона на проде.</div>
+        <div class="role-scenario"><b>Сценарий</b>50B строк в фактах → пересчет нагрузки в UI</div>
+      </div>
+      <div class="role-card de">
+        <div class="role-title">Разработчик / DE</div>
+        <div class="role-sub">Приоритет правок</div>
+        <div class="role-body">Топ-3 блока, SQL в карточке, антипаттерны с рекомендациями — куда править в первую очередь.</div>
+        <div class="role-scenario"><b>Сценарий</b>Блок INSERT 250 GB — убрать SELECT * и лишний ORDER BY</div>
+      </div>
+      <div class="role-card dba">
+        <div class="role-title">DBA / платформа</div>
+        <div class="role-sub">Превентивный контроль</div>
+        <div class="role-body">Оценка RAM/segment, режим с EXPLAIN на IFT/PROM или агент для изолированных контуров.</div>
+        <div class="role-scenario"><b>Сценарий</b>Gate в CI: high risk → обязательный review</div>
+      </div>
+    </div>
+    <div class="scenario-bar">
+      <div class="scenario-bar-title">Пример: инкрементальная загрузка витрины — риск ВЫСОКИЙ до правки SQL</div>
+      <div class="scenario-bar-item"><b>Бизнес</b>Отказ от ночного деплоя</div>
+      <div class="scenario-bar-item"><b>Аналитик</b>Сценарий объема в UI</div>
+      <div class="scenario-bar-item"><b>DE</b>Топ блоков + антипаттерны</div>
+      <div class="scenario-bar-item"><b>DBA</b>EXPLAIN без прогона функции</div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Один отчет — четыре роли</span><span>5 / 12</span></div>
+</section>
+
+<!-- 6 ARCHITECTURE -->
+<section class="slide">
+  <div class="slide-bar"></div>
+  <div class="slide-header">
+    <div>
+      <div class="slide-num">06 · Развертывание</div>
+      <div class="slide-title">Self-host: UI + API + Greenplum или агент</div>
+    </div>
+    <div class="slide-brand">GPA Analyzer</div>
+  </div>
+  <div class="slide-body cols-60-40">
+    <div style="display:flex;flex-direction:column;gap:8px;min-height:0">
+      <div class="arch">
+        <div class="arch-node arch-ui">Web UI<small>3-step workspace</small></div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-node arch-api">FastAPI<small>/api/* jobs</small></div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-node arch-core">Analysis<small>EXPLAIN · lint</small></div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-node arch-db">Greenplum<small>опционально</small></div>
+      </div>
+      <div class="arch" style="margin-top:0">
+        <div class="arch-node arch-agent">GigaChat Agent<small>блоки · планы</small></div>
+        <span class="arch-arrow">↔</span>
+        <div class="arch-node arch-core">Orchestrator<small>discovery · analyze</small></div>
+      </div>
+      <div class="infographic-panel" style="flex:1">
+        <h5>Поток данных · три режима исполнения</h5>
+        <svg viewBox="0 0 400 88" aria-hidden="true">
+          <defs><marker id="arr2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#aeaeb2"/></marker></defs>
+          <rect x="8" y="28" width="72" height="32" rx="6" fill="#e8f1fb" stroke="#0d5cab"/>
+          <text x="18" y="44" font-size="8" font-weight="700" fill="#0d5cab" font-family="Segoe UI,sans-serif">UI</text>
+          <text x="14" y="54" font-size="7" fill="#5a6578" font-family="Segoe UI,sans-serif">workspace</text>
+          <path d="M82 44h24" stroke="#aeaeb2" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <rect x="108" y="20" width="88" height="48" rx="6" fill="#fff4e0" stroke="#ff9500"/>
+          <text x="118" y="38" font-size="8" font-weight="700" fill="#a05f00" font-family="Segoe UI,sans-serif">Orchestrator</text>
+          <text x="118" y="50" font-size="7" fill="#5a6578" font-family="Segoe UI,sans-serif">parse · discover</text>
+          <text x="118" y="60" font-size="7" fill="#5a6578" font-family="Segoe UI,sans-serif">analyze · JSON</text>
+          <path d="M198 36h20" stroke="#248942" stroke-width="1.2"/>
+          <path d="M198 52h20" stroke="#7b2fa0" stroke-width="1.2"/>
+          <rect x="220" y="12" width="76" height="28" rx="5" fill="#e6f4ec" stroke="#34c759"/>
+          <text x="230" y="28" font-size="7" font-weight="700" fill="#248942" font-family="Segoe UI,sans-serif">GP EXPLAIN</text>
+          <text x="230" y="36" font-size="6" fill="#5a6578" font-family="Segoe UI,sans-serif">только логика</text>
+          <rect x="220" y="44" width="76" height="28" rx="5" fill="rgba(175,82,222,0.12)" stroke="#af52de"/>
+          <text x="230" y="60" font-size="7" font-weight="700" fill="#7b2fa0" font-family="Segoe UI,sans-serif">GigaChat</text>
+          <text x="230" y="68" font-size="6" fill="#5a6578" font-family="Segoe UI,sans-serif">гибрид / агент</text>
+          <path d="M298 44h20" stroke="#aeaeb2" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <rect x="320" y="28" width="72" height="32" rx="6" fill="#fde8e6" stroke="#c41e12"/>
+          <text x="332" y="44" font-size="8" font-weight="700" fill="#c41e12" font-family="Segoe UI,sans-serif">Отчет</text>
+          <text x="328" y="54" font-size="7" fill="#5a6578" font-family="Segoe UI,sans-serif">risk · GB</text>
+        </svg>
+      </div>
+      <div class="req-box">
+        <b>Сейчас:</b> hybrid — FastAPI <code>/api/*</code> + Flask UI (WSGI) · <b>Запуск:</b> <code>run-app.sh</code> :8003
+      </div>
+    </div>
+    <div class="pillar-grid-2x2">
+      <div class="pillar-v2">
+        <h4>Только логика</h4>
+        <p>Парсер + EXPLAIN в БД</p>
+        <div class="pillar-diagram">
+          <svg viewBox="0 0 180 56" aria-hidden="true">
+            <ellipse cx="28" cy="28" rx="22" ry="10" fill="#e6f4ec" stroke="#248942"/>
+            <text x="28" y="31" text-anchor="middle" font-size="7" fill="#248942" font-weight="700" font-family="Segoe UI,sans-serif">GP</text>
+            <path d="M52 28h24" stroke="#248942" stroke-width="1.5"/>
+            <rect x="78" y="16" width="40" height="24" rx="4" fill="#fff4e0" stroke="#ff9500"/>
+            <text x="98" y="32" text-anchor="middle" font-size="7" fill="#a05f00" font-family="Segoe UI,sans-serif">parse</text>
+            <path d="M120 28h20" stroke="#248942"/>
+            <rect x="142" y="16" width="32" height="24" rx="4" fill="#e8f1fb" stroke="#0d5cab"/>
+            <text x="158" y="32" text-anchor="middle" font-size="6" fill="#0d5cab" font-family="Segoe UI,sans-serif">EXPLAIN</text>
+          </svg>
+        </div>
+      </div>
+      <div class="pillar-v2">
+        <h4>Гибрид</h4>
+        <p>БД + fallback GigaChat при сбоях</p>
+        <div class="pillar-diagram">
+          <svg viewBox="0 0 180 56" aria-hidden="true">
+            <ellipse cx="32" cy="28" rx="24" ry="11" fill="#e6f4ec" stroke="#248942"/>
+            <text x="32" y="31" text-anchor="middle" font-size="7" fill="#248942" font-family="Segoe UI,sans-serif">GP</text>
+            <path d="M58 28h30" stroke="#248942"/>
+            <rect x="90" y="14" width="36" height="28" rx="4" fill="#fff4e0" stroke="#ff9500"/>
+            <text x="108" y="32" text-anchor="middle" font-size="7" fill="#a05f00" font-family="Segoe UI,sans-serif">core</text>
+            <path d="M108 14v-6h40" stroke="#7b2fa0" stroke-dasharray="3 2"/>
+            <rect x="140" y="2" width="36" height="20" rx="4" fill="rgba(175,82,222,0.12)" stroke="#af52de"/>
+            <text x="158" y="15" text-anchor="middle" font-size="6" fill="#7b2fa0" font-family="Segoe UI,sans-serif">LLM</text>
+          </svg>
+        </div>
+      </div>
+      <div class="pillar-v2">
+        <h4>Чистый агент</h4>
+        <p>Без GP — изолированные контуры</p>
+        <div class="pillar-diagram">
+          <svg viewBox="0 0 180 56" aria-hidden="true">
+            <ellipse cx="36" cy="28" rx="26" ry="12" fill="none" stroke="#aeaeb2" stroke-dasharray="4 3"/>
+            <line x1="20" y1="18" x2="52" y2="38" stroke="#c41e12" stroke-width="1.5"/>
+            <rect x="72" y="14" width="44" height="28" rx="4" fill="rgba(175,82,222,0.15)" stroke="#af52de"/>
+            <text x="94" y="32" text-anchor="middle" font-size="8" fill="#7b2fa0" font-weight="700" font-family="Segoe UI,sans-serif">LLM</text>
+            <path d="M118 28h24" stroke="#7b2fa0"/>
+            <rect x="144" y="18" width="32" height="20" rx="3" fill="#e8f1fb" stroke="#0d5cab"/>
+            <text x="160" y="32" text-anchor="middle" font-size="6" fill="#0d5cab" font-family="Segoe UI,sans-serif">plan</text>
+          </svg>
+        </div>
+      </div>
+      <div class="pillar-v2">
+        <h4>Отчет</h4>
+        <p>JSON export · SSE лог · gate MR</p>
+        <div class="pillar-diagram">
+          <svg viewBox="0 0 180 56" aria-hidden="true">
+            <rect x="20" y="8" width="48" height="40" rx="4" fill="#e8f1fb" stroke="#0d5cab"/>
+            <text x="44" y="24" text-anchor="middle" font-size="8" fill="#0d5cab" font-weight="700" font-family="Segoe UI,sans-serif">JSON</text>
+            <text x="44" y="38" text-anchor="middle" font-size="6" fill="#5a6578" font-family="Segoe UI,sans-serif">export</text>
+            <rect x="80" y="14" width="36" height="14" rx="3" fill="#fde8e6" stroke="#c41e12"/>
+            <text x="98" y="24" text-anchor="middle" font-size="6" fill="#c41e12" font-weight="700" font-family="Segoe UI,sans-serif">risk</text>
+            <rect x="80" y="32" width="36" height="14" rx="3" fill="#fff4e0" stroke="#b86e00"/>
+            <text x="98" y="42" text-anchor="middle" font-size="6" fill="#b86e00" font-family="Segoe UI,sans-serif">GB</text>
+            <rect x="124" y="22" width="36" height="14" rx="3" fill="#e6f4ec" stroke="#248942"/>
+            <text x="142" y="32" text-anchor="middle" font-size="6" fill="#248942" font-family="Segoe UI,sans-serif">blocks</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>IFT/PROM · Redis+RQ · старт за день</span><span>6 / 12</span></div>
+</section>
+
+<!-- 7 RESULT VALUE -->
+<section class="slide">
+  <div class="slide-bar"></div>
+  <div class="slide-header">
+    <div>
+      <div class="slide-num">07 · Результат</div>
+      <div class="slide-title">Вердикт до merge: ВЫСОКИЙ риск и 1918 GB</div>
+      <div class="slide-headline">Светофор риска и GB для approve без чтения SQL</div>
+    </div>
+    <div class="slide-brand">GPA Analyzer</div>
+  </div>
+  <div class="slide-body slide-07-body">
+    <div class="value-strip">
+      <div class="value-block">
+        <h4>Что это</h4>
+        <p>Pre-deploy отчет: риск, GB по блокам, антипаттерны — EXPLAIN + сценарий данных.</p>
+      </div>
+      <div class="value-block">
+        <h4>Зачем</h4>
+        <p>Go/no-go до merge без ночного деплоя с неприемлемым риском.</p>
+      </div>
+      <div class="value-block">
+        <h4>Что решает</h4>
+        <p>Светофор · 1918 GB · топ-3 блока для DE</p>
+      </div>
+    </div>
+    <div class="value-shot-row">
+      <div class="value-shot-wrap">
+        <div class="screenshot-frame"><img src="screen/S-08.png" alt="Результат high risk"></div>
+      </div>
+      <div class="value-kpi-strip">
+        <div class="value-kpi"><b>ВЫСОКИЙ риск</b><span>Для бизнеса: stop deploy до правки SQL</span></div>
+        <div class="value-kpi" style="border-left-color:var(--accent)"><b>1918 GB + 1031 GB</b><span>Для DE: антипаттерны на скейле · JSON export</span></div>
+        <div class="value-kpi" style="border-left-color:var(--ok)"><b>1249% RAM/seg</b><span>В логе — оценка по плану, не load test</span></div>
+      </div>
+    </div>
+    <div class="value-annotations">
+      <div class="callout warn"><strong>Approve</strong>Артефакт для владельца витрины — без чтения SQL</div>
+      <div class="callout warn"><strong>DE</strong>Топ блоков и рекомендации — приоритет правок</div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Оценка по плану · не load test</span><span>7 / 12</span></div>
+</section>
+
+<!-- 8 PRIORITY FIXES -->
+<section class="slide">
+  <div class="slide-bar"></div>
+  <div class="slide-header">
+    <div>
+      <div class="slide-num">08 · Приоритет правок</div>
+      <div class="slide-title">Топ-3 блока по GB: что исправить до merge</div>
+      <div class="slide-headline">Антипаттерны SQL с +GB на скейле — рекомендации в отчете, не post-mortem</div>
+    </div>
+    <div class="slide-brand">GPA Analyzer</div>
+  </div>
+  <div class="slide-body cols-52-48" style="flex:1;min-height:0">
+    <div class="shot-panel shot-hero" style="height:100%">
+      <div class="screenshot-frame" style="max-height:none;min-height:52mm"><img src="screen/S-09.png" alt="Топ нагрузки"></div>
+      <div class="shot-caption"><b>Топ нагрузки</b> · блоки INSERT/UPDATE ~250 GB · куда править первым</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;min-height:0">
+      <div class="shot-panel shot-side">
+        <div class="screenshot-frame"><img src="screen/S-08_1.png" alt="Риски"></div>
+        <div class="shot-caption"><b>Антипаттерны</b> · ORDER BY · SELECT * · +GB на скейле</div>
+      </div>
+      <div class="priority-list">
+        <div class="priority-item"><span class="priority-num">1</span><span><b>Топ-3 блока</b> — 80% нагрузки в INSERT/UPDATE</span></div>
+        <div class="priority-item"><span class="priority-num">2</span><span><b>SQL в карточке</b> — правка без поиска в DDL</span></div>
+        <div class="priority-item"><span class="priority-num">3</span><span><b>Риски</b> — рекомендации до merge, не post-mortem</span></div>
+      </div>
+      <div class="infographic-panel" style="flex-shrink:0">
+        <h5>Язык разработчика</h5>
+        <svg viewBox="0 0 200 40" aria-hidden="true">
+          <rect x="4" y="8" width="56" height="24" rx="4" fill="#e8f1fb" stroke="#0d5cab"/>
+          <text x="12" y="24" font-size="7" fill="#0d5cab" font-family="Segoe UI,sans-serif">GB/block</text>
+          <path d="M64 20h16" stroke="#aeaeb2"/>
+          <rect x="84" y="8" width="56" height="24" rx="4" fill="#fff4e0" stroke="#b86e00"/>
+          <text x="92" y="24" font-size="7" fill="#b86e00" font-family="Segoe UI,sans-serif">lint</text>
+          <path d="M144 20h16" stroke="#aeaeb2"/>
+          <rect x="164" y="8" width="32" height="24" rx="4" fill="#e6f4ec" stroke="#248942"/>
+          <text x="172" y="24" font-size="7" fill="#248942" font-weight="700" font-family="Segoe UI,sans-serif">fix</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Приоритет правок до merge</span><span>8 / 12</span></div>
+</section>
+
+<!-- 9 WORKSPACE -->
+<section class="slide">
+  <div class="slide-bar"></div>
+  <div class="slide-header">
+    <div>
+      <div class="slide-num">09 · Workspace</div>
+      <div class="slide-title">Три шага до отчета — один сценарий</div>
+      <div class="slide-headline">Подготовка → объем данных → пересчет риска</div>
+    </div>
+    <div class="slide-brand">GPA Analyzer</div>
+  </div>
+  <div class="slide-body" style="flex:1;min-height:0">
+    <div class="step-journey">
+      <div class="step-journey-item">
+        <svg class="step-ico"><use href="#ico-func"/></svg>
+        <div><b>1 · Подготовка</b><span>DDL · Greenplum · режим</span></div>
+      </div>
+      <div class="step-journey-item">
+        <svg class="step-ico"><use href="#ico-chart"/></svg>
+        <div><b>2 · Таблицы</b><span>желаемые строки · параметры</span></div>
+      </div>
+      <div class="step-journey-item">
+        <svg class="step-ico icon-orange" style="stroke:#c41e12"><use href="#ico-risk"/></svg>
+        <div><b>3 · Результат</b><span>Риск · GB · пересчет</span></div>
+      </div>
+    </div>
+    <div class="shot-row">
+      <div class="shot-panel shot-hero">
+        <div class="screenshot-frame"><img src="screen/S-01.png" alt="Главная"></div>
+        <div class="shot-caption"><b>Шаг 0</b> · навигация · 3 этапа workspace</div>
+      </div>
+      <div class="shot-panel shot-hero">
+        <div class="screenshot-frame"><img src="screen/S-02.png" alt="Подготовка"></div>
+        <div class="shot-caption"><b>Шаг 1</b> · GP + гибрид · DDL функции</div>
+      </div>
+      <div class="shot-panel shot-hero">
+        <div class="screenshot-frame"><img src="screen/S-07_1.png" alt="Таблицы"></div>
+        <div class="shot-caption"><b>Шаг 2</b> · сценарий 50B строк · params</div>
+      </div>
+    </div>
+    <div class="callouts" style="margin-top:8px">
+      <div class="callout"><strong>Один трек</strong>Подготовка → таблицы → результат без смены контекста</div>
+      <div class="callout"><strong>What-if</strong>Желаемые строки до прогона на проде</div>
+      <div class="callout"><strong>LLM</strong>GigaChat в шаге 1 · ключ в сессии</div>
+      <div class="callout"><strong>Контекст</strong>Вердикт и правки — на слайдах 07–08</div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Три шага workspace · один сценарий</span><span>9 / 12</span></div>
+</section>
+
+<!-- 10 POSITIONING -->
+<section class="slide">
+  <div class="slide-bar"></div>
+  <div class="slide-header">
+    <div>
+      <div class="slide-num">10 · Позиционирование</div>
+      <div class="slide-title">Pre-deploy нагрузка — не замена DQ и lineage</div>
+      <div class="slide-headline">Дополняет gp_dq / dbscaner: качество данных и граф — GPA закрывает «потянет ли функция»</div>
+    </div>
+    <div class="slide-brand">GPA Analyzer</div>
+  </div>
+  <div class="slide-body slide-10-body">
+    <table class="vs-table" style="font-size:9.5pt">
+      <tr><th>Критерий</th><th>GPA Analyzer</th><th>Load test / APM</th></tr>
+      <tr><td>Время до первого сигнала</td><td class="score-high">минуты на DDL</td><td class="score-low">дни настройки</td></tr>
+      <tr><td>Сценарий роста строк</td><td class="score-high">в UI</td><td class="score-mid">синтетика</td></tr>
+      <tr><td>Антипаттерны SQL</td><td class="score-high">в отчете</td><td class="score-low">косвенно</td></tr>
+      <tr><td>Точность</td><td class="score-mid">модель + EXPLAIN</td><td class="score-high">факт прогона</td></tr>
+      <tr><td>Лицензия / pilot</td><td class="score-high">MIT · 2 нед</td><td class="score-mid">зависит от стека</td></tr>
+    </table>
+    <div class="infographic-panel eco-map">
+      <h5>Место в ландшафте данных</h5>
+      <svg viewBox="0 0 360 72" aria-hidden="true">
+        <circle cx="180" cy="20" r="18" fill="#e8f1fb" stroke="#0d5cab" stroke-width="2"/>
+        <text x="180" y="24" text-anchor="middle" font-size="9" font-weight="800" fill="#0d5cab" font-family="Segoe UI,sans-serif">GPA</text>
+        <text x="180" y="34" text-anchor="middle" font-size="7" fill="#5a6578" font-family="Segoe UI,sans-serif">нагрузка</text>
+        <circle cx="70" cy="58" r="16" fill="#e6f4ec" stroke="#248942" stroke-width="1.5"/>
+        <text x="70" y="56" text-anchor="middle" font-size="8" font-weight="700" fill="#248942" font-family="Segoe UI,sans-serif">gp_dq</text>
+        <text x="70" y="66" text-anchor="middle" font-size="6" fill="#5a6578" font-family="Segoe UI,sans-serif">качество</text>
+        <circle cx="290" cy="58" r="16" fill="#f3e8ff" stroke="#7b2fa0" stroke-width="1.5"/>
+        <text x="290" y="56" text-anchor="middle" font-size="8" font-weight="700" fill="#7b2fa0" font-family="Segoe UI,sans-serif">dbscaner</text>
+        <text x="290" y="66" text-anchor="middle" font-size="6" fill="#5a6578" font-family="Segoe UI,sans-serif">lineage</text>
+        <path d="M180 38 L70 44" stroke="#0d5cab" stroke-width="1.2" stroke-dasharray="3 2"/>
+        <path d="M180 38 L290 44" stroke="#0d5cab" stroke-width="1.2" stroke-dasharray="3 2"/>
+      </svg>
+      <p class="eco-caption">Потянет ли функция на росте данных? — до merge, не вместо DQ и lineage</p>
+    </div>
+    <div class="cols-3 slide-10-side" style="flex:1;min-height:0">
+      <div class="stat-card" style="border-left:4px solid var(--ok)"><svg class="icon icon-green"><use href="#ico-gp"/></svg><div><h4>Сильные стороны</h4><p>GP PL/pgSQL · EXPLAIN · what-if · антипаттерны +GB</p></div></div>
+      <div class="stat-card"><svg class="icon icon-red"><use href="#ico-alert"/></svg><div><h4>Не заменяет</h4><ul class="limits-list">
+        <li>Load test / APM 24/7</li>
+        <li>Org-wide DQ catalog / lineage</li>
+        <li>Гарантию SLA (модель по плану)</li>
+      </ul></div></div>
+      <div class="stat-card"><svg class="icon"><use href="#ico-eco"/></svg><div><h4>Экосистема</h4><p>gp_dq · dbscaner · GPA — тактический слой</p></div></div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Pre-deploy · не DQ и не APM</span><span>10 / 12</span></div>
+</section>
+
+<!-- 11 PILOT -->
+<section class="slide">
+  <div class="slide-bar"></div>
+  <div class="slide-header">
+    <div>
+      <div class="slide-num">11 · Pilot</div>
+      <div class="slide-title">2 недели — измеримый go/no-go</div>
+    </div>
+    <div class="slide-brand">GPA Analyzer</div>
+  </div>
+  <div class="slide-body cols-55-45">
+    <div style="display:flex;flex-direction:column;gap:8px;min-height:0">
+      <div class="infographic-panel pilot-infographic">
+        <h5>Дорожная карта pilot · 14 дней</h5>
+        <svg viewBox="0 0 360 56" aria-hidden="true">
+          <line x1="20" y1="28" x2="340" y2="28" stroke="#0d5cab" stroke-width="2"/>
+          <circle cx="40" cy="28" r="10" fill="#0d5cab"/><text x="40" y="32" text-anchor="middle" fill="#fff" font-size="8" font-weight="700">D1</text>
+          <circle cx="130" cy="28" r="10" fill="#0d5cab"/><text x="130" y="32" text-anchor="middle" fill="#fff" font-size="8" font-weight="700">W1</text>
+          <circle cx="220" cy="28" r="10" fill="#0d5cab"/><text x="220" y="32" text-anchor="middle" fill="#fff" font-size="8" font-weight="700">W2</text>
+          <circle cx="310" cy="28" r="10" fill="#248942"/><text x="310" y="32" text-anchor="middle" fill="#fff" font-size="8" font-weight="700">✓</text>
+          <text x="40" y="48" text-anchor="middle" font-size="7" fill="#5a6578" font-family="Segoe UI,sans-serif">1 func</text>
+          <text x="130" y="48" text-anchor="middle" font-size="7" fill="#5a6578" font-family="Segoe UI,sans-serif">3–5 func</text>
+          <text x="220" y="48" text-anchor="middle" font-size="7" fill="#5a6578" font-family="Segoe UI,sans-serif">gate MR</text>
+          <text x="310" y="48" text-anchor="middle" font-size="7" fill="#248942" font-weight="700" font-family="Segoe UI,sans-serif">go/no-go</text>
+        </svg>
+      </div>
+      <table class="kpi-table">
+        <tr><th>Этап</th><th>Действие</th><th>Результат</th></tr>
+        <tr><td>День 1</td><td><code>bash scripts/run-app.sh</code> · 1 функция из бэклога</td><td>Первый отчет risk/GB</td></tr>
+        <tr><td>Неделя 1</td><td>3–5 функций · IFT + сценарии роста</td><td>Baseline времени анализа</td></tr>
+        <tr><td>Неделя 2</td><td>Сравнение с интуицией DE / фактом прогона</td><td>≥1 отказ high-risk деплоя</td></tr>
+        <tr><td>Итог</td><td>ROI-отчет владельцу</td><td>Go / no-go масштаб</td></tr>
+      </table>
+      <div class="pilot-steps">
+        <div class="pilot-step"><b>Неделя 1</b>Подключение GP или агент</div>
+        <div class="pilot-step"><b>Неделя 2</b>Gate в процесс MR</div>
+        <div class="pilot-step"><b>Итог</b>KPI: риск до merge</div>
+      </div>
+    </div>
+    <div class="pillar-grid-2x2">
+      <div class="pillar-v2">
+        <h4>0 ₽ лицензия</h4>
+        <p>MIT · self-host</p>
+        <div class="pillar-diagram">
+          <svg viewBox="0 0 160 56" aria-hidden="true">
+            <rect x="48" y="8" width="64" height="36" rx="6" fill="#e6f4ec" stroke="#248942" stroke-width="1.5"/>
+            <text x="80" y="26" text-anchor="middle" font-size="10" font-weight="800" fill="#248942" font-family="Segoe UI,sans-serif">MIT</text>
+            <text x="80" y="38" text-anchor="middle" font-size="7" fill="#5a6578" font-family="Segoe UI,sans-serif">self-host</text>
+            <rect x="20" y="44" width="28" height="8" rx="2" fill="#e8f1fb" stroke="#0d5cab"/><rect x="56" y="44" width="28" height="8" rx="2" fill="#e8f1fb" stroke="#0d5cab"/><rect x="92" y="44" width="28" height="8" rx="2" fill="#e8f1fb" stroke="#0d5cab"/>
+          </svg>
+        </div>
+      </div>
+      <div class="pillar-v2">
+        <h4>Стенд</h4>
+        <p>IFT/PROM read-only или агент</p>
+        <div class="pillar-diagram">
+          <svg viewBox="0 0 160 56" aria-hidden="true">
+            <ellipse cx="40" cy="28" rx="28" ry="14" fill="#e6f4ec" stroke="#248942"/>
+            <text x="40" y="31" text-anchor="middle" font-size="7" fill="#248942" font-weight="700" font-family="Segoe UI,sans-serif">GP IFT</text>
+            <text x="100" y="20" text-anchor="middle" font-size="7" fill="#5a6578" font-family="Segoe UI,sans-serif">или</text>
+            <rect x="72" y="28" width="72" height="22" rx="4" fill="rgba(175,82,222,0.12)" stroke="#af52de"/>
+            <text x="108" y="42" text-anchor="middle" font-size="7" fill="#7b2fa0" font-family="Segoe UI,sans-serif">GigaChat agent</text>
+          </svg>
+        </div>
+      </div>
+      <div class="pillar-v2">
+        <h4>Метрика</h4>
+        <p>Минуты до отчета · число функций</p>
+        <div class="pillar-diagram">
+          <svg viewBox="0 0 160 56" aria-hidden="true">
+            <path d="M40 44 A28 28 0 0 1 100 44" fill="none" stroke="#c8d0dc" stroke-width="4"/>
+            <path d="M40 44 A28 28 0 0 1 88 28" fill="none" stroke="#0d5cab" stroke-width="4"/>
+            <text x="70" y="40" text-anchor="middle" font-size="9" font-weight="800" fill="#0d5cab" font-family="Segoe UI,sans-serif">&lt;15 мин</text>
+            <rect x="108" y="16" width="44" height="32" rx="4" fill="#e8f1fb" stroke="#0d5cab"/>
+            <text x="130" y="32" text-anchor="middle" font-size="12" font-weight="800" fill="#0d5cab" font-family="Segoe UI,sans-serif">3–5</text>
+            <text x="130" y="42" text-anchor="middle" font-size="6" fill="#5a6578" font-family="Segoe UI,sans-serif">функций</text>
+          </svg>
+        </div>
+      </div>
+      <div class="pillar-v2">
+        <h4>Бизнес-KPI</h4>
+        <p>0 сюрпризов на pilot-объектах</p>
+        <div class="pillar-diagram">
+          <svg viewBox="0 0 160 56" aria-hidden="true">
+            <path d="M80 12 L104 48 H56 Z" fill="none" stroke="#248942" stroke-width="1.5"/>
+            <path d="M80 22 L80 38 M72 30h16" stroke="#248942" stroke-width="2"/>
+            <text x="80" y="54" text-anchor="middle" font-size="8" font-weight="700" fill="#248942" font-family="Segoe UI,sans-serif">0 инцидентов</text>
+            <circle cx="124" cy="20" r="10" fill="#e6f4ec" stroke="#248942"/><path d="M120 20l3 3 6-6" stroke="#248942" stroke-width="1.5" fill="none"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Pilot → gate → масштаб</span><span>11 / 12</span></div>
+</section>
+
+<!-- 12 CONTACTS -->
+<section class="slide slide-contacts">
+  <div class="slide-bar"></div>
+  <div class="slide-header">
+    <div>
+      <div class="slide-num">12 · Контакт</div>
+      <div class="slide-title">Запуск pilot на ваших функциях</div>
+      <div class="slide-headline">Обсудим стенд, режим (БД / агент) и критерии go/no-go</div>
+    </div>
+    <div class="slide-brand">12 / 12</div>
+  </div>
+  <div class="slide-body">
+    <div class="contact-wrap">
+      <div class="contact-card">
+        <div class="contact-avatar">DS</div>
+        <div class="contact-name">Dmitry Solonnikov</div>
+        <div class="contact-role">Автор GPA Analyzer · Data Engineer</div>
+        <div class="contact-link"><a href="https://t.me/Dmitry_as_SoloD">t.me/Dmitry_as_SoloD</a></div>
+        <div class="contact-role" style="margin-top:4mm;font-size:10pt;color:var(--muted)">Greenplum · PL/pgSQL · MIT © 2026</div>
+      </div>
+      <div>
+        <div class="topic-item"><span class="topic-num">1</span><span>Pilot: 3–5 функций · отчет risk/GB за 2 недели</span></div>
+        <div class="topic-item"><span class="topic-num">2</span><span>Интеграция gate в MR / CI (JSON API)</span></div>
+        <div class="topic-item"><span class="topic-num">3</span><span>Режим без доступа к прод-БД (GigaChat агент)</span></div>
+        <div class="topic-item"><span class="topic-num">4</span><span>Связка с DQ и lineage в вашем ландшафте</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>GPA Analyzer</span><span>2026</span></div>
+</section>
+
+</body>
+</html>
